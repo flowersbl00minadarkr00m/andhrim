@@ -7,6 +7,7 @@ import {
   productEventSchema,
   projectProductEvents,
   proposeLearningCandidate,
+  validateReceiptStarterPackRevision,
 } from "./learning";
 
 const assessment = assessmentSchema.parse({
@@ -34,6 +35,15 @@ function event(eventId: string, value: object) {
 }
 
 describe("owner-approved learning projection", () => {
+  it("permits starter-pack edits without allowing receipt invariants to change", () => {
+    const edited = validateReceiptStarterPackRevision(fixtureReceipt, {
+      ...fixtureReceipt,
+      starterPack: fixtureReceipt.starterPack.map((item, index) => index === 0 ? { ...item, content: "Owner-edited local instruction." } : item),
+    });
+    expect(edited.starterPack[0].content).toBe("Owner-edited local instruction.");
+    expect(() => validateReceiptStarterPackRevision(fixtureReceipt, { ...edited, recommendation: "automated" })).toThrow(/Only the Work Starter Pack/u);
+  });
+
   it("keeps a proposed candidate inert", () => {
     const candidate = proposeLearningCandidate(outcome, new Date("2026-08-30T05:20:00.000Z"));
     const state = projectProductEvents([
@@ -67,6 +77,7 @@ describe("owner-approved learning projection", () => {
     ]);
     const adjusted = applyApprovedRules(assessment, fixtureReceipt, Object.values(state.rules));
     expect(adjusted.recommendation).toBe("human-led");
+    expect(adjusted.summary).toMatch(/adjusted this receipt from ai-assisted to human-led/u);
     expect(adjusted.appliedRules[0]).toMatchObject({ ruleId: rule.ruleId, version: 1, sourceOutcomeId: outcome.outcomeId });
   });
 

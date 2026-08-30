@@ -5,12 +5,36 @@ import {
 } from "../domain/recommendation";
 
 export async function requestEveReceipt(assessment: Assessment): Promise<RecommendationReceipt> {
+  const runtimeResponse = await fetch("/api/runtime", { cache: "no-store" });
+  const runtime = await runtimeResponse.json() as { providerMode?: "fixture" | "openrouter"; modelId?: string | null; configured?: boolean; error?: string };
+  if (!runtimeResponse.ok || !runtime.configured || !runtime.providerMode || !runtime.modelId) {
+    throw new Error(runtime.error ?? "The selected local model is not configured.");
+  }
+  let validationFailure = false;
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      return await requestAttempt(assessment, { providerMode: runtime.providerMode, modelId: runtime.modelId }, validationFailure);
+    } catch (error) {
+      if (!(error instanceof ReceiptValidationError) || attempt === 2) throw error;
+      validationFailure = true;
+    }
+  }
+  throw new Error("The local receipt failed bounded validation.");
+}
+
+class ReceiptValidationError extends Error {}
+
+async function requestAttempt(
+  assessment: Assessment,
+  runtime: RecommendationReceipt["runtime"],
+  correction: boolean,
+): Promise<RecommendationReceipt> {
   const createResponse = await fetch("/eve/v1/session", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       mode: "task",
-      message: `Return one Recommendation Receipt for this bounded assessment:\n${JSON.stringify(assessment)}`,
+      message: `${correction ? "The previous response failed strict validation. " : ""}Return only one Recommendation Receipt JSON object for this bounded assessment. Runtime metadata must be ${JSON.stringify(runtime)}.\n${JSON.stringify(assessment)}`,
     }),
   });
   if (createResponse.status !== 202) throw new Error("The local Eve session could not start.");
@@ -41,7 +65,12 @@ export async function requestEveReceipt(assessment: Assessment): Promise<Recomme
         if (event.type === "session.completed") {
           await reader.cancel("terminal-observed");
           if (!message) throw new Error("The local Eve session completed without a receipt.");
-          return parseRecommendationReceipt(JSON.parse(message));
+          try {
+            const value = JSON.parse(message) as Record<string, unknown>;
+            return parseRecommendationReceipt({ ...value, assessmentId: assessment.assessmentId, runtime });
+          } catch (error) {
+            throw new ReceiptValidationError("The model response failed strict receipt validation.", { cause: error });
+          }
         }
       }
     }

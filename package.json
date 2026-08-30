@@ -12,11 +12,14 @@
     "dev": "next dev --hostname 127.0.0.1",
     "eve:build": "eve build",
     "build": "node scripts/verify-build.mjs",
-    "start": "next start --hostname 127.0.0.1",
+    "start": "node scripts/start-local.mjs",
     "verify:provider-free": "node scripts/verify-provider-free.mjs",
     "verify:browser": "node scripts/verify-browser.mjs",
+    "verify:start": "node scripts/verify-start-local.mjs",
     "test": "node scripts/verify-unit.mjs",
-    "typecheck": "node scripts/verify-typecheck.mjs"
+    "typecheck": "node scripts/verify-typecheck.mjs",
+    "scan:secrets": "node scripts/scan-secrets.mjs",
+    "verify:licenses": "node scripts/verify-licenses.mjs"
   },
   "dependencies": {
     "@openrouter/ai-sdk-provider": "3.0.0",
@@ -48,7 +51,10 @@
       ["react-dom", "19.2.8", "MIT"],
       ["typescript", "5.9.2", "Apache-2.0"],
       ["vitest", "4.1.11", "MIT"],
-      ["@playwright/test", "1.62.1", "Apache-2.0"]
+      ["@playwright/test", "1.62.1", "Apache-2.0"],
+      ["@types/node", "24.13.3", "MIT"],
+      ["@types/react", "19.2.18", "MIT"],
+      ["@types/react-dom", "19.2.4", "MIT"]
     ]
   }
 }

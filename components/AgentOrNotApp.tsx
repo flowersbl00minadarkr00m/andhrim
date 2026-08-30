@@ -30,6 +30,8 @@ const scale = [
   "Critical — irreversible or safety-sensitive",
 ];
 
+type RuntimeStatus = { providerMode: "fixture" | "openrouter"; modelId: string | null; configured: boolean };
+
 function newAssessment(): Assessment {
   return assessmentSchema.parse({
     schemaVersion: "assessment-v1",
@@ -49,6 +51,7 @@ export function AgentOrNotApp() {
   const [projection, setProjection] = useState<ProductProjection>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus>();
 
   useEffect(() => {
     setAssessment(newAssessment());
@@ -56,6 +59,13 @@ export function AgentOrNotApp() {
       .then((response) => response.json())
       .then((value: { projection?: ProductProjection }) => value.projection && setProjection(value.projection))
       .catch(() => setError("The local event ledger could not be read."));
+    fetch("/api/runtime", { cache: "no-store" })
+      .then(async (response) => {
+        const value = await response.json() as RuntimeStatus & { error?: string };
+        if (!response.ok) throw new Error(value.error ?? "Invalid local model configuration.");
+        setRuntimeStatus(value);
+      })
+      .catch(() => setError("The local model configuration could not be read."));
   }, []);
 
   const previewRecommendation = useMemo<RecommendationReceipt["recommendation"]>(() => {
@@ -111,13 +121,32 @@ export function AgentOrNotApp() {
     setError("");
   };
 
+  const saveStarterPack = async (nextReceipt: RecommendationReceipt) => {
+    setError("");
+    try {
+      const response = await fetch("/api/events", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "edit-receipt", receipt: nextReceipt }),
+      });
+      const payload = await response.json() as { projection?: ProductProjection; error?: string };
+      if (!response.ok || !payload.projection) throw new Error(payload.error ?? "The starter pack could not be saved.");
+      setProjection(payload.projection);
+      setReceipt(payload.projection.receipts[nextReceipt.receiptId]);
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "The starter pack could not be saved.";
+      setError(message);
+      throw caught;
+    }
+  };
+
   return (
     <main>
       <header className="app-header">
         <button type="button" className="wordmark" onClick={reset}>Andhrím <em>Agent or Not?</em></button>
         <nav aria-label="Primary">
           <button type="button" onClick={reset}>New case</button>
-          <a href="#outcome-heading">Outcome</a>
+          {receipt ? <a href="#outcome-heading">Outcome</a> : null}
           <a href="/api/export">Export</a>
           <a href="#about">About</a>
         </nav>
@@ -166,7 +195,7 @@ export function AgentOrNotApp() {
         </div>
       ) : (
         <div className="completed-layout">
-          <section className="completed-receipt"><Receipt receipt={receipt} previewRecommendation={receipt.recommendation} step={4} /></section>
+          <section className="completed-receipt"><Receipt receipt={receipt} previewRecommendation={receipt.recommendation} step={4} onStarterPackSave={saveStarterPack} /></section>
           <LearningPanel receipt={receipt} projection={projection} onProjection={setProjection} onError={setError} />
           {error ? <p className="error completed-error" role="alert">{error}</p> : null}
         </div>
@@ -174,6 +203,7 @@ export function AgentOrNotApp() {
 
       <footer className="app-footer" id="about">
         <p><b>Local only</b> · Eve session · No tools enabled · Records stay on this computer</p>
+        <p>{runtimeStatus ? `${runtimeStatus.providerMode === "fixture" ? "Fixture" : "OpenRouter"} · ${runtimeStatus.modelId ?? "model not selected"} · ${runtimeStatus.configured ? "configured" : "not configured"}` : "Reading local model status…"}</p>
         <p>Non-production prototype. OpenRouter owner smoke remains pending.</p>
       </footer>
     </main>

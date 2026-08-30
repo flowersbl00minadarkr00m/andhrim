@@ -26,6 +26,7 @@ export function LearningPanel({ receipt, projection, onProjection, onError }: Pr
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [candidateRationale, setCandidateRationale] = useState("");
 
   const outcome = Object.values(projection?.outcomes ?? {}).find((entry) => entry.receiptId === receipt.receiptId);
   const candidate = Object.values(projection?.candidates ?? {}).find((entry) => entry.sourceOutcomeId === outcome?.outcomeId);
@@ -57,7 +58,7 @@ export function LearningPanel({ receipt, projection, onProjection, onError }: Pr
       candidate: {
         ...current,
         revision: current.revision + 1,
-        rationale: correctionNotes || current.rationale,
+        rationale: candidateRationale || current.rationale,
       },
     });
     setEditing(false);
@@ -86,7 +87,7 @@ export function LearningPanel({ receipt, projection, onProjection, onError }: Pr
         <span className="step-number">2</span>
         <div>
           <label htmlFor="correction"><b>Correction notes</b> <small>(required for ratings 1–2)</small></label>
-          <textarea id="correction" value={correctionNotes} maxLength={800} onChange={(event) => setCorrectionNotes(event.target.value)} disabled={Boolean(outcome) && !editing} />
+          <textarea id="correction" value={correctionNotes} maxLength={800} onChange={(event) => setCorrectionNotes(event.target.value)} disabled={Boolean(outcome)} />
           <label htmlFor="outcome-notes"><b>Optional context</b></label>
           <textarea id="outcome-notes" value={notes} maxLength={1200} onChange={(event) => setNotes(event.target.value)} disabled={Boolean(outcome)} />
           {!outcome ? <button className="button button--primary" type="button" onClick={recordOutcome} disabled={busy}>Record outcome locally</button> : null}
@@ -114,7 +115,7 @@ export function LearningPanel({ receipt, projection, onProjection, onError }: Pr
               {editing && candidate.status === "proposed" ? (
                 <div className="edit-candidate">
                   <label htmlFor="candidate-rationale">Bounded rationale</label>
-                  <textarea id="candidate-rationale" value={correctionNotes} maxLength={600} onChange={(event) => setCorrectionNotes(event.target.value)} />
+                  <textarea id="candidate-rationale" value={candidateRationale} maxLength={600} onChange={(event) => setCandidateRationale(event.target.value)} />
                   <button className="button button--primary" type="button" onClick={() => saveEdit(candidate)} disabled={busy}>Save new revision</button>
                 </div>
               ) : null}
@@ -123,7 +124,7 @@ export function LearningPanel({ receipt, projection, onProjection, onError }: Pr
                   <>
                     <button className="button button--primary" type="button" onClick={() => run({ action: "approve-learning", candidateId: candidate.candidateId })} disabled={busy}>Approve learning</button>
                     <button className="button" type="button" onClick={() => run({ action: "reject-learning", candidateId: candidate.candidateId, reason: "Owner rejected the proposed adjustment." })} disabled={busy}>Reject</button>
-                    <button className="button" type="button" onClick={() => setEditing((value) => !value)} disabled={busy}>Edit</button>
+                    <button className="button" type="button" onClick={() => { setCandidateRationale(candidate.rationale); setEditing((value) => !value); }} disabled={busy}>Edit</button>
                   </>
                 ) : null}
                 {candidate.status !== "deleted" ? <button className="button button--quiet" type="button" onClick={() => run({ action: "delete-learning", candidateId: candidate.candidateId, reason: "Owner deleted this prototype learning record." })} disabled={busy}>Delete record</button> : null}

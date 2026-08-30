@@ -102,6 +102,7 @@ const eventBase = {
 
 export const productEventSchema = z.discriminatedUnion("type", [
   z.object({ ...eventBase, type: z.literal("recommendation.recorded"), assessment: assessmentSchema, receipt: recommendationReceiptSchema }).strict(),
+  z.object({ ...eventBase, type: z.literal("recommendation.edited"), receipt: recommendationReceiptSchema }).strict(),
   z.object({ ...eventBase, type: z.literal("outcome.recorded"), outcome: outcomeSchema }).strict(),
   z.object({ ...eventBase, type: z.literal("learning.proposed"), candidate: learningCandidateSchema }).strict(),
   z.object({ ...eventBase, type: z.literal("learning.edited"), candidate: learningCandidateSchema }).strict(),
@@ -139,6 +140,12 @@ export function projectProductEvents(values: readonly unknown[]): ProductProject
         state.assessments[event.assessment.assessmentId] = event.assessment;
         state.receipts[event.receipt.receiptId] = event.receipt;
         break;
+      case "recommendation.edited": {
+        const current = state.receipts[event.receipt.receiptId];
+        if (!current) throw new Error("Cannot edit an unknown receipt.");
+        state.receipts[event.receipt.receiptId] = validateReceiptStarterPackRevision(current, event.receipt);
+        break;
+      }
       case "outcome.recorded":
         if (!state.receipts[event.outcome.receiptId]) throw new Error("Outcome references an unknown receipt.");
         state.outcomes[event.outcome.outcomeId] = event.outcome;
@@ -234,6 +241,8 @@ export function applyApprovedRules(
   return recommendationReceiptSchema.parse({
     ...receipt,
     recommendation: strongest.adjustment.targetRecommendation,
+    summary: `Owner-approved learning adjusted this receipt from ${receipt.recommendation} to ${strongest.adjustment.targetRecommendation}.`,
+    why: `A bounded approved rule matched this assessment. Original model rationale: ${receipt.why}`.slice(0, 1200),
     starterPack: strongest.adjustment.targetRecommendation === "more-information-required" ? [] : receipt.starterPack,
     appliedRules: applied.map((rule) => ({
       ruleId: rule.ruleId,
@@ -251,6 +260,14 @@ export function validateLearningCandidateRevision(current: LearningCandidate, va
   const immutable = ["candidateId", "sourceOutcomeId", "createdAt"] as const;
   for (const field of immutable) if (next[field] !== current[field]) throw new Error(`Candidate ${field} is immutable.`);
   if (JSON.stringify(next.evidenceRefs) !== JSON.stringify(current.evidenceRefs)) throw new Error("Candidate evidence provenance is immutable.");
+  return next;
+}
+
+export function validateReceiptStarterPackRevision(current: RecommendationReceipt, value: unknown): RecommendationReceipt {
+  const next = recommendationReceiptSchema.parse(value);
+  const { starterPack: _currentStarterPack, ...currentInvariant } = current;
+  const { starterPack: _nextStarterPack, ...nextInvariant } = next;
+  if (JSON.stringify(currentInvariant) !== JSON.stringify(nextInvariant)) throw new Error("Only the Work Starter Pack may be edited.");
   return next;
 }
 

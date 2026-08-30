@@ -122,7 +122,7 @@ try {
     const box = element.getBoundingClientRect();
     return { tag: element.tagName, text: element.textContent?.trim(), width: box.width, height: box.height };
   }));
-  assert.ok(interactiveSizes.filter((item) => item.tag === "BUTTON" || item.tag === "A").every((item) => item.height >= 40));
+  assert.ok(interactiveSizes.filter((item) => item.tag === "BUTTON" || item.tag === "A").every((item) => item.height >= 44));
 
   for (let index = 0; index < 4; index += 1) await page.getByRole("button", { name: /Continue/ }).click();
   await page.getByRole("button", { name: /Generate receipt/ }).click();
@@ -135,8 +135,18 @@ try {
   await page.getByRole("heading", { name: "Turn an outcome into reviewable learning." }).waitFor();
   await page.screenshot({ path: path.join(artifactDirectory, "outcome-desktop.png"), fullPage: true });
 
+  await page.getByRole("button", { name: "Edit locally" }).click();
+  await page.getByLabel("Instruction").first().fill("Prepare a concise owner-edited recommendation with explicit trade-offs.");
+  await page.getByRole("button", { name: "Save starter pack" }).click();
+  await page.getByRole("button", { name: "Edit locally" }).waitFor();
+
+  await page.getByRole("radio", { name: "2" }).click();
   await page.getByRole("button", { name: "Record outcome locally" }).click();
   await page.getByText("Inert until you approve.").waitFor();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByLabel("Bounded rationale").fill("Owner revised this bounded rationale before approval.");
+  await page.getByRole("button", { name: "Save new revision" }).click();
+  await page.getByText("revision 2").waitFor();
   await page.getByRole("button", { name: "Approve learning" }).click();
   await page.getByText("This candidate is approved.").waitFor();
   await page.screenshot({ path: path.join(artifactDirectory, "learning-approved-desktop.png"), fullPage: true });
@@ -149,6 +159,24 @@ try {
   const exportResponse = await page.request.get(`${baseUrl}/api/export`);
   assert.equal(exportResponse.ok(), true);
   assert.match(await exportResponse.text(), /learning\.approved/u);
+
+  const approvedCandidateId = Object.keys(state.projection.candidates)[0];
+  await page.getByRole("button", { name: "New case" }).click();
+  await page.getByRole("button", { name: "Go to step 3" }).click();
+  await page.getByRole("radio", { name: "Low — minor impact, easy to recover" }).click();
+  await page.getByRole("button", { name: "Go to step 5" }).click();
+  await page.getByRole("button", { name: /Generate receipt/ }).click();
+  await page.getByText("Approved lessons applied").waitFor({ timeout: 30_000 });
+  await page.getByText("Human-led", { exact: true }).waitFor();
+  await page.screenshot({ path: path.join(artifactDirectory, "approved-rule-provenance.png"), fullPage: true });
+
+  const deleteResponse = await page.request.post(`${baseUrl}/api/events`, {
+    data: { action: "delete-learning", candidateId: approvedCandidateId, reason: "Browser verification deleted this isolated learning record." },
+  });
+  assert.equal(deleteResponse.ok(), true);
+  const deletedState = await deleteResponse.json();
+  assert.equal(deletedState.projection.candidates[approvedCandidateId].status, "deleted");
+  assert.equal(Object.values(deletedState.projection.rules)[0].active, false);
 
   await page.getByRole("button", { name: "New case" }).click();
   await page.setViewportSize({ width: 390, height: 844 });
@@ -176,7 +204,7 @@ assert.ok(metrics.length >= 2);
 assert.ok(metrics.every((record) => record.attempted === 0 && record.blocked === 0));
 const ledger = fs.readFileSync(path.join(dataDirectory, "events.ndjson"), "utf8").trim().split(/\r?\n/u).map(JSON.parse);
 assert.deepEqual(ledger.map((event) => event.type), [
-  "recommendation.recorded", "outcome.recorded", "learning.proposed", "learning.approved",
+  "recommendation.recorded", "recommendation.edited", "outcome.recorded", "learning.proposed", "learning.edited", "learning.approved", "recommendation.recorded", "learning.deleted",
 ]);
 process.stdout.write(`${JSON.stringify({
   schemaVersion: "provider-free-browser-verification-v1",
@@ -185,6 +213,6 @@ process.stdout.write(`${JSON.stringify({
   nonLoopbackAttempts: 0,
   browserNonLoopbackRequests: browserBlocked.length,
   eventTypes: ledger.map((event) => event.type),
-  screenshots: ["assessment-desktop.png", "outcome-desktop.png", "learning-approved-desktop.png", "assessment-mobile.png"],
+  screenshots: ["assessment-desktop.png", "outcome-desktop.png", "learning-approved-desktop.png", "approved-rule-provenance.png", "assessment-mobile.png"],
 })}\n`);
 fs.rmSync(scratch, { recursive: true, force: true });

@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import type { RecommendationReceipt } from "@/src/domain/recommendation";
 
 const recommendationLabels: Record<RecommendationReceipt["recommendation"], string> = {
@@ -12,10 +15,14 @@ type Props = {
   receipt?: RecommendationReceipt;
   previewRecommendation: RecommendationReceipt["recommendation"];
   step: number;
+  onStarterPackSave?: (receipt: RecommendationReceipt) => Promise<void>;
 };
 
-export function Receipt({ receipt, previewRecommendation, step }: Props) {
+export function Receipt({ receipt, previewRecommendation, step, onStarterPackSave }: Props) {
   const recommendation = receipt?.recommendation ?? previewRecommendation;
+  const [editing, setEditing] = useState(false);
+  const [starterPack, setStarterPack] = useState(receipt?.starterPack ?? []);
+  useEffect(() => { setStarterPack(receipt?.starterPack ?? []); setEditing(false); }, [receipt]);
   return (
     <article className="receipt" aria-live="polite">
       <header className="receipt__header">
@@ -70,10 +77,20 @@ export function Receipt({ receipt, previewRecommendation, step }: Props) {
       </dl>
 
       <section className="starter-pack">
-        <div className="section-title"><h3>Work Starter Pack</h3><span>Editable in your local case</span></div>
-        {receipt?.starterPack.length ? (
+        <div className="section-title"><h3>Work Starter Pack</h3>{receipt && onStarterPackSave ? <button className="text-button" type="button" onClick={() => setEditing((value) => !value)}>{editing ? "Cancel edit" : "Edit locally"}</button> : <span>Editable after validation</span>}</div>
+        {receipt?.starterPack.length ? (editing ? (
+          <div className="starter-editor">
+            {starterPack.map((item, index) => (
+              <div key={item.id}>
+                <label>Label<input value={item.label} maxLength={80} onChange={(event) => setStarterPack((items) => items.map((entry, itemIndex) => itemIndex === index ? { ...entry, label: event.target.value } : entry))} /></label>
+                <label>Instruction<textarea value={item.content} maxLength={1200} onChange={(event) => setStarterPack((items) => items.map((entry, itemIndex) => itemIndex === index ? { ...entry, content: event.target.value } : entry))} /></label>
+              </div>
+            ))}
+            <button className="button button--primary" type="button" onClick={async () => { await onStarterPackSave?.({ ...receipt, starterPack }); setEditing(false); }}>Save starter pack</button>
+          </div>
+        ) : (
           <ol>{receipt.starterPack.map((item) => <li key={item.id}><b>{item.label}:</b> {item.content}</li>)}</ol>
-        ) : <p>Generated only for an actionable validated recommendation.</p>}
+        )) : <p>Generated only for an actionable validated recommendation.</p>}
       </section>
 
       {receipt?.appliedRules.length ? (

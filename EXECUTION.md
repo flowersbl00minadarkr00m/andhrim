@@ -238,3 +238,66 @@ Errors: none in the passing run. Earlier diagnostic runs correctly failed until 
 Verdict: PASS
 
 Remaining boundaries: clean-clone Windows installation, documentation, secret/licence review and the inert OpenRouter BYOK adapter path remain unresolved. The real OpenRouter smoke, provider credential access, publication, licence selection, hosting/deployment and demo recording remain owner-only gates.
+
+## 2026-08-29 — Boundary reconciliation and provider-free prototype verification
+
+```yaml
+event:
+  event_id: evt-agent-or-not-boundary-and-prototype-reconciled-20260829
+  type: reconciled-and-verified
+  occurred_at: 2026-08-29T23:22:54.4834433-07:00
+  branch: codex/prototype-mvp
+  pre_record_head: 9eb571ef45ec72a22d1f7bf0ac5939ec6750052d
+  provider_mode_exercised: fixture
+  provider_runtime_access: none
+  credential_access: none
+  openrouter_call: none
+  dependency_manager_commands_after_boundary: 0
+  non_loopback_attempts_in_fresh_guarded_verification: 0
+  clean_clone_gate: blocked-by-owner-boundary
+  project_license: unselected
+```
+
+### Exact dependency-boundary reconciliation
+
+- The prior reconciliation in this file and commit `b151547` remains controlling. `npm pack @types/node@24.13.3 --offline` was invoked with npm `11.13.0`; the exact npm debug log records `--offline`, and the locally installed npm source maps that option to `only-if-cached`. The log's fetch-shaped entries are annotated `(cache stale)`, which in that implementation return cached content without calling the remote path. The resulting tarball hash and size are recorded above.
+- The earlier unflagged local-path `npm pack` failed immediately on a local `ENOENT`; its log has no `http fetch` record. Both offline pnpm attempts reported `downloaded 0` and stopped on missing offline tarballs. No install completed in those attempts.
+- This evidence supports the conclusion that the questioned successful package materialization was cache-only and that the failed commands did not download package bytes. It is not a packet capture and therefore does not claim independent packet-level observation.
+- After the boundary correction, no `npm`, `pnpm`, `yarn`, Corepack, registry, package-fetch, or other dependency-manager command was run. All subsequent commands were direct local `node` verification scripts, Git/read-only filesystem inspection, or file edits. Locally materialized package bytes and ignored junction transport were the only execution sources.
+- The committed `pnpm-lock.yaml` was assembled from exact permitted local lock/package evidence without invoking a dependency manager. Its SHA-256 before this record was `5B2D95A77CB8B8C27AD3EB0DBE906C8B5B9E46DDC6F72A36ECBB37A91EAC575F`. A frozen clean-clone install has not been executed or claimed.
+
+### Implemented local scope
+
+- The default runtime is the deterministic provider-free fixture. The OpenRouter adapter is inert unless the owner explicitly selects `openrouter`, supplies both required local environment values, and runs the later smoke. There is no silent model or provider fallback.
+- Eve model calls are guarded against callable tool definitions before fixture or provider I/O. The strict receipt is validated at the application boundary, with one bounded retry only for invalid model output.
+- The product implements the five-factor assessment, strict Recommendation Receipt, editable local Work Starter Pack, append-only outcomes, inert Learning Candidates, immutable candidate revisions, explicit approval, bounded active-rule application, provenance, deletion tombstones, local export, and responsive UI.
+- Approved rules may change a later recommendation only through deterministic local projection; the adjusted summary, rationale, rule/version, and source-outcome provenance are visible on the receipt.
+- Documentation now covers Windows setup, safe fixture configuration, data behavior, release boundaries, direct dependency license evidence, the local launcher, and the optional recording plan.
+
+### Fresh verification evidence
+
+1. `node scripts/verify-unit.mjs` — exit `0`; Vitest `4.1.11`, 2 files, 12 tests passed; 3 guarded processes; `nonLoopbackAttempts: 0`.
+2. `node scripts/verify-typecheck.mjs` — exit `0`; 1 guarded process; `nonLoopbackAttempts: 0`.
+3. `node scripts/scan-secrets.mjs` — exit `0`; 58 source files scanned; 0 findings; no non-example environment file is trackable.
+4. `node scripts/verify-licenses.mjs` — exit `0`; exact local manifests for 13 direct dependencies match recorded versions and MIT/Apache-2.0 identifiers; project license remains `unselected` and publication remains owner-required.
+5. `node scripts/verify-provider-free.mjs` — exit `0`; Eve build passed; normal invocation 1 and cancellation invocation 2 both carried 0 tool definitions; strict receipt completed; cancellation reached `turn.cancelled -> session.waiting`; 3 guarded processes; `nonLoopbackAttempts: 0`; all tracked PIDs stopped.
+6. `node scripts/verify-build.mjs` — exit `0`; Eve `0.44.0` and Next.js `16.3.2` webpack production builds passed; 18 guarded processes; `nonLoopbackAttempts: 0`; routes include `/`, `/api/events`, `/api/export`, `/api/runtime`, and `/api/state`.
+7. `node scripts/verify-browser.mjs` — exit `0`; Chromium completed the full local flow; 4 guarded Node processes; Node and browser non-loopback attempts both 0. The isolated ledger contained, in order, `recommendation.recorded`, `recommendation.edited`, `outcome.recorded`, `learning.proposed`, `learning.edited`, `learning.approved`, `recommendation.recorded`, and `learning.deleted`. Five desktop/mobile screenshots were captured and visually inspected.
+8. `node scripts/verify-start-local.mjs` — exit `0`; documented Eve-plus-Next loopback launcher passed; 3 guarded processes; `nonLoopbackAttempts: 0`; `residualProcesses: 0` after shutdown.
+9. `git diff --check` — exit `0` before this append.
+
+### Review reconciliation
+
+The repository intentionally contains no `.ai/sdd/` directory or `.status`; this work is the handoff-authorized, non-binding exploratory prototype rather than an approved canonical SDD feature implementation. Therefore no authoritative SDD review artifact, gate, task status, or `.ai/sdd/INDEX.md` entry was created or changed.
+
+Non-authoritative R1 review against `PROTOTYPE_SCOPE.md`, `LESSONS_LEARNED.md`, and `docs/design/IMPLEMENTATION_BRIEF.md`:
+
+- **Spec alignment:** PASS for the provider-free prototype slice. Assessment, receipt, local learning, explicit owner control, provenance, export, cancellation, shutdown, accessibility/responsiveness, and no-tools requirements have fresh evidence. The canonical Andhrím feature is not claimed complete.
+- **Standards/code quality:** PASS for the current local source transport. Review removed dead-before-outcome navigation, implemented the previously claimed starter-pack edit, separated candidate rationale from outcome corrections, retained immutable revisions, exposed safe runtime status, raised mobile progress targets to 44 px, and reconciled rule-adjusted receipt wording. Strict schemas, bounded error behavior, local append-only state, and source secret scanning remain in place.
+- **Release verdict:** NOT RELEASE-READY. The current ignored junctions prove only this worktree's local execution. A clean-clone frozen install, transitive dependency/license review, and clean-clone test/build/start/browser smoke remain unpassed because the owner prohibited further dependency-manager commands. This is a genuine gate, not a failed provider-free seam.
+
+### Remaining gates and stop point
+
+- No further clean-clone install evidence can be produced without running a dependency-manager command. Under the owner's boundary, execution stops at that gate rather than using network or claiming a clean-clone pass.
+- OpenRouter credential entry and the real direct-provider smoke remain later owner-only actions. No key, credential store, provider endpoint, or raw provider body was accessed during this work.
+- Project-license selection, owner dependency/diff review, GitHub publication, hosting/deployment, and optional demo recording remain owner-only and untouched.

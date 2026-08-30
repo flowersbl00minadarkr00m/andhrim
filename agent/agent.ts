@@ -1,4 +1,5 @@
 import { appendFileSync } from "node:fs";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { defineAgent } from "eve";
 import { fixtureReceipt } from "./lib/fixture-receipt";
 
@@ -13,13 +14,14 @@ function recordProviderFreeCall(options: { tools?: unknown }) {
       : 1;
   if (toolDefinitionCount !== 0) throw new Error("PROVIDER_FREE_TOOL_ENVELOPE_PRESENT");
   const evidencePath = process.env.AGENT_OR_NOT_FIXTURE_EVIDENCE_PATH;
-  if (!evidencePath) throw new Error("PROVIDER_FREE_EVIDENCE_PATH_REQUIRED");
-  appendFileSync(evidencePath, `${JSON.stringify({
-    schemaVersion: "provider-free-model-call-v1",
-    invocationCount,
-    toolDefinitionCount,
-    modelId: "agent-or-not-fixture",
-  })}\n`, { encoding: "utf8", flag: "a" });
+  if (evidencePath) {
+    appendFileSync(evidencePath, `${JSON.stringify({
+      schemaVersion: "provider-free-model-call-v1",
+      invocationCount,
+      toolDefinitionCount,
+      modelId: "agent-or-not-fixture",
+    })}\n`, { encoding: "utf8", flag: "a" });
+  }
   return JSON.stringify(fixtureReceipt);
 }
 
@@ -90,8 +92,40 @@ const fixtureModel = {
   },
 };
 
+function assertNoCallableTools(options: { tools?: unknown }) {
+  const count = options.tools === undefined ? 0 : Array.isArray(options.tools) ? options.tools.length : 1;
+  if (count !== 0) throw new Error("MODEL_TOOL_ENVELOPE_PRESENT");
+}
+
+function withoutCallableTools<T extends object>(model: T): T {
+  return new Proxy(model, {
+    get(target, property, receiver) {
+      if (property === "doGenerate" || property === "doStream") {
+        const operation = Reflect.get(target, property, receiver) as (options: { tools?: unknown }) => unknown;
+        return (options: { tools?: unknown }) => {
+          assertNoCallableTools(options);
+          return operation.call(target, options);
+        };
+      }
+      return Reflect.get(target, property, receiver);
+    },
+  });
+}
+
+function configuredModel() {
+  const mode = process.env.AGENT_OR_NOT_PROVIDER_MODE?.trim() || "fixture";
+  if (mode === "fixture") return fixtureModel;
+  if (mode !== "openrouter") throw new Error("AGENT_OR_NOT_PROVIDER_MODE must be fixture or openrouter.");
+  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
+  const modelId = process.env.OPENROUTER_MODEL?.trim();
+  if (!apiKey) throw new Error("OPENROUTER_API_KEY is required in openrouter mode.");
+  if (!modelId || !/^[a-z0-9._-]+\/[a-z0-9._:-]+$/iu.test(modelId)) throw new Error("OPENROUTER_MODEL must be an explicit provider/model identifier.");
+  const provider = createOpenRouter({ apiKey, appName: "Andhrim Agent or Not local prototype" });
+  return withoutCallableTools(provider(modelId));
+}
+
 export default defineAgent({
-  model: fixtureModel as never,
+  model: configuredModel() as never,
   modelContextWindowTokens: 128_000,
   limits: { maxInputTokensPerSession: 8_000, maxOutputTokensPerSession: 2_000, sessionTimeoutMs: 10 * 60 * 1_000 },
 });

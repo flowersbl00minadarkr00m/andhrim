@@ -8,6 +8,7 @@ import {
   outcomeSchema,
   proposeLearningCandidate,
   validateLearningCandidateRevision,
+  validateReceiptStarterPackRevision,
 } from "@/src/domain/learning";
 import { recommendationReceiptSchema } from "@/src/domain/recommendation";
 import {
@@ -20,6 +21,7 @@ export const runtime = "nodejs";
 
 const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("record-recommendation"), assessment: assessmentSchema, receipt: recommendationReceiptSchema }).strict(),
+  z.object({ action: z.literal("edit-receipt"), receipt: recommendationReceiptSchema }).strict(),
   z.object({ action: z.literal("record-outcome"), outcome: outcomeSchema }).strict(),
   z.object({ action: z.literal("edit-learning"), candidate: learningCandidateSchema }).strict(),
   z.object({ action: z.literal("approve-learning"), candidateId: z.string().regex(/^candidate-[a-z0-9-]+$/) }).strict(),
@@ -43,6 +45,13 @@ export async function POST(request: Request) {
         if (current.receipts[action.receipt.receiptId]) throw new Error("Receipt is already recorded.");
         const receipt = applyApprovedRules(action.assessment, action.receipt, Object.values(current.rules));
         projection = appendProductEvent({ ...eventBase(), type: "recommendation.recorded", assessment: action.assessment, receipt });
+        break;
+      }
+      case "edit-receipt": {
+        const existing = current.receipts[action.receipt.receiptId];
+        if (!existing) throw new Error("Cannot edit an unknown receipt.");
+        const receipt = validateReceiptStarterPackRevision(existing, action.receipt);
+        projection = appendProductEvent({ ...eventBase(), type: "recommendation.edited", receipt });
         break;
       }
       case "record-outcome": {
