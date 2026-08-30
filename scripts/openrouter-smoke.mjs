@@ -1,16 +1,20 @@
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium } from "@playwright/test";
 import {
+  assertLiveEveEnvironmentNames,
+  captureSharedDependencyIntegrity,
+  liveEveInheritedEnvironmentNames,
+  liveEveRuntimeEnvironmentNames,
   SmokeContractError,
   parseSmokeInvocation,
   providerFreeEnvironment,
   readSmokeModelCalls,
   reconcileBoundaryEvidence,
+  reconcileSharedDependencyIntegrity,
   reserveLoopbackPort,
   residualLoopbackPorts,
   SMOKE_SESSION_BUDGET,
@@ -26,15 +30,16 @@ function safeError(error, fallbackClass = "internal", fallbackCode = "INTERNAL_E
   return { class: fallbackClass, code: fallbackCode };
 }
 
-function runProviderFreePreflight() {
-  const result = spawnSync(process.execPath, [path.join(root, "scripts", "verify-openrouter-smoke.mjs")], {
+async function runProviderFreePreflight() {
+  const child = spawn(process.execPath, [path.join(root, "scripts", "verify-openrouter-smoke.mjs")], {
     cwd: root,
     env: providerFreeEnvironment(),
     stdio: "inherit",
-    timeout: 300_000,
     windowsHide: true,
   });
-  process.exitCode = result.status ?? 1;
+  const outcome = await waitForChildExit(child, 900_000);
+  const cleanup = await terminateOwnedProcesses([child]);
+  process.exitCode = !outcome.timedOut && outcome.code === 0 && cleanup.processTreeProofComplete ? 0 : 1;
 }
 
 function guardedEnvironment(label, overrides = {}) {
@@ -45,17 +50,36 @@ function guardedEnvironment(label, overrides = {}) {
   });
 }
 
-function runBuild(executable, args, environment, runtimeRoot) {
-  const result = spawnSync(process.execPath, [executable, ...args], {
+function waitForChildExit(child, timeoutMs) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (outcome) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(outcome);
+    };
+    const timer = setTimeout(() => finish({ code: null, timedOut: true }), timeoutMs);
+    child.once("error", () => finish({ code: null, timedOut: false }));
+    child.once("exit", (code) => finish({ code, timedOut: false }));
+  });
+}
+
+async function runBuild(executable, args, environment, runtimeRoot, children) {
+  const child = spawn(process.execPath, [executable, ...args], {
     cwd: runtimeRoot,
     env: environment,
-    encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
-    timeout: 180_000,
     windowsHide: true,
   });
-  if (result.status !== 0) {
-    process.stderr.write(`[openrouter-smoke build diagnostic]\n${result.stdout ?? ""}\n${result.stderr ?? ""}\n`);
+  children.push(child);
+  let output = "";
+  const retainDiagnostic = (value) => { output = `${output}${value}`.slice(-64 * 1024); };
+  child.stdout.on("data", retainDiagnostic);
+  child.stderr.on("data", retainDiagnostic);
+  const outcome = await waitForChildExit(child, 180_000);
+  if (outcome.timedOut || outcome.code !== 0) {
+    process.stderr.write(`[openrouter-smoke build diagnostic]\n${output}\n`);
     throw new SmokeContractError("build", "BUILD_FAILED");
   }
 }
@@ -77,6 +101,7 @@ function createScratchWorkspace(scratch) {
   const dependencySource = fs.realpathSync(path.join(root, "node_modules"));
   const dependencyOverlay = path.join(runtimeRoot, "node_modules");
   const privateDependencyCaches = new Set([".cache", ".nitro", ".vite"]);
+  const sharedDependencyRoots = [];
   fs.mkdirSync(dependencyOverlay);
   for (const entry of fs.readdirSync(dependencySource, { withFileTypes: true })) {
     if (privateDependencyCaches.has(entry.name)) continue;
@@ -88,20 +113,28 @@ function createScratchWorkspace(scratch) {
       for (const scopedEntry of fs.readdirSync(source, { withFileTypes: true })) {
         const scopedSource = path.join(source, scopedEntry.name);
         if (!fs.statSync(scopedSource).isDirectory()) continue;
-        fs.symlinkSync(fs.realpathSync(scopedSource), path.join(destination, scopedEntry.name), "junction");
+        const target = fs.realpathSync(scopedSource);
+        fs.symlinkSync(target, path.join(destination, scopedEntry.name), "junction");
+        sharedDependencyRoots.push({ label: `${entry.name}/${scopedEntry.name}`, target });
       }
       continue;
     }
-    fs.symlinkSync(fs.realpathSync(source), destination, "junction");
+    const target = fs.realpathSync(source);
+    fs.symlinkSync(target, destination, "junction");
+    sharedDependencyRoots.push({ label: entry.name, target });
   }
   for (const name of privateDependencyCaches) fs.mkdirSync(path.join(dependencyOverlay, name));
-  return runtimeRoot;
+  return { runtimeRoot, sharedDependencyRoots };
 }
 
 async function waitForLoopback(url, children, timeoutMs = 60_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() <= deadline) {
-    if (children.some((child) => child.exitCode !== null || child.signalCode !== null)) {
+    const exitedChild = children.find((child) => child.exitCode !== null || child.signalCode !== null);
+    if (exitedChild) {
+      if (exitedChild.smokeStartupDiagnostic) {
+        process.stderr.write(`[openrouter-smoke ${exitedChild.smokeLabel ?? "service"} startup diagnostic]\n${exitedChild.smokeStartupDiagnostic}\n`);
+      }
       throw new SmokeContractError("service", "SERVICE_START_FAILED");
     }
     try {
@@ -113,19 +146,90 @@ async function waitForLoopback(url, children, timeoutMs = 60_000) {
   throw new SmokeContractError("service", "SERVICE_START_FAILED");
 }
 
-function prepareLiveEveParentEnvironment(overrides) {
-  for (const name of Object.keys(process.env)) {
-    if (name !== "OPENROUTER_API_KEY"
-      && /(?:API_KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL|AUTHORIZATION|ACCESS_KEY)/iu.test(name)) {
-      delete process.env[name];
+function captureStartupDiagnostic(child, label) {
+  child.smokeLabel = label;
+  child.smokeStartupDiagnostic = "";
+  const retain = (value) => {
+    child.smokeStartupDiagnostic = `${child.smokeStartupDiagnostic}${value}`.slice(-64 * 1024);
+  };
+  child.stdout?.on("data", retain);
+  child.stderr?.on("data", retain);
+  child.smokeDiagnosticListener = retain;
+  return child;
+}
+
+function stopStartupDiagnostic(child) {
+  if (!child?.smokeDiagnosticListener) return;
+  child.stdout?.off("data", child.smokeDiagnosticListener);
+  child.stderr?.off("data", child.smokeDiagnosticListener);
+  child.smokeDiagnosticListener = null;
+  child.smokeStartupDiagnostic = "";
+}
+
+const liveEveWrapperSource = String.raw`
+const { spawn } = require("node:child_process");
+const fs = require("node:fs");
+let input = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", (chunk) => { input += chunk; });
+process.stdin.on("end", () => {
+  try {
+    const config = JSON.parse(input);
+    const inherited = new Set(config.inheritedNames);
+    const runtimeNames = new Set(Object.keys(config.runtimeEnvironment));
+    const allowed = new Set([...inherited, ...runtimeNames]);
+    for (const name of Object.keys(process.env)) {
+      if (!inherited.has(name)) delete process.env[name];
     }
+    for (const [name, value] of Object.entries(config.runtimeEnvironment)) {
+      if (name === "OPENROUTER_API_KEY" || !runtimeNames.has(name)) process.exit(78);
+      process.env[name] = value;
+    }
+    const names = Object.keys(process.env).sort();
+    if (!Object.prototype.hasOwnProperty.call(process.env, "OPENROUTER_API_KEY")
+      || names.some((name) => !allowed.has(name))
+      || [...runtimeNames].some((name) => !names.includes(name))) process.exit(78);
+    fs.writeFileSync(config.wrapperEnvironmentEvidencePath, JSON.stringify(names), { encoding: "utf8", flag: "wx" });
+    const child = spawn(config.executable, config.args, {
+      cwd: config.cwd,
+      stdio: config.childStdio,
+      windowsHide: true,
+    });
+    const forward = (signal) => { try { child.kill(signal); } catch {} };
+    process.on("SIGTERM", () => forward("SIGTERM"));
+    process.on("SIGINT", () => forward("SIGINT"));
+    child.once("error", () => { process.exitCode = 1; });
+    child.once("exit", (code) => { process.exitCode = code ?? 1; });
+  } catch {
+    process.exitCode = 78;
   }
-  delete process.env.NODE_OPTIONS;
-  delete process.env.AGENT_OR_NOT_EGRESS_METRICS_DIR;
-  delete process.env.AGENT_OR_NOT_EGRESS_METRICS_LABEL;
-  delete process.env.AGENT_OR_NOT_FIXTURE_EVIDENCE_PATH;
-  delete process.env.AGENT_OR_NOT_FIXTURE_SCENARIO;
-  Object.assign(process.env, overrides);
+});
+`;
+
+export function spawnAllowlistedLiveEve(config, parentEnvironmentForTest) {
+  const runtimeNames = Object.keys(config.runtimeEnvironment);
+  if (runtimeNames.length !== liveEveRuntimeEnvironmentNames.length
+    || runtimeNames.some((name) => !liveEveRuntimeEnvironmentNames.includes(name))
+    || runtimeNames.includes("OPENROUTER_API_KEY")) {
+    throw new SmokeContractError("configuration", "LIVE_OPT_IN_INCOMPLETE");
+  }
+  const wrapper = spawn(process.execPath, ["-e", liveEveWrapperSource], {
+    cwd: config.cwd,
+    ...(parentEnvironmentForTest === undefined ? {} : { env: parentEnvironmentForTest }),
+    stdio: ["pipe", "ignore", "ignore"],
+    windowsHide: true,
+  });
+  wrapper.stdin.on("error", () => {});
+  wrapper.stdin.end(JSON.stringify({
+    inheritedNames: liveEveInheritedEnvironmentNames,
+    runtimeEnvironment: config.runtimeEnvironment,
+    wrapperEnvironmentEvidencePath: config.wrapperEnvironmentEvidencePath,
+    executable: config.executable,
+    args: config.args,
+    cwd: config.cwd,
+    childStdio: config.childStdio ?? "ignore",
+  }));
+  return wrapper;
 }
 
 function failedConfigurationReport(error) {
@@ -140,7 +244,14 @@ function failedConfigurationReport(error) {
     blockedSessionRequests: 0,
     modelBoundary: { observed: false, modelCallCount: 0, toolDefinitionCount: null, calls: [] },
     browserNonLoopbackRequests: 0,
-    cleanup: { scratchRemoved: true, residualProcessCount: 0, residualPortCount: 0 },
+    liveEveEnvironmentAllowlistVerified: null,
+    cleanup: {
+      scratchRemoved: true,
+      residualProcessCount: 0,
+      residualPortCount: 0,
+      processInspectionComplete: true,
+      sharedDependencyIntegrityVerified: true,
+    },
     error: safeError(error, "configuration", "LIVE_OPT_IN_INCOMPLETE"),
   };
 }
@@ -163,6 +274,7 @@ export async function executeSmoke({
 
   const sessionNonce = randomBytes(32).toString("base64url");
   let browser;
+  let browserServer;
   const children = [];
   let ports = null;
   let receiptValidated = false;
@@ -173,8 +285,18 @@ export async function executeSmoke({
   let calls = [];
   let guardedProcessCount = 0;
   let missingKeyProbePassed = false;
+  let liveEveEnvironmentAllowlistVerified = null;
+  let dependencyIntegrityBaseline = null;
+  let dependencyIntegrityResult = null;
+  let sharedDependencyRoots = [];
   const cleanupPorts = [];
-  const cleanup = { scratchRemoved: false, residualProcessCount: 0, residualPortCount: 0 };
+  const cleanup = {
+    scratchRemoved: false,
+    residualProcessCount: 0,
+    residualPortCount: 0,
+    processInspectionComplete: true,
+    sharedDependencyIntegrityVerified: true,
+  };
 
   try {
     const webPort = await reserveLoopbackPort();
@@ -182,7 +304,11 @@ export async function executeSmoke({
     if (webPort === evePort) throw new SmokeContractError("service", "SERVICE_START_FAILED");
     ports = { web: webPort, eve: evePort };
     cleanupPorts.push(webPort, evePort);
-    const runtimeRoot = createScratchWorkspace(scratch);
+    cleanup.sharedDependencyIntegrityVerified = false;
+    const workspace = createScratchWorkspace(scratch);
+    const { runtimeRoot } = workspace;
+    sharedDependencyRoots = workspace.sharedDependencyRoots;
+    dependencyIntegrityBaseline = captureSharedDependencyIntegrity(sharedDependencyRoots);
 
     const commonEnvironment = {
       AGENT_OR_NOT_DATA_DIR: dataDirectory,
@@ -199,8 +325,8 @@ export async function executeSmoke({
     });
     const eveBin = path.join(runtimeRoot, "node_modules", "eve", "bin", "eve.js");
     const nextBin = path.join(runtimeRoot, "node_modules", "next", "dist", "bin", "next");
-    runBuild(eveBin, ["build"], buildEnvironment, runtimeRoot);
-    runBuild(nextBin, ["build", "--webpack"], buildEnvironment, runtimeRoot);
+    await runBuild(eveBin, ["build"], buildEnvironment, runtimeRoot, children);
+    await runBuild(nextBin, ["build", "--webpack"], buildEnvironment, runtimeRoot, children);
 
     let eveServer;
     if (mode === "fixture") {
@@ -211,24 +337,31 @@ export async function executeSmoke({
         AGENT_OR_NOT_FIXTURE_SCENARIO: fixtureScenario,
         AGENT_OR_NOT_SMOKE_EVIDENCE_PATH: evidencePath,
       });
-      eveServer = spawn(process.execPath, [eveBin, "start", "--host", "127.0.0.1", "--port", String(evePort)], {
+      eveServer = captureStartupDiagnostic(spawn(process.execPath, [eveBin, "start", "--host", "127.0.0.1", "--port", String(evePort)], {
         cwd: runtimeRoot,
         env: eveEnvironment,
-        stdio: "ignore",
+        stdio: ["ignore", "pipe", "pipe"],
         windowsHide: true,
-      });
+      }), "fixture-eve");
     } else {
-      prepareLiveEveParentEnvironment({
-        ...commonEnvironment,
-        AGENT_OR_NOT_PROVIDER_MODE: "openrouter",
-        AGENT_OR_NOT_SMOKE_EVIDENCE_PATH: evidencePath,
-        OPENROUTER_MODEL: modelId,
-      });
-      eveServer = spawn(process.execPath, [eveBin, "start", "--host", "127.0.0.1", "--port", String(evePort)], {
+      const liveEnvironmentEvidencePath = path.join(evidenceDirectory, "live-eve-environment-names.json");
+      eveServer = spawnAllowlistedLiveEve({
+        executable: process.execPath,
+        args: [eveBin, "start", "--host", "127.0.0.1", "--port", String(evePort)],
         cwd: runtimeRoot,
-        stdio: "ignore",
-        windowsHide: true,
+        wrapperEnvironmentEvidencePath: liveEnvironmentEvidencePath,
+        childStdio: "ignore",
+        runtimeEnvironment: {
+          AGENT_OR_NOT_DATA_DIR: dataDirectory,
+          AGENT_OR_NOT_PROVIDER_MODE: "openrouter",
+          AGENT_OR_NOT_SESSION_NONCE: sessionNonce,
+          AGENT_OR_NOT_SMOKE_EVIDENCE_PATH: evidencePath,
+          EVE_NEXT_PRODUCTION_PORT: String(evePort),
+          NODE_ENV: "production",
+          OPENROUTER_MODEL: modelId,
+        },
       });
+      eveServer.smokeEnvironmentEvidencePath = liveEnvironmentEvidencePath;
     }
 
     const nextEnvironment = guardedEnvironment("start", {
@@ -237,17 +370,40 @@ export async function executeSmoke({
       AGENT_OR_NOT_PROVIDER_MODE: mode === "live" ? "openrouter" : "fixture",
       ...(mode === "live" ? { OPENROUTER_MODEL: modelId } : {}),
     });
-    const nextServer = spawn(process.execPath, [nextBin, "start", "--hostname", "127.0.0.1", "--port", String(webPort)], {
+    const nextServer = captureStartupDiagnostic(spawn(process.execPath, [nextBin, "start", "--hostname", "127.0.0.1", "--port", String(webPort)], {
       cwd: runtimeRoot,
       env: nextEnvironment,
-      stdio: "ignore",
+      stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
-    });
+    }), "next");
     children.push(eveServer, nextServer);
-    await waitForLoopback(`http://127.0.0.1:${evePort}/eve/v1/health`, children);
-    await waitForLoopback(`http://127.0.0.1:${webPort}`, children);
+    const serviceChildren = [eveServer, nextServer];
+    await waitForLoopback(`http://127.0.0.1:${evePort}/eve/v1/health`, serviceChildren);
+    stopStartupDiagnostic(eveServer);
+    await waitForLoopback(`http://127.0.0.1:${webPort}`, serviceChildren);
+    stopStartupDiagnostic(nextServer);
+    if (mode === "live") {
+      const observedEnvironmentNames = JSON.parse(fs.readFileSync(eveServer.smokeEnvironmentEvidencePath, "utf8"));
+      assertLiveEveEnvironmentNames(observedEnvironmentNames);
+      liveEveEnvironmentAllowlistVerified = true;
+    }
 
-    browser = await chromium.launch({ headless: true, env: providerFreeEnvironment() });
+    const { chromium } = await import("@playwright/test");
+    browserServer = await chromium.launchServer({ headless: true, env: providerFreeEnvironment() });
+    const browserProcess = browserServer.process();
+    if (!browserProcess?.pid) throw new SmokeContractError("browser", "BROWSER_FAILED");
+    children.push(browserProcess);
+    const browserEndpoint = new URL(browserServer.wsEndpoint());
+    if (!["127.0.0.1", "localhost", "::1", "[::1]"].includes(browserEndpoint.hostname)) {
+      throw new SmokeContractError("browser", "BROWSER_FAILED");
+    }
+    const browserPort = Number(browserEndpoint.port);
+    if (!Number.isInteger(browserPort) || browserPort < 1 || browserPort > 65_535) {
+      throw new SmokeContractError("browser", "BROWSER_FAILED");
+    }
+    const browserHost = browserEndpoint.hostname === "[::1]" ? "::1" : browserEndpoint.hostname;
+    cleanupPorts.push({ host: browserHost, port: browserPort });
+    browser = await chromium.connect(browserEndpoint.href);
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: "light" });
     const baseUrl = `http://127.0.0.1:${webPort}`;
     await context.route("**/*", async (route) => {
@@ -325,10 +481,7 @@ export async function executeSmoke({
       let keyProbeOutput = "";
       keyProbe.stdout.on("data", (value) => { keyProbeOutput = `${keyProbeOutput}${value}`.slice(-32 * 1024); });
       keyProbe.stderr.on("data", (value) => { keyProbeOutput = `${keyProbeOutput}${value}`.slice(-32 * 1024); });
-      const keyProbeExit = await Promise.race([
-        new Promise((resolve) => keyProbe.once("exit", (code) => resolve({ code, timedOut: false }))),
-        new Promise((resolve) => setTimeout(() => resolve({ code: null, timedOut: true }), 30_000)),
-      ]);
+      const keyProbeExit = await waitForChildExit(keyProbe, 30_000);
       if (keyProbeExit.timedOut
         || keyProbeExit.code === 0
         || !/OPENROUTER_API_KEY is required in openrouter mode/u.test(keyProbeOutput)) {
@@ -342,13 +495,18 @@ export async function executeSmoke({
     if (browser) {
       try { await browser.close(); } catch { failure ??= { class: "cleanup", code: "CLEANUP_FAILED" }; }
     }
+    if (browserServer) {
+      try { await browserServer.close(); } catch { failure ??= { class: "cleanup", code: "CLEANUP_FAILED" }; }
+    }
     try {
       const result = await terminateOwnedProcesses(children);
       cleanup.residualProcessCount = result.residualProcessIds.length;
-      if (result.residualProcessIds.length > 0) failure = { class: "cleanup", code: "CLEANUP_FAILED" };
+      cleanup.processInspectionComplete = result.inspectionComplete;
+      if (!result.processTreeProofComplete) failure = { class: "cleanup", code: "CLEANUP_FAILED" };
     } catch {
       failure = { class: "cleanup", code: "CLEANUP_FAILED" };
       cleanup.residualProcessCount = 1;
+      cleanup.processInspectionComplete = false;
     }
     try {
       calls = readSmokeModelCalls(evidencePath);
@@ -366,6 +524,16 @@ export async function executeSmoke({
       }
     } catch {
       failure ??= { class: "evidence", code: "EVIDENCE_INVALID" };
+    }
+    if (dependencyIntegrityBaseline) {
+      try {
+        const after = captureSharedDependencyIntegrity(sharedDependencyRoots);
+        dependencyIntegrityResult = reconcileSharedDependencyIntegrity(dependencyIntegrityBaseline, after);
+        cleanup.sharedDependencyIntegrityVerified = true;
+      } catch {
+        cleanup.sharedDependencyIntegrityVerified = false;
+        failure = { class: "cleanup", code: "DEPENDENCY_INTEGRITY_CHANGED" };
+      }
     }
     try {
       fs.rmSync(scratch, { recursive: true, force: true });
@@ -387,8 +555,12 @@ export async function executeSmoke({
     failure = safeError(error, "evidence", "EVIDENCE_INVALID");
     modelBoundary = { observed: false, modelCallCount: 0, toolDefinitionCount: null, calls: [] };
   }
-  if (!cleanup.scratchRemoved || cleanup.residualProcessCount !== 0 || cleanup.residualPortCount !== 0) {
-    failure = { class: "cleanup", code: "CLEANUP_FAILED" };
+  if (!cleanup.scratchRemoved
+    || cleanup.residualProcessCount !== 0
+    || cleanup.residualPortCount !== 0
+    || !cleanup.processInspectionComplete
+    || !cleanup.sharedDependencyIntegrityVerified) {
+    failure ??= { class: "cleanup", code: "CLEANUP_FAILED" };
   }
 
   const report = {
@@ -402,12 +574,21 @@ export async function executeSmoke({
     blockedSessionRequests,
     modelBoundary,
     browserNonLoopbackRequests,
+    liveEveEnvironmentAllowlistVerified,
     cleanup,
     error: receiptValidated && failure === null ? null : (failure ?? { class: "internal", code: "INTERNAL_ERROR" }),
   };
   let reportPath = null;
   if (retainReport) reportPath = writeSmokeReport(root, report);
-  return { report, reportPath, verification: { guardedProcessCount, missingKeyProbePassed } };
+  return {
+    report,
+    reportPath,
+    verification: {
+      guardedProcessCount,
+      missingKeyProbePassed,
+      sharedDependencyIntegrity: dependencyIntegrityResult,
+    },
+  };
 }
 
 async function main() {
@@ -422,7 +603,7 @@ async function main() {
     return;
   }
   if (invocation.kind === "preflight") {
-    runProviderFreePreflight();
+    await runProviderFreePreflight();
     return;
   }
   const result = await executeSmoke({ mode: "live", modelId: invocation.modelId, retainReport: true });

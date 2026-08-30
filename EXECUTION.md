@@ -1456,3 +1456,142 @@ event:
 ~~~
 
 **PROTO-R5E verdict: VERIFICATION FAILED. The provider-free bounded smoke seam is green with zero live/provider/credential/egress activity and zero residual owned processes or ports, but the requested repository-root build and start-local checks are red at the shared junction boundary.**
+
+## 2026-08-30 — PROTO-R5E R2 corrections ready for review
+
+~~~yaml
+event:
+  event_id: evt-agent-or-not-prototype-openrouter-smoke-r5e-r2-ready-20260830
+  task_id: PROTO-R5E
+  type: ready-for-review
+  occurred_at: 2026-08-30T08:11:57.2804486-07:00
+  summary: R1-001 through R1-004 are corrected and the purpose-built provider-free scratch seam, deterministic falsifiers, regression suite, target-integrity reconciliation, and exhaustive cleanup evidence pass at candidate 596cad6b1fe1d8e4cbaa27e8c6b1fd7012df69bf.
+  execution_mode: orchestrated-worker
+  tracking_owner: orchestrator
+  review_input:
+    event_id: evt-agent-or-not-prototype-openrouter-smoke-r5e-review-r1-sol-xhigh-20260830
+    verdict: CHANGES_REQUIRED
+    correction_scope: reviewer findings, their fixes, and regressions caused by those fixes only
+  assignment:
+    model: gpt-5.6-sol
+    effort: high
+    branch: codex/prototype-openrouter-smoke-harness-r5e
+    worktree: C:\Users\henry\andhrim-agent-or-not-worktrees\prototype-openrouter-smoke-harness-r5e
+    candidate_before_corrections: 596cad6b1fe1d8e4cbaa27e8c6b1fd7012df69bf
+    exact_base: e339a3f8dea5fbf4b2aae4d7ff526f4f861c1eed
+    worker_git_add: prohibited_and_not_run
+    worker_git_commit: prohibited_and_not_run
+  authority:
+    prototype_scope_sha256: 863c44a31f5c8806cc614da6b6a1958f30d78f523e5203331882bd170ccd17f7
+    lessons_learned_sha256: 40ba06e8e2b256f6c723ba23271a0a0ba689b5aa872f1477d7088dc7d86410ed
+    implementation_brief_sha256: 1847f44d41fb7967ee39cc510ae089009ffa237c36735d4ea831f5bf0e95502f
+  changed_files:
+    - scripts/lib/openrouter-smoke-contract.mjs
+    - scripts/openrouter-smoke.mjs
+    - scripts/verify-openrouter-smoke.mjs
+    - README.md
+    - docs/RELEASE_CHECKLIST.md
+    - EXECUTION.md
+  findings:
+    R1-001:
+      state: corrected
+      evidence:
+        - The harness no longer mutates its own process.env and never reads the OPENROUTER_API_KEY value.
+        - A disposable local wrapper inherits the parent environment, removes entries by name, adds only the seven required Agent-or-Not runtime values, verifies the resulting name allowlist, records names only in scratch, and launches Eve by inheritance from that sanitized wrapper.
+        - The permitted inherited set is limited to required Windows/Node runtime names plus OPENROUTER_API_KEY; the key is neither included in wrapper configuration nor read, printed, persisted, hashed, measured, transformed, or validated by the harness.
+        - A real wrapper/child falsifier proves DATABASE_URL, SSH_AUTH_SOCK, NPM_CONFIG_USERCONFIG, ANTHROPIC_API_KEY, AWS_ACCESS_KEY_ID, GITHUB_TOKEN, SAMPLE_CREDENTIAL, and all other unapproved names cannot reach the final child; wrapper and child name sets match exactly.
+    R1-002:
+      state: corrected
+      evidence:
+        - Eve and Next builds are asynchronous tracked child roots; the no-argument verifier child, verifier wrapper child, fixture/live Eve root, Next root, missing-key probe, and Playwright Chromium launchServer process are also tracked.
+        - Chromium exposes a tracked PID through browserServer.process(); its actual IPv4 or IPv6 loopback endpoint is validated and its port is rebound on the same host after cleanup.
+        - terminateOwnedProcesses always signals roots, force-kills live roots/known descendants, repeats descendant inspection, returns inspectionComplete and processTreeProofComplete, and makes passing cleanup impossible when exhaustive inspection is unavailable.
+        - Deterministic falsifiers prove a known root/grandchild tree is removed and an injected descendant-inspection failure still removes the root while returning inspectionComplete=false and processTreeProofComplete=false.
+    R1-003:
+      state: corrected
+      evidence:
+        algorithm: sha256
+        reachable_file_count: 21187
+        reachable_total_bytes: 474486906
+        before_digest: b5b180bb898e0dab3fe22e1e6616870104b304504bdf85e6c1621781e8e1992e
+        after_digest: b5b180bb898e0dab3fe22e1e6616870104b304504bdf85e6c1621781e8e1992e
+        before_after_match: true
+        private_nonjunctioned_caches: [.cache, .nitro, .vite]
+        falsifier: A temporary fake shared target passes unchanged reconciliation and deterministically raises DEPENDENCY_INTEGRITY_CHANGED after byte mutation; the real shared target is never modified by the falsifier.
+    R1-004:
+      state: corrected
+      low_follow_up_disposition: resolved-by-documentation
+      evidence: README.md and docs/RELEASE_CHECKLIST.md now state that live Playwright substitutes a key-free /api/runtime bootstrap while built Eve session/stream, assessment UI, and client strict validation remain real; the smoke explicitly does not qualify shipped Next key-status/bootstrap behavior.
+  verification:
+    - command: node scripts/verify-openrouter-smoke.mjs
+      exit_code: 0
+      result: provider-free preflight and wrapper passed; fixtureSessions=2; fixtureModelCalls=2; receiptValidated=true; residualProcessCount=0; residualPortCount=0; processInspectionComplete=true; sharedDependencyIntegrityVerified=true; 21187 files and 474486906 bytes matched SHA-256 digest b5b180bb898e0dab3fe22e1e6616870104b304504bdf85e6c1621781e8e1992e before/after; liveProviderCalls=0; credentialReadsOutsideExistingAdapter=0; nonLoopbackAttempts=0
+    - command: node scripts/verify-unit.mjs
+      exit_code: 0
+      result: 6 test files and 23 tests passed; guardedProcesses=7; nonLoopbackAttempts=0
+    - command: node scripts/verify-typecheck.mjs
+      exit_code: 0
+      result: typecheck passed; guardedProcesses=1; nonLoopbackAttempts=0
+    - command: node scripts/scan-secrets.mjs
+      exit_code: 0
+      result: 71 files scanned; findings=0
+    - command: node --check scripts/lib/openrouter-smoke-contract.mjs; node --check scripts/openrouter-smoke.mjs; node --check scripts/verify-openrouter-smoke.mjs
+      exit_code: 0
+      result: all correction sources parsed successfully
+    - command: targeted rg forbidden/required source-pattern checks
+      exit_code: 0
+      result: no direct process.env.OPENROUTER_API_KEY access, old global environment mutator, synchronous harness build, or untracked chromium.launch pattern; required wrapper, launchServer PID, integrity, inspection, and named-variable falsifiers present
+    - command: git diff --check
+      exit_code: 0
+      result: passed before this append-only event
+    - skipped: node scripts/verify-build.mjs and node scripts/verify-start-local.mjs
+      reason: R2 explicitly classified the unchanged repository-root shared-junction transport limitation as non-blocking and directed that these exact known-red checks not be rerun
+  intermediate_safe_corrections:
+    - Replaced a host-dependent CIM grandchild-count assertion with injected deterministic complete/incomplete inspector falsifiers; exact falsifier processes were confirmed absent afterward.
+    - Canceled child timeout timers on exit and made verifier/preflight wrappers tracked rather than synchronous.
+    - Restricted service health monitoring to active Eve/Next roots while retaining completed build roots for cleanup proof.
+    - Accepted Playwright's bracketed IPv6 loopback URL representation and now verifies release by rebinding on ::1 itself.
+  observed_access_counts:
+    network_disabled: true
+    package_manager_invocations: 0
+    dependency_installs_or_materialization: 0
+    shared_dependency_target_mutations: 0
+    package_registry_or_cdn_access: 0
+    live_mode_executions: 0
+    openrouter_calls: 0
+    provider_calls: 0
+    actual_credentials_or_key_values_present_requested_read_printed_persisted_hashed_measured_transformed_or_validated: 0
+    credential_reads_outside_existing_adapter: 0
+    existing_adapter_absent_key_checks: 1
+    synthetic_nonsecret_environment_name_falsifiers: 8
+    non_loopback_network_attempts: 0
+    publication_actions: 0
+    canonical_source_mutations: 0
+    licence_or_mit_changes: 0
+  cleanup:
+    scratch_removed: true
+    residual_owned_process_count: 0
+    residual_owned_port_count: 0
+    descendant_inspection_complete: true
+    process_tree_proof_complete: true
+    shared_dependency_integrity_verified: true
+    final_workspace_process_query_count: 0
+  canonical_state:
+    checkout: C:\Users\henry\andhrim-agent-or-not
+    main_head_before: e339a3f8dea5fbf4b2aae4d7ff526f4f861c1eed
+    main_head_after: e339a3f8dea5fbf4b2aae4d7ff526f4f861c1eed
+    status_before: clean
+    status_after: clean
+  remaining_risks:
+    - Live mode and real OpenRouter behavior remain deliberately unexecuted; the key boundary has deterministic name-only child-process evidence but no live credential/provider evidence.
+    - The smoke intentionally does not qualify the shipped Next key-status/runtime-bootstrap path.
+    - Complete dependency integrity reconciliation is read-intensive and depends on the already-present prepared dependency bytes; it is not clean-clone or installation evidence.
+    - Owner live-provider, clean-clone, publication, licence, and independent R2 review gates remain outstanding.
+  verdict: READY_FOR_R2_REVIEW
+  requested_action: The Orchestrator should independently reconcile this event and candidate diff, commit only the owned correction surfaces through the controller, and dispatch bounded R2 review; this worker does not approve completion.
+  return_delivery:
+    state: durable-fallback
+    receipt_evidence: This stable event is appended to EXECUTION.md for Orchestrator inspection and controller-mediated Git handling.
+~~~
+
+**PROTO-R5E R2 correction verdict: READY FOR R2 REVIEW. All four R1 findings are reconciled with green provider-free verification, complete process/port cleanup proof, and matching pre/post SHA-256 coverage of every shared dependency file reachable through the scratch overlay.**

@@ -1,17 +1,20 @@
 import assert from "node:assert/strict";
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  assertLiveEveEnvironmentNames,
+  captureSharedDependencyIntegrity,
   parseSmokeInvocation,
   providerFreeEnvironment,
   reconcileBoundaryEvidence,
+  reconcileSharedDependencyIntegrity,
   smokeReportSchema,
   terminateOwnedProcesses,
 } from "./lib/openrouter-smoke-contract.mjs";
-import { executeSmoke } from "./openrouter-smoke.mjs";
+import { executeSmoke, spawnAllowlistedLiveEve } from "./openrouter-smoke.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -61,7 +64,14 @@ function assertInvocationAndReportContracts() {
     blockedSessionRequests: 0,
     modelBoundary: { observed: true, modelCallCount: 1, toolDefinitionCount: 0, calls: calls.slice(0, 1) },
     browserNonLoopbackRequests: 0,
-    cleanup: { scratchRemoved: true, residualProcessCount: 0, residualPortCount: 0 },
+    liveEveEnvironmentAllowlistVerified: true,
+    cleanup: {
+      scratchRemoved: true,
+      residualProcessCount: 0,
+      residualPortCount: 0,
+      processInspectionComplete: true,
+      sharedDependencyIntegrityVerified: true,
+    },
     error: null,
   };
   assert.equal(smokeReportSchema.parse(validReport).state, "passed");
@@ -78,16 +88,165 @@ function assertInvocationAndReportContracts() {
   }
   assert.equal(smokeReportSchema.safeParse({ ...validReport, sessionCount: 3 }).success, false);
   assert.equal(smokeReportSchema.safeParse({ ...validReport, blockedSessionRequests: 1 }).success, false);
+  assert.equal(smokeReportSchema.safeParse({
+    ...validReport,
+    cleanup: { ...validReport.cleanup, processInspectionComplete: false },
+  }).success, false);
+  assert.equal(smokeReportSchema.safeParse({
+    ...validReport,
+    cleanup: { ...validReport.cleanup, sharedDependencyIntegrityVerified: false },
+  }).success, false);
 
   const environment = providerFreeEnvironment();
   assert.equal(Object.keys(environment).some((name) => /(?:API_KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL|AUTHORIZATION)/iu.test(name)), false);
   expectContractCode(() => providerFreeEnvironment({ OPENROUTER_API_KEY: "x" }), "LIVE_OPT_IN_INCOMPLETE");
   const harnessSource = fs.readFileSync(path.join(root, "scripts", "openrouter-smoke.mjs"), "utf8");
   assert.doesNotMatch(harnessSource, /process\.env\.OPENROUTER_API_KEY/u);
+  assert.doesNotMatch(harnessSource, /function prepareLiveEveParentEnvironment/u);
+  assert.match(harnessSource, /chromium\.launchServer/u);
+  assert.match(harnessSource, /browserServer\.process\(\)/u);
+  assert.doesNotMatch(harnessSource, /function runBuild[\s\S]*?spawnSync\(process\.execPath/u);
+}
+
+async function waitForExit(child, timeoutMs = 15_000) {
+  return await new Promise((resolve) => {
+    let settled = false;
+    const finish = (outcome) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(outcome);
+    };
+    const timer = setTimeout(() => finish({ code: null, timedOut: true }), timeoutMs);
+    child.once("error", () => finish({ code: null, timedOut: false }));
+    child.once("exit", (code) => finish({ code, timedOut: false }));
+  });
+}
+
+async function assertLiveEnvironmentAllowlist() {
+  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "agent-or-not-live-env-falsifier-"));
+  try {
+    const wrapperEvidencePath = path.join(scratch, "wrapper-names.json");
+    const childEvidencePath = path.join(scratch, "child-names.json");
+    const runtimeEnvironment = {
+      AGENT_OR_NOT_DATA_DIR: path.join(scratch, "data"),
+      AGENT_OR_NOT_PROVIDER_MODE: "openrouter",
+      AGENT_OR_NOT_SESSION_NONCE: "fixture-session-nonce",
+      AGENT_OR_NOT_SMOKE_EVIDENCE_PATH: path.join(scratch, "evidence.ndjson"),
+      EVE_NEXT_PRODUCTION_PORT: "32101",
+      NODE_ENV: "production",
+      OPENROUTER_MODEL: "provider/model",
+    };
+    const unrelatedNames = [
+      "DATABASE_URL",
+      "SSH_AUTH_SOCK",
+      "NPM_CONFIG_USERCONFIG",
+      "ANTHROPIC_API_KEY",
+      "AWS_ACCESS_KEY_ID",
+      "GITHUB_TOKEN",
+      "SAMPLE_CREDENTIAL",
+    ];
+    const testParentEnvironment = { ...providerFreeEnvironment(), OPENROUTER_API_KEY: "x" };
+    for (const name of unrelatedNames) testParentEnvironment[name] = "x";
+    const probe = `require("node:fs").writeFileSync(${JSON.stringify(childEvidencePath)}, JSON.stringify(Object.keys(process.env).sort()), { encoding: "utf8", flag: "wx" })`;
+    const wrapper = spawnAllowlistedLiveEve({
+      executable: process.execPath,
+      args: ["-e", probe],
+      cwd: scratch,
+      wrapperEnvironmentEvidencePath: wrapperEvidencePath,
+      runtimeEnvironment,
+    }, testParentEnvironment);
+    const outcome = await waitForExit(wrapper);
+    const wrapperCleanup = await terminateOwnedProcesses([wrapper]);
+    assert.deepEqual(outcome, { code: 0, timedOut: false });
+    assert.equal(wrapperCleanup.processTreeProofComplete, true);
+    const wrapperNames = JSON.parse(fs.readFileSync(wrapperEvidencePath, "utf8"));
+    const childNames = JSON.parse(fs.readFileSync(childEvidencePath, "utf8"));
+    assert.deepEqual(childNames, wrapperNames);
+    assert.deepEqual(assertLiveEveEnvironmentNames(childNames), childNames);
+    assert.ok(unrelatedNames.every((name) => !childNames.includes(name)));
+  } finally {
+    fs.rmSync(scratch, { recursive: true, force: true });
+  }
+}
+
+function assertDependencyIntegrityFalsifiers() {
+  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "agent-or-not-dependency-integrity-falsifier-"));
+  try {
+    const target = path.join(scratch, "fake-shared-target");
+    fs.mkdirSync(path.join(target, "nested"), { recursive: true });
+    fs.writeFileSync(path.join(target, "one.txt"), "one\n");
+    fs.writeFileSync(path.join(target, "nested", "two.txt"), "two\n");
+    const roots = [{ label: "fake-package", target }];
+    const before = captureSharedDependencyIntegrity(roots);
+    assert.equal(reconcileSharedDependencyIntegrity(before, captureSharedDependencyIntegrity(roots)).verified, true);
+    fs.writeFileSync(path.join(target, "nested", "two.txt"), "changed\n");
+    expectContractCode(
+      () => reconcileSharedDependencyIntegrity(before, captureSharedDependencyIntegrity(roots)),
+      "DEPENDENCY_INTEGRITY_CHANGED",
+    );
+  } finally {
+    fs.rmSync(scratch, { recursive: true, force: true });
+  }
+}
+
+async function assertCleanupFalsifiers() {
+  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "agent-or-not-cleanup-falsifier-"));
+  const spawnedRoots = [];
+  let grandchildPid = null;
+  try {
+    const grandchildPidPath = path.join(scratch, "grandchild.pid");
+    const treeRoot = spawn(process.execPath, ["-e", `
+      const { spawn } = require("node:child_process");
+      const fs = require("node:fs");
+      const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore", windowsHide: true });
+      fs.writeFileSync(${JSON.stringify(grandchildPidPath)}, String(child.pid));
+      setInterval(() => {}, 1000);
+    `], { env: providerFreeEnvironment(), stdio: "ignore", windowsHide: true });
+    spawnedRoots.push(treeRoot);
+    const deadline = Date.now() + 10_000;
+    while (!fs.existsSync(grandchildPidPath) && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    assert.equal(fs.existsSync(grandchildPidPath), true);
+    grandchildPid = Number(fs.readFileSync(grandchildPidPath, "utf8"));
+    assert.equal(Number.isInteger(grandchildPid), true);
+    const treeCleanup = await terminateOwnedProcesses([treeRoot], {
+      graceMs: 500,
+      inspectDescendants: () => [grandchildPid],
+    });
+    assert.equal(treeCleanup.inspectionComplete, true);
+    assert.equal(treeCleanup.processTreeProofComplete, true);
+    assert.ok(treeCleanup.trackedProcessCount >= 2);
+    assert.deepEqual(treeCleanup.residualProcessIds, []);
+
+    const inspectionFailureRoot = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
+      env: providerFreeEnvironment(),
+      stdio: "ignore",
+      windowsHide: true,
+    });
+    spawnedRoots.push(inspectionFailureRoot);
+    const incompleteCleanup = await terminateOwnedProcesses([inspectionFailureRoot], {
+      graceMs: 500,
+      inspectDescendants() { throw new Error("deterministic inspection failure"); },
+    });
+    assert.equal(incompleteCleanup.inspectionComplete, false);
+    assert.equal(incompleteCleanup.processTreeProofComplete, false);
+    assert.deepEqual(incompleteCleanup.residualProcessIds, []);
+  } finally {
+    await terminateOwnedProcesses(spawnedRoots, {
+      graceMs: 500,
+      inspectDescendants: () => (Number.isInteger(grandchildPid) ? [grandchildPid] : []),
+    });
+    fs.rmSync(scratch, { recursive: true, force: true });
+  }
 }
 
 async function runFixtureAssertions(metricsDirectory) {
   assertInvocationAndReportContracts();
+  await assertLiveEnvironmentAllowlist();
+  assertDependencyIntegrityFalsifiers();
+  await assertCleanupFalsifiers();
 
   const cleanupChild = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
     env: providerFreeEnvironment(),
@@ -96,6 +255,7 @@ async function runFixtureAssertions(metricsDirectory) {
   });
   assert.ok(cleanupChild.pid);
   const cleanup = await terminateOwnedProcesses([cleanupChild]);
+  assert.equal(cleanup.processTreeProofComplete, true);
   assert.deepEqual(cleanup.residualProcessIds, []);
 
   const fixture = await executeSmoke({
@@ -112,9 +272,17 @@ async function runFixtureAssertions(metricsDirectory) {
   assert.equal(fixture.report.modelBoundary.modelCallCount, 2);
   assert.deepEqual(fixture.report.modelBoundary.calls.map((call) => [call.callIndex, call.toolDefinitionCount]), [[1, 0], [2, 0]]);
   assert.equal(fixture.report.browserNonLoopbackRequests, 0);
-  assert.deepEqual(fixture.report.cleanup, { scratchRemoved: true, residualProcessCount: 0, residualPortCount: 0 });
+  assert.deepEqual(fixture.report.cleanup, {
+    scratchRemoved: true,
+    residualProcessCount: 0,
+    residualPortCount: 0,
+    processInspectionComplete: true,
+    sharedDependencyIntegrityVerified: true,
+  });
+  assert.equal(fixture.report.liveEveEnvironmentAllowlistVerified, null);
   assert.ok(fixture.verification.guardedProcessCount >= 4);
   assert.equal(fixture.verification.missingKeyProbePassed, true);
+  assert.equal(fixture.verification.sharedDependencyIntegrity.verified, true);
   return fixture;
 }
 
@@ -134,6 +302,13 @@ async function main() {
       fixtureModelCalls: fixture.report.modelBoundary.modelCallCount,
       receiptValidated: fixture.report.receiptValidated,
       cleanup: fixture.report.cleanup,
+      sharedDependencyIntegrity: {
+        algorithm: fixture.verification.sharedDependencyIntegrity.algorithm,
+        fileCount: fixture.verification.sharedDependencyIntegrity.fileCount,
+        totalBytes: fixture.verification.sharedDependencyIntegrity.totalBytes,
+        digest: fixture.verification.sharedDependencyIntegrity.digest,
+        beforeAfterDigestMatch: true,
+      },
     })}\n`);
     return;
   }
@@ -147,16 +322,23 @@ async function main() {
       NODE_OPTIONS: `--require=${path.join(root, "scripts", "provider-free-egress-guard.cjs")}`,
       NODE_ENV: "test",
     });
-    const result = spawnSync(process.execPath, [fileURLToPath(import.meta.url)], {
+    const child = spawn(process.execPath, [fileURLToPath(import.meta.url)], {
       cwd: root,
       env: environment,
-      encoding: "utf8",
-      timeout: 300_000,
+      stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
     });
-    process.stdout.write(result.stdout ?? "");
-    process.stderr.write(result.stderr ?? "");
-    assert.equal(result.status, 0, "OpenRouter smoke preflight failed.");
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (value) => { stdout += value; });
+    child.stderr.on("data", (value) => { stderr += value; });
+    const outcome = await waitForExit(child, 900_000);
+    const childCleanup = await terminateOwnedProcesses([child]);
+    process.stdout.write(stdout);
+    process.stderr.write(stderr);
+    assert.equal(outcome.timedOut, false, "OpenRouter smoke preflight timed out.");
+    assert.equal(outcome.code, 0, "OpenRouter smoke preflight failed.");
+    assert.equal(childCleanup.processTreeProofComplete, true, "OpenRouter smoke preflight child cleanup was incomplete.");
     const metrics = fs.readdirSync(scratch)
       .filter((name) => name.endsWith(".json"))
       .map((name) => JSON.parse(fs.readFileSync(path.join(scratch, name), "utf8")));

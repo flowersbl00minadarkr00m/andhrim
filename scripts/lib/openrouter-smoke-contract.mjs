@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
@@ -41,6 +42,7 @@ const safeErrorSchema = z.object({
     "ATTEMPT_BUDGET_EXCEEDED",
     "MODEL_BOUNDARY_NOT_OBSERVED",
     "MODEL_TOOL_ENVELOPE_PRESENT",
+    "DEPENDENCY_INTEGRITY_CHANGED",
     "EVIDENCE_INVALID",
     "CLEANUP_FAILED",
     "INTERNAL_ERROR",
@@ -66,10 +68,13 @@ export const smokeReportSchema = z.object({
     calls: z.array(smokeModelCallSchema).max(SMOKE_SESSION_BUDGET),
   }).strict(),
   browserNonLoopbackRequests: z.number().int().min(0),
+  liveEveEnvironmentAllowlistVerified: z.boolean().nullable(),
   cleanup: z.object({
     scratchRemoved: z.boolean(),
     residualProcessCount: z.number().int().min(0),
     residualPortCount: z.number().int().min(0),
+    processInspectionComplete: z.boolean(),
+    sharedDependencyIntegrityVerified: z.boolean(),
   }).strict(),
   error: safeErrorSchema.nullable(),
 }).strict().superRefine((report, context) => {
@@ -99,8 +104,16 @@ export const smokeReportSchema = z.object({
       || !report.cleanup.scratchRemoved
       || report.cleanup.residualProcessCount !== 0
       || report.cleanup.residualPortCount !== 0
+      || !report.cleanup.processInspectionComplete
+      || !report.cleanup.sharedDependencyIntegrityVerified
       || report.error !== null) {
       context.addIssue({ code: "custom", path: ["state"], message: "Passing reports require loopback-only execution and complete cleanup." });
+    }
+    if (report.modelId === "agent-or-not-fixture" && report.liveEveEnvironmentAllowlistVerified !== null) {
+      context.addIssue({ code: "custom", path: ["liveEveEnvironmentAllowlistVerified"], message: "Fixture reports must not claim live Eve environment evidence." });
+    }
+    if (report.modelId !== "agent-or-not-fixture" && report.liveEveEnvironmentAllowlistVerified !== true) {
+      context.addIssue({ code: "custom", path: ["liveEveEnvironmentAllowlistVerified"], message: "Passing live reports require allowlisted Eve environment evidence." });
     }
   } else if (report.error === null) {
     context.addIssue({ code: "custom", path: ["error"], message: "Failing reports require a safe error classification." });
@@ -147,6 +160,41 @@ const providerFreeEnvironmentNames = [
   "USERNAME", "USERPROFILE", "windir",
 ];
 
+export const liveEveInheritedEnvironmentNames = Object.freeze([
+  "ComSpec",
+  "OPENROUTER_API_KEY",
+  "OS",
+  "Path",
+  "PATHEXT",
+  "PROCESSOR_ARCHITECTURE",
+  "SystemDrive",
+  "SystemRoot",
+  "TEMP",
+  "TMP",
+  "windir",
+]);
+
+export const liveEveRuntimeEnvironmentNames = Object.freeze([
+  "AGENT_OR_NOT_DATA_DIR",
+  "AGENT_OR_NOT_PROVIDER_MODE",
+  "AGENT_OR_NOT_SESSION_NONCE",
+  "AGENT_OR_NOT_SMOKE_EVIDENCE_PATH",
+  "EVE_NEXT_PRODUCTION_PORT",
+  "NODE_ENV",
+  "OPENROUTER_MODEL",
+]);
+
+export function assertLiveEveEnvironmentNames(names) {
+  const allowed = new Set([...liveEveInheritedEnvironmentNames, ...liveEveRuntimeEnvironmentNames]);
+  const observed = [...new Set(names)].sort();
+  if (!observed.includes("OPENROUTER_API_KEY")
+    || liveEveRuntimeEnvironmentNames.some((name) => !observed.includes(name))
+    || observed.some((name) => !allowed.has(name))) {
+    throw new SmokeContractError("configuration", "LIVE_OPT_IN_INCOMPLETE");
+  }
+  return observed;
+}
+
 export function providerFreeEnvironment(overrides = {}) {
   const forbiddenOverride = Object.keys(overrides).find((name) => /(?:API_KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL|AUTHORIZATION)/iu.test(name));
   if (forbiddenOverride) throw new SmokeContractError("configuration", "LIVE_OPT_IN_INCOMPLETE");
@@ -155,6 +203,78 @@ export function providerFreeEnvironment(overrides = {}) {
     if (process.env[name] !== undefined) environment[name] = process.env[name];
   }
   return { ...environment, ...overrides };
+}
+
+function hashFileBytes(filePath) {
+  const digest = crypto.createHash("sha256");
+  const descriptor = fs.openSync(filePath, "r");
+  const buffer = Buffer.allocUnsafe(1024 * 1024);
+  try {
+    let offset = 0;
+    while (true) {
+      const bytesRead = fs.readSync(descriptor, buffer, 0, buffer.length, offset);
+      if (bytesRead === 0) break;
+      digest.update(buffer.subarray(0, bytesRead));
+      offset += bytesRead;
+    }
+  } finally {
+    fs.closeSync(descriptor);
+  }
+  return digest.digest("hex");
+}
+
+export function captureSharedDependencyIntegrity(sharedRoots) {
+  const entries = [];
+  const visitedDirectories = new Set();
+  const walk = (rootLabel, aliasPath, candidatePath) => {
+    const canonicalPath = fs.realpathSync(candidatePath);
+    const stat = fs.statSync(canonicalPath);
+    if (stat.isDirectory()) {
+      const directoryKey = canonicalPath.toLowerCase();
+      if (visitedDirectories.has(directoryKey)) return;
+      visitedDirectories.add(directoryKey);
+      for (const name of fs.readdirSync(canonicalPath).sort()) {
+        walk(rootLabel, path.posix.join(aliasPath, name), path.join(canonicalPath, name));
+      }
+      return;
+    }
+    if (!stat.isFile()) return;
+    entries.push({
+      rootLabel,
+      aliasPath,
+      canonicalPath: canonicalPath.toLowerCase(),
+      byteLength: stat.size,
+      sha256: hashFileBytes(canonicalPath),
+    });
+  };
+
+  for (const rootEntry of [...sharedRoots].sort((left, right) => left.label.localeCompare(right.label))) {
+    walk(rootEntry.label, ".", rootEntry.target);
+  }
+  entries.sort((left, right) => `${left.rootLabel}\0${left.aliasPath}`.localeCompare(`${right.rootLabel}\0${right.aliasPath}`));
+  const manifestDigest = crypto.createHash("sha256");
+  let totalBytes = 0;
+  for (const entry of entries) {
+    totalBytes += entry.byteLength;
+    manifestDigest.update(`${entry.rootLabel}\0${entry.aliasPath}\0${entry.canonicalPath}\0${entry.byteLength}\0${entry.sha256}\n`);
+  }
+  return {
+    algorithm: "sha256",
+    fileCount: entries.length,
+    totalBytes,
+    digest: manifestDigest.digest("hex"),
+  };
+}
+
+export function reconcileSharedDependencyIntegrity(before, after) {
+  if (before.algorithm !== "sha256"
+    || after.algorithm !== "sha256"
+    || before.fileCount !== after.fileCount
+    || before.totalBytes !== after.totalBytes
+    || before.digest !== after.digest) {
+    throw new SmokeContractError("cleanup", "DEPENDENCY_INTEGRITY_CHANGED");
+  }
+  return { verified: true, ...after };
 }
 
 export function readSmokeModelCalls(evidencePath) {
@@ -239,51 +359,92 @@ function descendantProcessIds(rootPids) {
   return result.stdout.trim().split(",").filter(Boolean).map(Number).filter(Number.isInteger);
 }
 
-export async function terminateOwnedProcesses(children) {
+function forceKillProcessTree(pid) {
+  if (process.platform === "win32") {
+    spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], {
+      env: providerFreeEnvironment(),
+      stdio: "ignore",
+      windowsHide: true,
+    });
+    return;
+  }
+  try { process.kill(pid, "SIGKILL"); } catch {}
+}
+
+export async function terminateOwnedProcesses(children, options = {}) {
   const roots = children.map((child) => child?.pid).filter(Number.isInteger);
-  const tracked = new Set([...roots, ...descendantProcessIds(roots)]);
+  const inspectDescendants = options.inspectDescendants ?? descendantProcessIds;
+  const graceMs = options.graceMs ?? 8_000;
+  const tracked = new Set(roots);
+  let inspectionComplete = true;
+  const inspect = () => {
+    try {
+      for (const pid of inspectDescendants(roots)) tracked.add(pid);
+    } catch {
+      inspectionComplete = false;
+    }
+  };
+  inspect();
   for (const child of children) {
     if (child && child.exitCode === null && child.signalCode === null) child.kill("SIGTERM");
   }
-  await Promise.race([
-    Promise.all(children.map((child) => (
-      !child || child.exitCode !== null || child.signalCode !== null
-        ? Promise.resolve()
-        : new Promise((resolve) => child.once("exit", resolve))
-    ))),
-    new Promise((resolve) => setTimeout(resolve, 8_000)),
-  ]);
-  const residualBeforeForce = [...tracked].filter(processIsAlive);
-  for (const pid of residualBeforeForce) {
-    if (process.platform === "win32") {
-      spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], {
-        env: providerFreeEnvironment(),
-        stdio: "ignore",
-        windowsHide: true,
-      });
-    } else {
-      try { process.kill(pid, "SIGKILL"); } catch {}
-    }
+  const activeChildren = children.filter((child) => child && child.exitCode === null && child.signalCode === null);
+  if (activeChildren.length > 0) {
+    await new Promise((resolve) => {
+      let pending = activeChildren.length;
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve();
+      };
+      const timer = setTimeout(finish, graceMs);
+      for (const child of activeChildren) {
+        if (child.exitCode !== null || child.signalCode !== null) {
+          pending -= 1;
+          if (pending === 0) finish();
+          continue;
+        }
+        child.once("exit", () => {
+          pending -= 1;
+          if (pending === 0) finish();
+        });
+      }
+    });
   }
+  inspect();
+  const residualBeforeForce = [...tracked].filter(processIsAlive);
+  for (const pid of residualBeforeForce) forceKillProcessTree(pid);
   await new Promise((resolve) => setTimeout(resolve, 500));
+  inspect();
+  const lateResiduals = [...tracked].filter(processIsAlive);
+  for (const pid of lateResiduals) forceKillProcessTree(pid);
+  if (lateResiduals.length > 0) await new Promise((resolve) => setTimeout(resolve, 500));
+  const residualProcessIds = [...tracked].filter(processIsAlive);
   return {
     trackedProcessCount: tracked.size,
-    residualProcessIds: [...tracked].filter(processIsAlive),
+    rootProcessCount: roots.length,
+    inspectionComplete,
+    processTreeProofComplete: inspectionComplete && residualProcessIds.length === 0,
+    residualProcessIds,
   };
 }
 
-async function loopbackPortIsReleased(port) {
+async function loopbackPortIsReleased(portEntry) {
+  const port = typeof portEntry === "number" ? portEntry : portEntry.port;
+  const host = typeof portEntry === "number" ? "127.0.0.1" : portEntry.host;
   return await new Promise((resolve) => {
     const server = net.createServer();
     server.once("error", () => resolve(false));
-    server.listen(port, "127.0.0.1", () => server.close(() => resolve(true)));
+    server.listen(port, host, () => server.close(() => resolve(true)));
   });
 }
 
 export async function residualLoopbackPorts(ports) {
   const residual = [];
-  for (const port of ports) {
-    if (!await loopbackPortIsReleased(port)) residual.push(port);
+  for (const portEntry of ports) {
+    if (!await loopbackPortIsReleased(portEntry)) residual.push(portEntry);
   }
   return residual;
 }
