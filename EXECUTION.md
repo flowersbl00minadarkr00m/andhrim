@@ -960,3 +960,92 @@ event:
 ~~~
 
 **Documentation task verdict: PASS. Release verdict: NOT RELEASE-READY pending the explicit owner and clean-clone gates above.**
+
+## 2026-08-30 — PROTO-R5 latest-safe OpenRouter smoke harness acknowledgment
+
+~~~yaml
+event:
+  event_id: evt-agent-or-not-prototype-openrouter-smoke-r5-ack-20260830
+  task_id: PROTO-R5
+  type: acknowledged
+  occurred_at: 2026-08-30T03:06:08.2039200-07:00
+  summary: Fresh visible top-level worker accepted the bounded latest-safe OpenRouter smoke-harness ticket before implementation edits.
+  execution_mode: orchestrated-worker
+  tracking_owner: orchestrator
+  assignment:
+    role: fresh visible top-level implementation worker
+    model: gpt-5.6-sol
+    effort: high
+    rationale: security- and privacy-sensitive provider-boundary harness with bounded live-attempt and cleanup guarantees
+    canonical_project_registry_id: andhr-m-agent-or-not-prototype
+    canonical_project_path: C:\Users\henry\andhrim-agent-or-not
+    herdr_session: andhr-m-agent-or-not-prototype
+    herdr_workspace: w1
+    herdr_pane: w1:pA
+    worker: proto-smoke-r5
+    branch: codex/prototype-openrouter-smoke-harness-r5
+    worktree: C:\Users\henry\andhrim-agent-or-not-worktrees\prototype-openrouter-smoke-harness-r5
+    exact_base: 8311b2710d49667bc675920784d66c6586985016
+    inspected_head: 8311b2710d49667bc675920784d66c6586985016
+    worktree_state: clean
+  authority:
+    prototype_scope_sha256: 863c44a31f5c8806cc614da6b6a1958f30d78f523e5203331882bd170ccd17f7
+    lessons_learned_sha256: 40ba06e8e2b256f6c723ba23271a0a0ba689b5aa872f1477d7088dc7d86410ed
+    implementation_brief_sha256: 1847f44d41fb7967ee39cc510ae089009ffa237c36735d4ea831f5bf0e95502f
+    ai_sdd_authority_present: false
+    gate_source: explicit bounded orchestrated implementation handoff with pinned authority digests
+    boundary: Canonical Andhrím feature 001, TD-022, and frozen TD-015 remain untouched and incomplete.
+  ownership:
+    owned_surfaces:
+      - new smoke-harness and deterministic preflight/test scripts
+      - agent/agent.ts only if minimally required for safe request-envelope evidence
+      - package.json scripts only
+      - README.md and docs/RELEASE_CHECKLIST.md only for the harness
+      - LESSONS_LEARNED.md only for a concrete new lesson
+      - append-only EXECUTION.md
+    shared_tracking_prohibited:
+      - tasks.md
+      - .status
+      - .ai/sdd/INDEX.md
+      - .ai/sdd/handoff/sdd-brief.md
+  blocking_controls:
+    - Default invocation is provider-free or fails closed and cannot call OpenRouter.
+    - Live mode requires unmistakable explicit opt-in, openrouter mode, explicit provider/model ID, and inherited OPENROUTER_API_KEY without credential inspection or disclosure.
+    - The retained report excludes prompts, assessment content, raw provider material, headers, credentials, and learning-ledger content.
+    - Actual model-boundary tool-definition count must be zero.
+    - Validation is limited to two Eve/model sessions only when the first receipt fails strict validation.
+    - Unique loopback-only services and disposable data/evidence are cleaned with no owned residual processes.
+    - This worker must not execute the live smoke or access credentials/non-loopback services.
+  evidence:
+    commands:
+      - project_registry.py resolve andhrim-agent-or-not --json
+      - git branch --show-current
+      - git rev-parse HEAD
+      - git status --porcelain=v2 --branch
+      - git worktree list --porcelain
+      - Get-FileHash -Algorithm SHA256 for pinned authority files
+    files:
+      - PROTOTYPE_SCOPE.md
+      - LESSONS_LEARNED.md
+      - docs/design/IMPLEMENTATION_BRIEF.md
+      - README.md
+      - docs/RELEASE_CHECKLIST.md
+      - package.json
+      - agent/agent.ts
+      - src/client/eve.ts
+      - src/domain/recommendation.ts
+      - scripts/start-local.mjs
+      - scripts/verify-start-local.mjs
+      - scripts/verify-provider-free.mjs
+      - scripts/verify-browser.mjs
+      - .gitignore
+      - C:\Users\henry\AGENTS.md
+  return_delivery:
+    source_session: andhr-m-agent-or-not-prototype
+    source_workspace: w1
+    source_pane_id: w1:pA
+    state: durable-fallback
+    receipt_evidence: This stable acknowledgment event is committed alone in append-only EXECUTION.md before implementation edits and will also be returned natively.
+~~~
+
+Acknowledgment: I accept the exact task, authority digests, model/effort assignment, fresh visible Herdr identity, isolated branch/worktree/base, owned-surface boundary, provider/network/credential exclusions, bounded-attempt and cleanup contract, orchestrator-only shared tracking, and durable return requirement. Implementation may begin only after this acknowledgment is committed separately.
