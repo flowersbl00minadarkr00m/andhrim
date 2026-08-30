@@ -455,3 +455,74 @@ event:
 - Remaining owner gates are: frozen Windows clean-clone install/test/build/start/browser evidence and transitive dependency/licence review; one direct OpenRouter smoke with owner-supplied local configuration and safe evidence; public licence selection; final owner dependency/diff review; optional GitHub publication and demo recording.
 
 **R1 verdict: PASS. Release verdict: NOT RELEASE-READY pending the owner gates above.**
+
+## 2026-08-30 — Prototype hardening R2 acknowledgment and focused receipt
+
+```yaml
+event:
+  event_id: evt-agent-or-not-prototype-hardening-r2-ack-20260830
+  type: acknowledged
+  occurred_at: 2026-08-30T01:12:19.4629684-07:00
+  state: durable-fallback
+  mode: direct
+  session_policy: new-top-level-required
+  assignment:
+    role: fresh visible top-level sole implementation owner for bounded prototype hardening R2 closure
+    model: gpt-5.6-sol
+    effort: high
+    registry_id: andhr-m-agent-or-not-prototype
+    registry_alias: andhrim-agent-or-not
+    canonical_path: C:\Users\henry\andhrim-agent-or-not
+    owned_branch: codex/prototype-release-hardening-r2
+    owned_worktree: C:\Users\henry\andhrim-agent-or-not-worktrees\prototype-release-hardening-r2
+    exact_base: 3c4b09dd06b75964dbe28adda76804d0b126ce61
+    base_state: clean integrated main and clean isolated worker HEAD
+  authority:
+    mode: explicitly authorized non-binding prototype execution; no .ai/sdd authority exists or will be created
+    prototype_scope_sha256: 863c44a31f5c8806cc614da6b6a1958f30d78f523e5203331882bd170ccd17f7
+    lessons_learned_sha256: 40ba06e8e2b256f6c723ba23271a0a0ba689b5aa872f1477d7088dc7d86410ed
+    implementation_brief_sha256: 1847f44d41fb7967ee39cc510ae089009ffa237c36735d4ea831f5bf0e95502f
+    sources_read_through_eof:
+      - applicable C:\Users\henry\AGENTS.md
+      - PROTOTYPE_SCOPE.md
+      - LESSONS_LEARNED.md
+      - docs/design/IMPLEMENTATION_BRIEF.md
+      - ORCHESTRATOR_HANDOFF.md
+      - README.md
+      - docs/DEPENDENCIES.md
+      - docs/RELEASE_CHECKLIST.md
+      - agent/instructions.md
+      - EXECUTION.md
+    concepts_inspected:
+      - docs/design/assessment-receipt-concept.png
+      - docs/design/outcome-learning-concept.png
+  focused_r2_receipt:
+    incoming_event_id: evt-agent-or-not-focused-r2-3c4b09d-sol-xhigh-20260830
+    incoming_verdict: FAIL
+    exact_closure:
+      - R2-M01: proposed history entries resume the existing LearningPanel review workflow after New case and page reload by resolving candidate to source outcome to receipt from the current projection, preserving immutable identity and provenance
+      - Evidence integrity: hostile browser traffic traverses the actual Next /eve proxy and proves zero session/model-call/ledger effect, with direct-Eve proof retained where useful
+      - Retention/deletion truth: export after expire and deactivate retains the deleted candidate and tombstone, contains learning.expired and learning.deleted in the complete stream, and contains no provider key or raw provider body
+      - Retry proof: a deterministic provider-free invalid-first receipt opens exactly one corrected second Eve session, accepts the valid strict receipt, and opens no third session; the seam cannot activate accidentally in OpenRouter mode or weaken production validation
+  ownership:
+    owned_surfaces:
+      - bounded source, component, domain/client/server test, and verifier files in this isolated worktree needed for the four closure items
+      - append-only EXECUTION.md evidence
+    prohibited_surfaces:
+      - canonical main and C:\Users\henry\andhrim-agent-or-not
+      - every prior prototype worktree and C:\Users\henry\andhrim
+      - frozen TD-015
+      - PROTOTYPE_SCOPE.md, LESSONS_LEARNED.md, and docs/design/IMPLEMENTATION_BRIEF.md authority
+      - any .ai/sdd authority or status
+      - credentials, .env.local, OpenRouter/provider calls, non-loopback traffic, package-manager/registry activity
+      - hosting, deployment, GitHub publication, licence choice, and demo recording
+  verification_order:
+    - focused deterministic tests
+    - full provider-free unit/security, typecheck, secret/direct-licence scans, Eve retry seam, production build, full browser flow, mobile/accessibility, and launcher shutdown
+    - diff and screenshot inspection
+  return_delivery:
+    state: durable-fallback
+    receipt_evidence: This event is committed alone in append-only EXECUTION.md before implementation edits.
+```
+
+Acknowledgment: I accept the exact model/effort assignment, branch/worktree/base identity, bounded R2 task, owned and prohibited surfaces, provider-free constraints, verification contract, and stable return-event requirement. Implementation edits may begin only after this acknowledgment is committed by itself.
