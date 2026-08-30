@@ -1172,3 +1172,62 @@ event:
 ~~~
 
 **PROTO-R5 verdict: VERIFICATION FAILED. Implementation and verification stopped for controller disposition. The live OpenRouter smoke was not run.**
+
+## 2026-08-30 — PROTO-R5B/R5C network-denied transport exhausted before implementation
+
+~~~yaml
+event:
+  event_id: evt-agent-or-not-prototype-openrouter-smoke-r5bc-transport-exhausted-20260830
+  task_id: PROTO-R5
+  type: blocked
+  occurred_at: 2026-08-30T04:05:00-07:00
+  summary: Two fresh visible Sol/high workspace-write transports preserved the no-network boundary but could not create the required Git worktree index lock; both stopped before implementation.
+  tracking_owner: orchestrator
+  attempts:
+    - id: PROTO-R5B
+      herdr_pane: w1:pB
+      native_session: 01a05237-7a98-7e00-82fc-385cd39149c0
+      branch: codex/prototype-openrouter-smoke-harness-r5b
+      worktree: C:\Users\henry\andhrim-agent-or-not-worktrees\prototype-openrouter-smoke-harness-r5b
+      base: c6cdcdc2a284aa5d461824c8b72e0e246d4014fe
+      sandbox: workspace-write; network_access=false
+      result: pre-edit transport failure; acknowledgment remained uncommitted because Git worktree metadata was outside the writable root
+    - id: PROTO-R5C
+      herdr_pane: w1:pC
+      native_session: 01a0523e-9a29-7242-8163-3ab1a082a4cb
+      branch: codex/prototype-openrouter-smoke-harness-r5c
+      worktree: C:\Users\henry\andhrim-agent-or-not-worktrees\prototype-openrouter-smoke-harness-r5c
+      base: c6cdcdc2a284aa5d461824c8b72e0e246d4014fe
+      sandbox: workspace-write; network_access=false; canonical .git supplied through --add-dir
+      exact_failure: "fatal: Unable to create '.git/worktrees/prototype-openrouter-smoke-harness-r5c/index.lock': Permission denied"
+      result: pre-edit transport failure; only the acknowledgment text was written and it remains uncommitted in the frozen worktree
+  invariant_evidence:
+    implementation_started: false
+    package_manager_invocations: 0
+    non_loopback_network: 0
+    openrouter_calls: 0
+    credential_reads: 0
+    provider_calls: 0
+    canonical_source_mutation: false
+    full_andhrim_mutation: false
+  bounded_next_route:
+    route: exactly one fresh visible Sol/high PROTO-R5D worker
+    sandbox: workspace-write with network_access=false
+    additional_writable_root: C:\Users\henry\andhrim-agent-or-not
+    purpose_of_additional_root: permit the linked worktree to create and update canonical Git metadata only
+    still_prohibited:
+      - canonical checkout source edits
+      - package managers or dependency materialization
+      - OpenRouter, credentials, providers, hosting, publication, or licence selection
+      - full Andhrim, TD-022, or frozen TD-015 mutation
+    stop_conditions:
+      - acknowledgment commit still cannot be created
+      - any package-manager invocation or non-loopback attempt
+      - any canonical source edit
+  requested_action: Owner authorization is required because the additional writable root exposes canonical source capability even though canonical source mutation remains prohibited by contract.
+  return_delivery:
+    state: durable-fallback
+    receipt_evidence: Orchestrator appended this transport diagnosis and exact bounded authorization route to canonical EXECUTION.md.
+~~~
+
+**PROTO-R5B/R5C verdict: RETURN UNAVAILABLE BEFORE IMPLEMENTATION. The provider-free harness remains unimplemented; the live OpenRouter smoke remains untouched.**
