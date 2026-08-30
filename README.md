@@ -79,6 +79,8 @@ pnpm test                  # strict receipt and owner-learning semantics
 pnpm typecheck             # guarded TypeScript validation
 pnpm build                 # guarded Eve + Next.js production build
 pnpm verify:provider-free  # zero-tool Eve seam, cancellation and cleanup
+node scripts/verify-openrouter-smoke.mjs # provider-free one-shot smoke preflight
+node scripts/openrouter-smoke.mjs        # defaults to the same provider-free preflight
 pnpm verify:browser        # loopback production browser flow and screenshots
 pnpm scan:secrets          # tracked/untracked source secret-shape scan
 pnpm verify:licenses       # dependency licence evidence check
@@ -86,6 +88,24 @@ pnpm start                 # loopback production services
 ```
 
 The provider-free verification commands install a Node egress guard and fail on non-loopback network attempts. Browser verification also blocks and records non-loopback browser requests, chooses unique loopback web/Eve ports, proves its spawned services remain live, and reconciles exact zero-tool fixture evidence. Generated product records default to `data/events.ndjson`; `data/`, `.env*`, logs, build output and browser artifacts are ignored.
+
+### Latest-safe owner OpenRouter smoke
+
+`node scripts/openrouter-smoke.mjs` with no arguments runs only the deterministic provider-free preflight. It tests the complete live opt-in contract, inherited-key fail-closed behavior through the existing provider adapter, strict report redaction/schema, the two-session ceiling, zero-tool fixture correction, built Eve + Next + browser/client validation, loopback-only binding, scratch removal, and owned process/port cleanup. It does not make a provider request.
+
+Only after every earlier provider-free clean-clone gate passes, the owner may place `OPENROUTER_API_KEY` in the private parent shell and replace the model placeholder in this exact one-shot command:
+
+```powershell
+node scripts/openrouter-smoke.mjs --live-openrouter --confirm-provider-data-transfer --provider openrouter --model "provider/model"
+```
+
+All four command conditions are mandatory. The existing Eve provider integration alone consumes and validates the inherited key; the harness never requests, prints, persists, hashes, measures, transforms, or inspects it. Build processes, Next, the browser, verifier children, and cleanup helpers receive credential-free allow-listed environments. Only the live Eve runtime inherits the unchanged parent key, because it is the process that invokes the existing provider adapter. The browser receives a key-free runtime bootstrap and blocks every non-loopback browser request.
+
+The harness rebuilds and starts Eve and Next on fresh, distinct loopback ports; drives the real assessment UI and client-side strict receipt validator; permits exactly one correction after an invalid receipt and blocks any third session before it reaches Eve; writes product data and boundary evidence only to a disposable scratch directory; stops every owned process; proves both ports are released; and removes the scratch directory.
+
+The only retained live artifact is ignored `output/openrouter-smoke-report.json`. Its strict schema contains safe classification and cleanup facts plus only these model-boundary fields: timestamp, explicit model identifier, call index, and zero tool definitions. It cannot contain prompts, assessments, provider request/response bodies, headers, key material, raw output, or ledger content. This repository does not claim that live mode has been run.
+
+Never run `pnpm`, `npm`, `yarn`, `npx`, or Corepack through this worktree's shared `node_modules` junction. A package-manager command can materialize or rewrite the junction target even when the repository diff looks unchanged. Use the direct `node` commands above for this prepared smoke route; package installation belongs only in the separately authorized disposable clean-clone qualification.
 
 ## Local request security boundary
 

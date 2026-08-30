@@ -5,6 +5,23 @@ import { fixtureReceipt } from "./lib/fixture-receipt";
 import { resolveFixtureScenario } from "./lib/fixture-scenario";
 
 let invocationCount = 0;
+let openRouterInvocationCount = 0;
+
+function toolDefinitionCount(options: { tools?: unknown }) {
+  return options.tools === undefined ? 0 : Array.isArray(options.tools) ? options.tools.length : 1;
+}
+
+function recordSmokeModelCall(modelId: string, callIndex: number, options: { tools?: unknown }) {
+  const evidencePath = process.env.AGENT_OR_NOT_SMOKE_EVIDENCE_PATH?.trim();
+  if (!evidencePath) return;
+  if (callIndex > 2) throw new Error("OPENROUTER_SMOKE_ATTEMPT_BUDGET_EXCEEDED");
+  appendFileSync(evidencePath, `${JSON.stringify({
+    timestamp: new Date().toISOString(),
+    modelId,
+    callIndex,
+    toolDefinitionCount: toolDefinitionCount(options),
+  })}\n`, { encoding: "utf8", flag: "a" });
+}
 
 function configuredFixtureScenario() {
   return resolveFixtureScenario("fixture", process.env.AGENT_OR_NOT_FIXTURE_SCENARIO?.trim());
@@ -12,12 +29,9 @@ function configuredFixtureScenario() {
 
 function recordProviderFreeCall(options: { tools?: unknown }) {
   invocationCount += 1;
-  const toolDefinitionCount = options.tools === undefined
-    ? 0
-    : Array.isArray(options.tools)
-      ? options.tools.length
-      : 1;
-  if (toolDefinitionCount !== 0) throw new Error("PROVIDER_FREE_TOOL_ENVELOPE_PRESENT");
+  recordSmokeModelCall("agent-or-not-fixture", invocationCount, options);
+  const tools = toolDefinitionCount(options);
+  if (tools !== 0) throw new Error("PROVIDER_FREE_TOOL_ENVELOPE_PRESENT");
   const fixtureScenario = configuredFixtureScenario();
   const outputKind = fixtureScenario === "invalid-first-receipt" && invocationCount === 1 ? "invalid" : "valid";
   const correctionRequested = JSON.stringify(options).includes("The previous response failed strict validation.");
@@ -26,7 +40,7 @@ function recordProviderFreeCall(options: { tools?: unknown }) {
     appendFileSync(evidencePath, `${JSON.stringify({
       schemaVersion: "provider-free-model-call-v1",
       invocationCount,
-      toolDefinitionCount,
+      toolDefinitionCount: tools,
       modelId: "agent-or-not-fixture",
       fixtureScenario,
       outputKind,
@@ -106,16 +120,18 @@ const fixtureModel = {
 };
 
 function assertNoCallableTools(options: { tools?: unknown }) {
-  const count = options.tools === undefined ? 0 : Array.isArray(options.tools) ? options.tools.length : 1;
+  const count = toolDefinitionCount(options);
   if (count !== 0) throw new Error("MODEL_TOOL_ENVELOPE_PRESENT");
 }
 
-function withoutCallableTools<T extends object>(model: T): T {
+function withoutCallableTools<T extends object>(model: T, modelId: string): T {
   return new Proxy(model, {
     get(target, property, receiver) {
       if (property === "doGenerate" || property === "doStream") {
         const operation = Reflect.get(target, property, receiver) as (options: { tools?: unknown }) => unknown;
         return (options: { tools?: unknown }) => {
+          openRouterInvocationCount += 1;
+          recordSmokeModelCall(modelId, openRouterInvocationCount, options);
           assertNoCallableTools(options);
           return operation.call(target, options);
         };
@@ -138,7 +154,7 @@ function configuredModel() {
   if (!apiKey) throw new Error("OPENROUTER_API_KEY is required in openrouter mode.");
   if (!modelId || !/^[a-z0-9._-]+\/[a-z0-9._:-]+$/iu.test(modelId)) throw new Error("OPENROUTER_MODEL must be an explicit provider/model identifier.");
   const provider = createOpenRouter({ apiKey, appName: "Andhrim Agent or Not local prototype" });
-  return withoutCallableTools(provider(modelId));
+  return withoutCallableTools(provider(modelId), modelId);
 }
 
 export default defineAgent({

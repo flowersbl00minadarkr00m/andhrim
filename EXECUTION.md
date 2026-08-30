@@ -1351,3 +1351,108 @@ event:
 ~~~
 
 Acknowledgment: I accept the exact `gpt-5.6-sol` / `high` assignment, fresh visible bounded-worker role, branch/worktree/base, phase-A and deferred phase-B ownership, absolute prohibited surfaces, network-disabled and zero-access boundaries, controller-mediated commit rule, and explicit exclusion of MIT and all licence changes. I am acknowledgment-ready and will not begin phase B without an explicit Orchestrator release.
+
+## 2026-08-30 — PROTO-R5E implementation verification failure
+
+~~~yaml
+event:
+  event_id: evt-agent-or-not-prototype-openrouter-smoke-r5e-ready-20260830
+  task_id: PROTO-R5E
+  type: verification-failed
+  occurred_at: 2026-08-30T07:17:03.5682390-07:00
+  summary: The purpose-built provider-free OpenRouter smoke preflight, strict two-session fixture seam, unit suite, typecheck, and secret scan passed, but the requested repository-root build and start-local checks failed at the shared node_modules junction boundary; Orchestrator disposition is required before review or integration.
+  execution_mode: orchestrated-worker
+  tracking_owner: orchestrator
+  assignment:
+    role: fresh visible bounded implementation worker, not an Orchestrator
+    model: gpt-5.6-sol
+    effort: high
+    branch: codex/prototype-openrouter-smoke-harness-r5e
+    worktree: C:\Users\henry\andhrim-agent-or-not-worktrees\prototype-openrouter-smoke-harness-r5e
+    exact_base: e339a3f8dea5fbf4b2aae4d7ff526f4f861c1eed
+    phase_a_controller_commit: 1a6b0276968c801718d0f5877abc65f377293e48
+    worker_git_add: prohibited_and_not_run
+    worker_git_commit: prohibited_and_not_run
+  authority:
+    prototype_scope_sha256: 863c44a31f5c8806cc614da6b6a1958f30d78f523e5203331882bd170ccd17f7
+    lessons_learned_sha256: 40ba06e8e2b256f6c723ba23271a0a0ba689b5aa872f1477d7088dc7d86410ed
+    implementation_brief_sha256: 1847f44d41fb7967ee39cc510ae089009ffa237c36735d4ea831f5bf0e95502f
+  changed_files:
+    - scripts/lib/openrouter-smoke-contract.mjs
+    - scripts/openrouter-smoke.mjs
+    - scripts/verify-openrouter-smoke.mjs
+    - agent/agent.ts
+    - package.json
+    - README.md
+    - docs/RELEASE_CHECKLIST.md
+    - EXECUTION.md
+  implementation:
+    - Added strict smoke flag, report, safe model-boundary evidence, call-budget, environment-sanitization, process-cleanup, and loopback-port contracts.
+    - Added a default provider-free verifier and a fail-closed live route requiring every explicit opt-in condition; no live route was executed.
+    - Added a scratch-only Eve and Next build/run seam backed by link-only access to existing dependency bytes, unique loopback ports, a real browser/client strict validator, one invalid-first correction fixture, a two-session ceiling, and cleanup/port-release proof.
+    - Narrowly instrumented the Eve model boundary with timestamp, model identifier, call index, and zero tool definitions only; a third smoke session is rejected before provider work.
+    - Added direct Node script entries and smoke-route documentation, including the durable lesson that package managers must never run through the shared node_modules junction.
+  verification:
+    - command: node scripts/verify-openrouter-smoke.mjs
+      exit_code: 0
+      result: provider-free preflight passed; fixtureSessions=2; fixtureModelCalls=2; receiptValidated=true; scratchRemoved=true; residualProcessCount=0; residualPortCount=0; liveProviderCalls=0; credentialReadsOutsideExistingAdapter=0; nonLoopbackAttempts=0
+    - command: node scripts/verify-unit.mjs
+      exit_code: 0
+      result: 6 test files and 23 tests passed; guardedProcesses=7; nonLoopbackAttempts=0
+    - command: node scripts/verify-typecheck.mjs
+      exit_code: 0
+      result: typecheck passed; guardedProcesses=1; nonLoopbackAttempts=0
+    - command: node scripts/scan-secrets.mjs
+      exit_code: 0
+      result: 71 files scanned; findings=0
+    - command: node scripts/verify-build.mjs
+      exit_code: 1
+      result: root Eve build was denied with EPERM while attempting node_modules/.cache/eve/authored-modules through the shared junction; no package manager ran and the isolated scratch build used by the smoke preflight passed
+    - command: node scripts/verify-start-local.mjs
+      exit_code: 1
+      result: Next started on loopback, then Eve exited because the root .output/server/index.mjs was absent after the denied root build; owned processes were cleaned
+    - command: git diff --check
+      exit_code: 0
+      result: passed before this append-only event
+    - check: package.json non-script fields compared with phase-A commit
+      result: unchanged; only verify:openrouter-smoke and smoke:openrouter were added
+  observed_counts:
+    network_disabled: true
+    package_manager_invocations: 0
+    dependency_installs_or_materialization: 0
+    package_registry_or_cdn_access: 0
+    live_mode_executions: 0
+    openrouter_calls: 0
+    provider_calls: 0
+    credential_value_accesses_by_harness: 0
+    credential_reads_outside_existing_adapter: 0
+    existing_adapter_missing_key_checks: 1
+    key_values_requested_printed_persisted_hashed_measured_or_transformed: 0
+    non_loopback_network_attempts: 0
+    publication_actions: 0
+    canonical_source_mutations: 0
+    licence_or_mit_changes: 0
+  cleanup:
+    smoke_scratch_removed: true
+    residual_owned_process_count: 0
+    residual_owned_port_count: 0
+    final_workspace_process_query_count: 0
+  canonical_state:
+    checkout: C:\Users\henry\andhrim-agent-or-not
+    main_head_before: e339a3f8dea5fbf4b2aae4d7ff526f4f861c1eed
+    main_head_after: e339a3f8dea5fbf4b2aae4d7ff526f4f861c1eed
+    status_before: clean
+    status_after: clean
+  remaining_risks:
+    - Live mode and the OpenRouter integration remain deliberately unexecuted and provider-unverified.
+    - The repository-root build and start-local verification route is incompatible with this worker's shared read-only node_modules cache boundary; only the purpose-built isolated scratch seam is green.
+    - The smoke route relies on already present dependency bytes and is not clean-clone or dependency-materialization evidence.
+    - Owner clean-clone, live-provider, publication, licence, and independent-review gates remain outstanding.
+  verdict: VERIFICATION_FAILED
+  requested_action: The Orchestrator must decide whether the green scratch-isolated full seam satisfies this bounded ticket or separately authorize work on the repository-wide build transport; do not treat this return as ready-for-review automatically.
+  return_delivery:
+    state: durable-fallback
+    receipt_evidence: This stable event is appended for Orchestrator inspection and controller-mediated Git handling.
+~~~
+
+**PROTO-R5E verdict: VERIFICATION FAILED. The provider-free bounded smoke seam is green with zero live/provider/credential/egress activity and zero residual owned processes or ports, but the requested repository-root build and start-local checks are red at the shared junction boundary.**

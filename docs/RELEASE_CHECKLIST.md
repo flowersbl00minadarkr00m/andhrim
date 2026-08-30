@@ -36,6 +36,7 @@ Copy-Item .env.example .env.local
 pnpm test
 pnpm typecheck
 pnpm build
+node scripts/verify-openrouter-smoke.mjs
 pnpm start
 ```
 
@@ -45,7 +46,9 @@ The frozen install's package-registry access and Playwright's separate Microsoft
 
 - [ ] Copy `.env.example` to `.env.local` on the owner's machine.
 - [ ] Only after every provider-free clean-clone qualification gate above passes, enter a local OpenRouter key and explicit model identifier at the latest safe checkpoint.
-- [ ] Run one direct OpenRouter smoke; record only pass/fail, model identifier, timestamp and safe request-envelope facts. Never record the key or provider body.
+- [ ] Run `node scripts/verify-openrouter-smoke.mjs` directly and require the provider-free fixture, strict report-schema/redaction, bounded-session, loopback, and process/port cleanup checks to pass. Never invoke a package manager through a shared `node_modules` junction; it can mutate the junction target.
+- [ ] With `OPENROUTER_API_KEY` already inherited privately by the parent shell, run exactly `node scripts/openrouter-smoke.mjs --live-openrouter --confirm-provider-data-transfer --provider openrouter --model "provider/model"` after replacing the placeholder with the explicit model identifier. Do not put the key on the command line. No flags means provider-free preflight only.
+- [ ] Inspect ignored `output/openrouter-smoke-report.json`: require `state: passed`, one strictly validated receipt, one or two exactly reconciled Eve/model calls, zero tool definitions, zero blocked-third-session attempts, zero browser non-loopback requests, scratch removal, zero residual owned processes, zero residual ports, and no prompt/assessment/provider/header/key/raw-output/ledger content.
 - [ ] Remove the key from the shell/session and confirm secret scan remains clean.
 - [ ] Select a public project licence. Current state is deliberately `unselected`.
 - [ ] Review final dependency evidence and repository diff.
