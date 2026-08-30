@@ -754,3 +754,82 @@ event:
 - Remaining owner gates are unchanged: Windows clean-clone install/test/build/start/browser and transitive dependency/licence review; one owner-supplied direct OpenRouter smoke; public licence selection; final owner dependency/diff review; optional GitHub publication and demo recording.
 
 **R2 race-fix verdict: PASS. Release verdict: NOT RELEASE-READY pending the unchanged owner gates.**
+
+## 2026-08-30 — Prototype release documentation R4 acknowledgment
+
+~~~yaml
+event:
+  event_id: evt-agent-or-not-prototype-release-docs-r4-ack-20260830
+  task_id: prototype-release-docs-r4
+  type: acknowledged
+  occurred_at: 2026-08-30T02:14:31.5709407-07:00
+  summary: Fresh visible documentation-only worker accepted the bounded release-contract correction before edits.
+  execution_mode: orchestrated-worker
+  tracking_owner: orchestrator
+  assignment:
+    role: fresh visible top-level documentation-only implementation worker
+    model: gpt-5.6-sol
+    effort: high
+    rationale: bounded release-contract correction
+    canonical_project_registry_id: andhr-m-agent-or-not-prototype
+    canonical_project_path: C:\Users\henry\andhrim-agent-or-not
+    branch: codex/prototype-release-docs-r4
+    worktree: C:\Users\henry\andhrim-agent-or-not-worktrees\prototype-release-docs-r4
+    exact_base: 7b3bd38aa5a2df666f954b146561e7a44ec1cbfe
+    inspected_head: 7b3bd38aa5a2df666f954b146561e7a44ec1cbfe
+    worktree_state: clean
+  authority:
+    prototype_scope_sha256: 863c44a31f5c8806cc614da6b6a1958f30d78f523e5203331882bd170ccd17f7
+    lessons_learned_sha256: 40ba06e8e2b256f6c723ba23271a0a0ba689b5aa872f1477d7088dc7d86410ed
+    implementation_brief_sha256: 1847f44d41fb7967ee39cc510ae089009ffa237c36735d4ea831f5bf0e95502f
+    ai_sdd_authority_present: false
+    boundary: Canonical Andhrím feature 001 and TD-022 remain unchanged and incomplete.
+  ownership:
+    owned_files:
+      - README.md
+      - docs/DEPENDENCIES.md
+      - docs/RELEASE_CHECKLIST.md
+      - EXECUTION.md
+    prohibited_surfaces:
+      - all product code and every file not listed under owned_files
+      - package.json, pnpm-lock.yaml, and .env.example
+      - PROTOTYPE_SCOPE.md, LESSONS_LEARNED.md, and docs/design/IMPLEMENTATION_BRIEF.md
+      - all .ai/sdd authority, status, index, task, and handoff surfaces
+      - C:\Users\henry\andhrim and C:\Users\henry\andhrim-agent-or-not
+      - package-manager commands, dependency or browser installation/downloads, package registries, CDNs, OpenRouter, credentials, and non-loopback providers
+      - project licence selection, publication, deployment, and hosting
+  verification_boundary:
+    permitted:
+      - git diff --check
+      - read-only source secret scan
+      - link and path consistency inspection
+      - complete diff inspection
+    prohibited_claims:
+      - clean-clone dependency or Chromium installation was run
+      - transitive-licence gate passed
+      - direct OpenRouter owner smoke passed
+      - project licence selected
+  evidence:
+    commands:
+      - git rev-parse --show-toplevel
+      - git branch --show-current
+      - git rev-parse HEAD
+      - git status --short --branch
+      - git worktree list --porcelain
+      - git merge-base HEAD 7b3bd38aa5a2df666f954b146561e7a44ec1cbfe
+      - project_registry.py resolve andhr-m-agent-or-not-prototype --json
+      - Get-FileHash -Algorithm SHA256 for pinned authority files
+    files:
+      - PROTOTYPE_SCOPE.md
+      - LESSONS_LEARNED.md
+      - docs/design/IMPLEMENTATION_BRIEF.md
+      - README.md
+      - docs/DEPENDENCIES.md
+      - docs/RELEASE_CHECKLIST.md
+      - EXECUTION.md
+  return_delivery:
+    state: durable-fallback
+    receipt_evidence: This acknowledgment event is committed alone in append-only EXECUTION.md before release-document edits.
+~~~
+
+Acknowledgment: I accept the exact branch, isolated worktree, base commit, model/effort assignment, documentation-only ownership, prohibited surfaces, provider/network/dependency boundaries, verification limits, and durable return-event requirement. Release-document edits may begin only after this receipt is committed separately.
