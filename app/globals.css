@@ -244,6 +244,20 @@ textarea { min-height: 74px; resize: vertical; }
 .impact-grid p { margin: 7px 0 0; color: var(--muted); font-size: 12px; }
 .completed-error { grid-column: 1 / -1; margin: 0 5vw 30px; }
 
+.learning-history { padding: 48px 5vw; border-top: 1px solid var(--line); }
+.learning-history__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.learning-history__heading .button { display: inline-flex; align-items: center; text-decoration: none; }
+.history-boundary { max-width: 900px; margin: 18px 0 28px; padding-left: 14px; border-left: 3px solid var(--copper); color: var(--muted); }
+.history-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 18px; }
+.history-item { min-width: 0; padding: 20px; border: 1px solid var(--line); background: #fffefb; }
+.history-item__summary { display: flex; justify-content: space-between; gap: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.history-item__summary p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+.history-item__summary > span { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.history-item dl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 18px; }
+.history-item dt { color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.history-item dd { margin: 3px 0 0; overflow-wrap: anywhere; }
+.history-item > p { color: var(--muted); }
+
 .app-footer { min-height: 72px; padding: 14px 5vw; border-top: 1px solid var(--line); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px 24px; color: var(--muted); font-size: 12px; }
 .app-footer p { margin: 0; }
 .loading { min-height: 100vh; display: grid; place-items: center; font-family: Georgia, serif; font-size: 24px; }
@@ -266,6 +280,9 @@ textarea { min-height: 74px; resize: vertical; }
   .receipt { padding: 23px 18px; }
   .receipt__row { grid-template-columns: 1fr; gap: 7px; }
   .candidate dl, .impact-grid { grid-template-columns: 1fr; }
+  .learning-history__heading { display: block; }
+  .learning-history__heading .button { margin-top: 18px; }
+  .history-item dl { grid-template-columns: 1fr; }
   .impact-grid > div { border-right: 0; border-bottom: 1px solid var(--line); }
   .impact-grid > div:last-child { border-bottom: 0; }
   .app-footer { display: block; }

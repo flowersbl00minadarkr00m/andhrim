@@ -8,6 +8,10 @@
 - [x] Append-only local events and owner-approved active-rule projection.
 - [x] Assessment, receipt, outcome, candidate and before/after UI.
 - [x] Desktop/mobile browser flow with no non-loopback requests.
+- [x] Cross-origin/no-CORS mutation and Eve session creation rejection with zero ledger/model-call effects at final source head.
+- [x] Runtime-aware fixture/OpenRouter privacy disclosure and five factor-specific visible 1–5 anchors at final source head.
+- [x] Persistent learning history with owner expiry/deactivation controls and retained tombstone export semantics at final source head.
+- [x] Unique-port browser Eve ownership and exact zero-tool fixture-call reconciliation at final source head.
 - [x] Source secret scan and direct dependency-licence evidence pass at final source head.
 - [ ] Clean-clone transitive dependency and licence review.
 - [ ] Windows clean-clone install, test, build, start and browser smoke.

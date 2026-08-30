@@ -7,13 +7,13 @@ Allowed recommendation values are `human-led`, `ai-assisted`, `agent-delegated`,
 The JSON object must contain exactly these fields:
 
 - `schemaVersion`: `recommendation-receipt-v1`
-- `receiptId`: an identifier beginning `receipt-`
-- `assessmentId`: copy the supplied assessment identifier
+- `receiptId`: a placeholder identifier beginning `receipt-`; the application assigns the persisted identity after validation
+- `assessmentId`: a placeholder identifier beginning `assessment-`; the application assigns the persisted identity after validation
 - `recommendation`: one allowed value
 - `summary`: one bounded sentence
 - `why`: a bounded rationale
-- `evidence`: one to eight non-empty strings grounded in the supplied assessment
-- `assumptions`: one to eight non-empty strings
+- `evidence`: one to six non-empty strings grounded in the supplied assessment
+- `assumptions`: one to six non-empty strings
 - `confidence`: `{ "score": 0..100 integer, "label": non-empty string, "uncertainty": non-empty string }`
 - `autonomyBoundary`: `{ "allowed": non-empty string array, "prohibited": non-empty string array }`
 - `starterPack`: zero to eight objects shaped `{ "id": "starter-...", "label": non-empty string, "content": non-empty string }`

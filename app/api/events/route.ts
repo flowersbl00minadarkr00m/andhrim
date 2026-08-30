@@ -16,6 +16,10 @@ import {
   appendProductEvents,
   readProductProjection,
 } from "@/src/server/event-store";
+import {
+  assertLocalMutationRequest,
+  localRequestErrorResponse,
+} from "@/src/server/local-request-security";
 
 export const runtime = "nodejs";
 
@@ -36,6 +40,7 @@ function eventBase() {
 
 export async function POST(request: Request) {
   try {
+    assertLocalMutationRequest(request);
     const action = actionSchema.parse(await request.json());
     const current = readProductProjection();
     let projection;
@@ -105,13 +110,14 @@ export async function POST(request: Request) {
       case "expire-learning": {
         const candidate = current.candidates[action.candidateId];
         if (!candidate || candidate.status !== "approved") throw new Error("Only an approved candidate may expire.");
-        if (Date.parse(candidate.expiresAt) > Date.now()) throw new Error("Candidate has not reached its expiry.");
         projection = appendProductEvent({ ...eventBase(), type: "learning.expired", candidateId: action.candidateId });
         break;
       }
     }
     return Response.json({ schemaVersion: "product-state-v1", projection });
   } catch (error) {
+    const securityResponse = localRequestErrorResponse(error);
+    if (securityResponse) return securityResponse;
     const message = error instanceof Error ? error.message : "Invalid local event action.";
     return Response.json({ error: message }, { status: 400 });
   }

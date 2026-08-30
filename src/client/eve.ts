@@ -3,19 +3,23 @@ import {
   parseRecommendationReceipt,
   type RecommendationReceipt,
 } from "../domain/recommendation";
+import { assessmentForProvider, type ProviderMode } from "../domain/runtime";
 
-export async function requestEveReceipt(assessment: Assessment): Promise<RecommendationReceipt> {
-  const runtimeResponse = await fetch("/api/runtime", { cache: "no-store" });
-  const runtime = await runtimeResponse.json() as { providerMode?: "fixture" | "openrouter"; modelId?: string | null; configured?: boolean; error?: string };
-  if (!runtimeResponse.ok || !runtime.configured || !runtime.providerMode || !runtime.modelId) {
-    throw new Error(runtime.error ?? "The selected local model is not configured.");
-  }
+type LocalRuntime = {
+  providerMode: ProviderMode;
+  modelId: string;
+  sessionNonce: string;
+};
+
+export const RECEIPT_SESSION_BUDGET = 2;
+
+export async function requestEveReceipt(assessment: Assessment, runtime: LocalRuntime): Promise<RecommendationReceipt> {
   let validationFailure = false;
-  for (let attempt = 1; attempt <= 2; attempt += 1) {
+  for (let attempt = 1; attempt <= RECEIPT_SESSION_BUDGET; attempt += 1) {
     try {
-      return await requestAttempt(assessment, { providerMode: runtime.providerMode, modelId: runtime.modelId }, validationFailure);
+      return await requestAttempt(assessment, runtime, validationFailure);
     } catch (error) {
-      if (!(error instanceof ReceiptValidationError) || attempt === 2) throw error;
+      if (!(error instanceof ReceiptValidationError) || attempt === RECEIPT_SESSION_BUDGET) throw error;
       validationFailure = true;
     }
   }
@@ -26,15 +30,22 @@ class ReceiptValidationError extends Error {}
 
 async function requestAttempt(
   assessment: Assessment,
-  runtime: RecommendationReceipt["runtime"],
+  localRuntime: LocalRuntime,
   correction: boolean,
 ): Promise<RecommendationReceipt> {
+  const runtime: RecommendationReceipt["runtime"] = {
+    providerMode: localRuntime.providerMode,
+    modelId: localRuntime.modelId,
+  };
   const createResponse = await fetch("/eve/v1/session", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      "x-agent-or-not-session": localRuntime.sessionNonce,
+    },
     body: JSON.stringify({
       mode: "task",
-      message: `${correction ? "The previous response failed strict validation. " : ""}Return only one Recommendation Receipt JSON object for this bounded assessment. Runtime metadata must be ${JSON.stringify(runtime)}.\n${JSON.stringify(assessment)}`,
+      message: `${correction ? "The previous response failed strict validation. " : ""}Return only one Recommendation Receipt JSON object for this bounded assessment. Runtime metadata must be ${JSON.stringify(runtime)}. The application will assign receipt and assessment identifiers after validation.\n${JSON.stringify(assessmentForProvider(assessment))}`,
     }),
   });
   if (createResponse.status !== 202) throw new Error("The local Eve session could not start.");
@@ -42,7 +53,9 @@ async function requestAttempt(
   const sessionId = created.sessionId ?? createResponse.headers.get("x-eve-session-id");
   if (!sessionId) throw new Error("The local Eve session returned no identity.");
 
-  const streamResponse = await fetch(`/eve/v1/session/${encodeURIComponent(sessionId)}/stream`);
+  const streamResponse = await fetch(`/eve/v1/session/${encodeURIComponent(sessionId)}/stream`, {
+    headers: { "x-agent-or-not-session": localRuntime.sessionNonce },
+  });
   if (!streamResponse.ok || !streamResponse.body) throw new Error("The local Eve receipt stream could not open.");
   const reader = streamResponse.body.getReader();
   const decoder = new TextDecoder("utf-8", { fatal: true });

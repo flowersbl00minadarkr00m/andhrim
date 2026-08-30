@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -9,6 +10,7 @@ if (!/^\d{2,5}$/u.test(evePort) || !/^\d{2,5}$/u.test(webPort)) throw new Error(
 
 const environment = {
   ...process.env,
+  AGENT_OR_NOT_SESSION_NONCE: process.env.AGENT_OR_NOT_SESSION_NONCE ?? randomBytes(32).toString("base64url"),
   EVE_NEXT_PRODUCTION_PORT: evePort,
   HOSTNAME: "127.0.0.1",
   NODE_ENV: "production",

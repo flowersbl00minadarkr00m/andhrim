@@ -381,3 +381,77 @@ event:
 ```
 
 Acknowledgment: I accept the exact `gpt-5.6-sol` / `high` assignment, fresh visible sole-owner role, branch, isolated worktree, clean base, owned and prohibited surfaces, six-finding task, provider-free boundaries, and the independent FAIL audit receipt above. No implementation edit precedes this standalone acknowledgment commit.
+
+## 2026-08-30 — Prototype release-hardening R1 ready for review
+
+```yaml
+event:
+  event_id: evt-agent-or-not-prototype-hardening-r1-ready-20260830
+  type: ready-for-review
+  occurred_at: 2026-08-30T00:33:14.7191097-07:00
+  task_id: prototype-release-hardening-r1
+  incoming_review_event: evt-agent-or-not-independent-release-audit-0a9ab76-sol-xhigh-20260830
+  incoming_verdict: FAIL
+  worker:
+    session_id: 01a05171-0dac-7ce3-a4e3-32d43fb6524e
+    visibility: fresh-visible-top-level
+    role: sole implementation owner
+    model: gpt-5.6-sol
+    effort: high
+  routing:
+    branch: codex/prototype-release-hardening-r1
+    worktree: C:\Users\henry\andhrim-agent-or-not-worktrees\prototype-release-hardening-r1
+    exact_base: 0a9ab76684afe0337d1c96d6c5cd4c6819652833
+    acknowledgment_commit: e7d6740258db74cada08a80440ccc5be6296f11d
+    pre_record_head: e7d6740258db74cada08a80440ccc5be6296f11d
+  authority:
+    prototype_kind: non-binding
+    sdd_status: absent-by-contract
+    prototype_scope_sha256: 863c44a31f5c8806cc614da6b6a1958f30d78f523e5203331882bd170ccd17f7
+    lessons_learned_sha256: 40ba06e8e2b256f6c723ba23271a0a0ba689b5aa872f1477d7088dc7d86410ed
+    implementation_brief_sha256: 1847f44d41fb7967ee39cc510ae089009ffa237c36735d4ea831f5bf0e95502f
+    hashes_recomputed_after_implementation: unchanged
+  execution_boundaries:
+    provider_mode_exercised: fixture
+    openrouter_calls: 0
+    credential_access: 0
+    env_local_access: 0
+    dependency_manager_commands: 0
+    non_loopback_access: 0
+    package_registry_access: 0
+    clean_clone_claim: false
+  task_verdict: PASS
+  release_verdict: NOT_RELEASE_READY
+```
+
+### As-built six-finding reconciliation
+
+1. **Local mutation and Eve session boundary — PASS.** A fresh per-launch, 32-byte base64url nonce is generated in memory and shared only with the local Eve and Next processes. The no-store runtime bootstrap gives it to a same-origin UI request. Every product mutation and Eve session request requires the nonce and loopback/same-origin Fetch Metadata; mutations additionally require a loopback HTTP `Origin` and `application/json`. Rejected cross-origin/no-CORS requests are stopped before event projection/append or Eve model work. The documented boundary is drive-by browser protection for a single-owner loopback prototype, not multi-user authentication or protection from a hostile same-OS process.
+2. **Runtime-aware privacy copy — PASS.** Fixture mode states that no provider receives assessment content. OpenRouter mode identifies exactly the case title, desired outcome, constraints, and five numeric 1–5 answers as submitted content, excludes assessment identity/timestamp, local outcomes/history/ledger, and the API key from assessment content, and states that OpenRouter plus the selected provider govern handling under their policies. The server never returns the key.
+3. **Factor-specific scales — PASS.** All five assessment factors have independent visible 1–5 labels; browser verification observed the 1 and 5 anchors at every step.
+4. **Provider/schema maxima — PASS.** Provider instructions and strict Zod schema now both cap `evidence` and `assumptions` at six. Unit tests accept six and reject seven. Invalid model output remains bounded to one retry and two total Eve sessions.
+5. **Persistent learning history/control — PASS.** Learning history survives **New case**, exposes candidate/rule/source-outcome/version/expiry/rationale provenance, and provides owner expiry and deactivation controls. Deactivation appends a deletion tombstone and disables the rule; it does not erase the candidate, revisions, provenance, or export history. Learning remains inert until explicit owner approval.
+6. **Browser verification ownership/evidence — PASS.** Each run reserves distinct loopback web, Eve, and hostile-origin ports; builds the proxy for that exact Eve port; requires the spawned Eve process to announce that port and remain live; and reconciles exactly two fixture calls, invocation numbers 1 and 2, fixture model identity, and zero tool definitions.
+
+### Fresh provider-free verification at final source
+
+1. `node scripts/verify-unit.mjs` — exit `0`; Vitest `4.1.11`; 6 files and 22 tests passed; 7 guarded processes; `nonLoopbackAttempts: 0`. This includes same-origin/JSON/nonce acceptance and cross-origin, no-CORS-content-type, and missing-nonce rejection; exact privacy fields; five factor-specific scales; six-item acceptance/seven-item overflow rejection; and the one-retry/two-session budget.
+2. `node scripts/verify-typecheck.mjs` — exit `0`; 1 guarded process; `nonLoopbackAttempts: 0`.
+3. `node scripts/scan-secrets.mjs` — exit `0`; 67 source files scanned; 0 findings.
+4. `node scripts/verify-licenses.mjs` — exit `0`; all 13 direct dependency records reconciled; project licence remains deliberately `unselected`; publication remains owner-required.
+5. `node scripts/verify-provider-free.mjs` — exit `0`; Eve production build passed; a cross-site `text/plain` session request returned `401` with 0 fixture/model calls; the legitimate receipt and cancellation sessions were fixture invocations 1 and 2 with `toolDefinitionCount: 0`; strict receipt terminal event and `turn.cancelled -> session.waiting` passed; 3 guarded processes; `nonLoopbackAttempts: 0`; all recorded processes stopped.
+6. `node scripts/verify-build.mjs` — exit `0`; Eve `0.44.0` and Next.js `16.3.2` webpack production builds passed; routes `/`, `/api/events`, `/api/export`, `/api/runtime`, and `/api/state` built; 18 guarded processes; `nonLoopbackAttempts: 0`.
+7. `node scripts/verify-browser.mjs` — exit `0`; unique ports web `49954`, Eve `49955`, hostile origin `49956`; exact spawned Eve/Next processes remained live at readiness; Node and Chromium non-loopback attempts were 0. Direct and real-browser no-CORS drive-by attempts produced API `403`, Eve `401`, 0 ledger mutations, and 0 Eve model calls. The legitimate flow produced exactly two fixture calls with `toolDefinitionCount: 0` and events in order: `recommendation.recorded`, `recommendation.edited`, `outcome.recorded`, `learning.proposed`, `learning.edited`, `learning.approved`, `recommendation.recorded`, `learning.expired`, `learning.deleted`.
+8. Browser accessibility/responsiveness assertions passed: all button/link targets were at least 44 px, keyboard/radio semantics remained available, and Chromium reported no page or console errors. Regenerated `assessment-desktop.png`, `outcome-desktop.png`, `learning-approved-desktop.png`, `approved-rule-provenance.png`, and `assessment-mobile.png` were each manually inspected; no clipping, overlap, or misleading boundary copy remained.
+9. `node scripts/verify-start-local.mjs` — exit `0`; unique ports web `56556` and Eve `56557`; the documented combined launcher served the protected runtime bootstrap; 20 guarded processes; `nonLoopbackAttempts: 0`; shutdown left `residualProcesses: 0`.
+10. `git diff --check` — exit `0` before this append; the complete tracked diff and every new source file were inspected. The three pinned authority hashes above were recomputed after implementation and remained exact.
+
+### Boundary evidence and remaining owner gates
+
+- No `.env.local`, credential store, API key value, provider body, or provider endpoint was inspected, printed, or used. Verification children receive only allow-listed non-secret environment values plus fresh temporary fixture paths and nonces. The nonce is not logged, persisted in the ledger/export, captured in screenshots, or tracked. The final source secret scan found zero findings.
+- The Node egress guard recorded zero non-loopback attempts across unit, typecheck, provider-free seam, build, browser, and launcher verification; Chromium routing independently recorded zero non-loopback requests. This is guarded process/browser evidence, not a packet-capture claim.
+- No dependency-manager command or package-registry access occurred. Verification reused existing ignored, read-only local dependency bytes through the permitted worktree junction transport. This is not clean-clone evidence.
+- No OpenRouter/provider call, canonical Andhrím worktree or branch mutation, prior prototype worktree mutation, frozen TD-015 access, hosting, deployment, GitHub publication, licence selection, or demo recording occurred. No `.ai/sdd/` authority or status was created.
+- Remaining owner gates are: frozen Windows clean-clone install/test/build/start/browser evidence and transitive dependency/licence review; one direct OpenRouter smoke with owner-supplied local configuration and safe evidence; public licence selection; final owner dependency/diff review; optional GitHub publication and demo recording.
+
+**R1 verdict: PASS. Release verdict: NOT RELEASE-READY pending the owner gates above.**

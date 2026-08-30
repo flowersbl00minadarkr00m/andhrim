@@ -1,26 +1,17 @@
 import { useState } from "react";
+import { postProductAction } from "@/src/client/events";
 import type { LearningCandidate, Outcome, ProductProjection } from "@/src/domain/learning";
 import type { RecommendationReceipt } from "@/src/domain/recommendation";
 
 type Props = {
   receipt: RecommendationReceipt;
   projection?: ProductProjection;
+  sessionNonce?: string;
   onProjection: (projection: ProductProjection) => void;
   onError: (message: string) => void;
 };
 
-async function postAction(body: unknown): Promise<ProductProjection> {
-  const response = await fetch("/api/events", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const payload = await response.json() as { projection?: ProductProjection; error?: string };
-  if (!response.ok || !payload.projection) throw new Error(payload.error ?? "The local event could not be recorded.");
-  return payload.projection;
-}
-
-export function LearningPanel({ receipt, projection, onProjection, onError }: Props) {
+export function LearningPanel({ receipt, projection, sessionNonce, onProjection, onError }: Props) {
   const [rating, setRating] = useState(4);
   const [correctionNotes, setCorrectionNotes] = useState("The scope constraint was tighter than expected. Future calls should favor stronger scope checks.");
   const [notes, setNotes] = useState("");
@@ -32,8 +23,12 @@ export function LearningPanel({ receipt, projection, onProjection, onError }: Pr
   const candidate = Object.values(projection?.candidates ?? {}).find((entry) => entry.sourceOutcomeId === outcome?.outcomeId);
 
   const run = async (action: unknown) => {
+    if (!sessionNonce) {
+      onError("The local session boundary is not ready.");
+      return;
+    }
     setBusy(true);
-    try { onProjection(await postAction(action)); onError(""); }
+    try { onProjection(await postProductAction(action, sessionNonce)); onError(""); }
     catch (error) { onError(error instanceof Error ? error.message : "Local learning action failed."); }
     finally { setBusy(false); }
   };
@@ -127,7 +122,7 @@ export function LearningPanel({ receipt, projection, onProjection, onError }: Pr
                     <button className="button" type="button" onClick={() => { setCandidateRationale(candidate.rationale); setEditing((value) => !value); }} disabled={busy}>Edit</button>
                   </>
                 ) : null}
-                {candidate.status !== "deleted" ? <button className="button button--quiet" type="button" onClick={() => run({ action: "delete-learning", candidateId: candidate.candidateId, reason: "Owner deleted this prototype learning record." })} disabled={busy}>Delete record</button> : null}
+                {candidate.status !== "deleted" ? <button className="button button--quiet" type="button" onClick={() => run({ action: "delete-learning", candidateId: candidate.candidateId, reason: "Owner deactivated this prototype learning record with a retained tombstone." })} disabled={busy}>Deactivate (keep tombstone)</button> : null}
               </div>
             </>
           ) : <p>Record an outcome to create one bounded, inert candidate.</p>}

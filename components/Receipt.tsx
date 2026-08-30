@@ -15,10 +15,11 @@ type Props = {
   receipt?: RecommendationReceipt;
   previewRecommendation: RecommendationReceipt["recommendation"];
   step: number;
+  privacyDisclosure?: string;
   onStarterPackSave?: (receipt: RecommendationReceipt) => Promise<void>;
 };
 
-export function Receipt({ receipt, previewRecommendation, step, onStarterPackSave }: Props) {
+export function Receipt({ receipt, previewRecommendation, step, privacyDisclosure, onStarterPackSave }: Props) {
   const recommendation = receipt?.recommendation ?? previewRecommendation;
   const [editing, setEditing] = useState(false);
   const [starterPack, setStarterPack] = useState(receipt?.starterPack ?? []);
@@ -102,7 +103,7 @@ export function Receipt({ receipt, previewRecommendation, step, onStarterPackSav
         </section>
       ) : null}
 
-      <footer className="receipt__note">Everything here stays local. The model has no callable tools.</footer>
+      <footer className="receipt__note">{privacyDisclosure ?? "Reading the runtime privacy boundary…"} The model has no callable tools.</footer>
     </article>
   );
 }

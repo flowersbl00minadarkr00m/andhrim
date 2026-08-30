@@ -14,4 +14,24 @@ describe("recommendation receipt", () => {
   it("rejects an actionable recommendation without a starter pack", () => {
     expect(() => parseRecommendationReceipt({ ...fixtureReceipt, starterPack: [] })).toThrow(/starter pack/i);
   });
+
+  it("accepts six evidence and assumption items but rejects seven", () => {
+    const sixEvidence = Array.from({ length: 6 }, (_, index) => `Evidence ${index + 1}`);
+    const sixAssumptions = Array.from({ length: 6 }, (_, index) => `Assumption ${index + 1}`);
+    expect(parseRecommendationReceipt({
+      ...fixtureReceipt,
+      evidence: sixEvidence,
+      assumptions: sixAssumptions,
+    })).toMatchObject({ evidence: sixEvidence, assumptions: sixAssumptions });
+    expect(() => parseRecommendationReceipt({
+      ...fixtureReceipt,
+      evidence: [...sixEvidence, "Evidence 7"],
+      assumptions: sixAssumptions,
+    })).toThrow();
+    expect(() => parseRecommendationReceipt({
+      ...fixtureReceipt,
+      evidence: sixEvidence,
+      assumptions: [...sixAssumptions, "Assumption 7"],
+    })).toThrow();
+  });
 });

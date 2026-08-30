@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { LearningHistory } from "./LearningHistory";
 import { LearningPanel } from "./LearningPanel";
 import { Receipt } from "./Receipt";
 import { requestEveReceipt } from "@/src/client/eve";
+import { postProductAction } from "@/src/client/events";
+import { assessmentFactorCopy } from "@/src/domain/assessment-copy";
 import {
+  assessmentFactors,
   assessmentSchema,
   type Assessment,
   type ProductProjection,
@@ -13,24 +17,17 @@ import {
   parseRecommendationReceipt,
   type RecommendationReceipt,
 } from "@/src/domain/recommendation";
+import type { ProviderMode } from "@/src/domain/runtime";
 
-const questions = [
-  { factor: "outcomeStakes", title: "How costly would a wrong result be?", help: "Consider financial, legal, safety, reputational, and recovery impact." },
-  { factor: "repeatability", title: "How repeatable is the work?", help: "Consider whether the same pattern and inputs recur." },
-  { factor: "specificationClarity", title: "How clearly can the work be specified?", help: "Consider whether success, constraints, and edge cases can be written down." },
-  { factor: "verificationCost", title: "How costly is it to verify the output?", help: "Consider the time and expertise needed to catch a plausible error." },
-  { factor: "contextSensitivity", title: "How much tacit context does a good result need?", help: "Consider relationships, judgment, culture, timing, and unstated constraints." },
-] as const;
+const questions = assessmentFactors.map((factor) => ({ factor, ...assessmentFactorCopy[factor] }));
 
-const scale = [
-  "Minimal — easily corrected, low impact",
-  "Low — minor impact, easy to recover",
-  "Moderate — noticeable impact, some recovery effort",
-  "High — serious impact, hard to undo",
-  "Critical — irreversible or safety-sensitive",
-];
-
-type RuntimeStatus = { providerMode: "fixture" | "openrouter"; modelId: string | null; configured: boolean };
+type RuntimeStatus = {
+  providerMode: ProviderMode;
+  modelId: string | null;
+  configured: boolean;
+  sessionNonce: string;
+  privacyDisclosure: string;
+};
 
 function newAssessment(): Assessment {
   return assessmentSchema.parse({
@@ -92,21 +89,26 @@ export function AgentOrNotApp() {
     setError("");
     try {
       const validatedAssessment = assessmentSchema.parse(assessment);
-      const modelReceipt = await requestEveReceipt(validatedAssessment);
+      if (!runtimeStatus?.configured || !runtimeStatus.modelId || !runtimeStatus.sessionNonce) {
+        throw new Error("The selected local model or session boundary is not configured.");
+      }
+      const modelReceipt = await requestEveReceipt(validatedAssessment, {
+        providerMode: runtimeStatus.providerMode,
+        modelId: runtimeStatus.modelId,
+        sessionNonce: runtimeStatus.sessionNonce,
+      });
       const localReceipt = parseRecommendationReceipt({
         ...modelReceipt,
         receiptId: `receipt-${crypto.randomUUID()}`,
         assessmentId: assessment.assessmentId,
       });
-      const response = await fetch("/api/events", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "record-recommendation", assessment: validatedAssessment, receipt: localReceipt }),
-      });
-      const payload = await response.json() as { projection?: ProductProjection; error?: string };
-      if (!response.ok || !payload.projection) throw new Error(payload.error ?? "The receipt could not be recorded.");
-      setProjection(payload.projection);
-      setReceipt(payload.projection.receipts[localReceipt.receiptId]);
+      const nextProjection = await postProductAction({
+        action: "record-recommendation",
+        assessment: validatedAssessment,
+        receipt: localReceipt,
+      }, runtimeStatus.sessionNonce);
+      setProjection(nextProjection);
+      setReceipt(nextProjection.receipts[localReceipt.receiptId]);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The local recommendation failed.");
     } finally {
@@ -124,15 +126,12 @@ export function AgentOrNotApp() {
   const saveStarterPack = async (nextReceipt: RecommendationReceipt) => {
     setError("");
     try {
-      const response = await fetch("/api/events", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "edit-receipt", receipt: nextReceipt }),
-      });
-      const payload = await response.json() as { projection?: ProductProjection; error?: string };
-      if (!response.ok || !payload.projection) throw new Error(payload.error ?? "The starter pack could not be saved.");
-      setProjection(payload.projection);
-      setReceipt(payload.projection.receipts[nextReceipt.receiptId]);
+      const nextProjection = await postProductAction(
+        { action: "edit-receipt", receipt: nextReceipt },
+        runtimeStatus?.sessionNonce ?? "",
+      );
+      setProjection(nextProjection);
+      setReceipt(nextProjection.receipts[nextReceipt.receiptId]);
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "The starter pack could not be saved.";
       setError(message);
@@ -147,6 +146,7 @@ export function AgentOrNotApp() {
         <nav aria-label="Primary">
           <button type="button" onClick={reset}>New case</button>
           {receipt ? <a href="#outcome-heading">Outcome</a> : null}
+          <a href="#history">History</a>
           <a href="/api/export">Export</a>
           <a href="#about">About</a>
         </nav>
@@ -175,7 +175,7 @@ export function AgentOrNotApp() {
               <legend>{question.title}</legend>
               <p>{question.help}</p>
               <div className="options">
-                {scale.map((label, index) => {
+                {question.labels.map((label, index) => {
                   const value = index + 1;
                   return <label key={label}><input type="radio" name={question.factor} value={value} checked={assessment.answers[question.factor] === value} onChange={() => updateAnswer(value)} /><span>{label}</span></label>;
                 })}
@@ -188,23 +188,25 @@ export function AgentOrNotApp() {
                 ? <button className="button button--primary" type="button" onClick={() => setStep((value) => value + 1)}>Continue →</button>
                 : <button className="button button--primary" type="button" onClick={generate} disabled={busy}>{busy ? "Running local Eve…" : "Generate receipt →"}</button>}
             </div>
-            <p className="keyboard-hint">Tab and Shift+Tab move. Space selects. No data leaves this computer.</p>
+            <p className="keyboard-hint">Tab and Shift+Tab move. Space selects. {runtimeStatus?.privacyDisclosure ?? "Reading the runtime privacy boundary…"}</p>
             {error ? <p className="error" role="alert">{error}</p> : null}
           </section>
-          <aside className="receipt-pane"><Receipt previewRecommendation={previewRecommendation} step={step} /></aside>
+          <aside className="receipt-pane"><Receipt previewRecommendation={previewRecommendation} step={step} privacyDisclosure={runtimeStatus?.privacyDisclosure} /></aside>
         </div>
       ) : (
         <div className="completed-layout">
-          <section className="completed-receipt"><Receipt receipt={receipt} previewRecommendation={receipt.recommendation} step={4} onStarterPackSave={saveStarterPack} /></section>
-          <LearningPanel receipt={receipt} projection={projection} onProjection={setProjection} onError={setError} />
+          <section className="completed-receipt"><Receipt receipt={receipt} previewRecommendation={receipt.recommendation} step={4} onStarterPackSave={saveStarterPack} privacyDisclosure={runtimeStatus?.privacyDisclosure} /></section>
+          <LearningPanel receipt={receipt} projection={projection} sessionNonce={runtimeStatus?.sessionNonce} onProjection={setProjection} onError={setError} />
           {error ? <p className="error completed-error" role="alert">{error}</p> : null}
         </div>
       )}
 
+      <LearningHistory projection={projection} sessionNonce={runtimeStatus?.sessionNonce} onProjection={setProjection} onError={setError} />
+
       <footer className="app-footer" id="about">
-        <p><b>Local only</b> · Eve session · No tools enabled · Records stay on this computer</p>
+        <p><b>Loopback application</b> · Eve session · No tools enabled · Local ledger</p>
         <p>{runtimeStatus ? `${runtimeStatus.providerMode === "fixture" ? "Fixture" : "OpenRouter"} · ${runtimeStatus.modelId ?? "model not selected"} · ${runtimeStatus.configured ? "configured" : "not configured"}` : "Reading local model status…"}</p>
-        <p>Non-production prototype. OpenRouter owner smoke remains pending.</p>
+        <p>{runtimeStatus?.privacyDisclosure ?? "Reading the runtime privacy boundary…"}</p>
       </footer>
     </main>
   );

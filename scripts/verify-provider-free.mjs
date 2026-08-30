@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -14,6 +15,7 @@ const guardPath = path.join(root, "scripts", "provider-free-egress-guard.cjs");
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "agent-or-not-provider-free-"));
 const evidencePath = path.join(scratch, "model-call.json");
 const metricsDirectory = path.join(scratch, "egress");
+const sessionNonce = randomBytes(32).toString("base64url");
 fs.mkdirSync(metricsDirectory);
 
 const allowedEnvironmentNames = [
@@ -34,6 +36,7 @@ function safeEnvironment(label) {
   environment.AGENT_OR_NOT_EGRESS_METRICS_DIR = metricsDirectory;
   environment.AGENT_OR_NOT_EGRESS_METRICS_LABEL = label;
   environment.AGENT_OR_NOT_FIXTURE_EVIDENCE_PATH = evidencePath;
+  environment.AGENT_OR_NOT_SESSION_NONCE = sessionNonce;
   environment.NODE_ENV = "production";
   return environment;
 }
@@ -205,17 +208,44 @@ function assertEgressMetrics() {
   return records;
 }
 
+function sessionHeaders(origin, json = false) {
+  return {
+    ...(json ? { "content-type": "application/json" } : {}),
+    "origin": origin,
+    "sec-fetch-site": "same-origin",
+    "x-agent-or-not-session": sessionNonce,
+  };
+}
+
 let server;
 try {
   const buildOutput = runBuild();
   server = await startServer();
-  const infoResponse = await fetch(`${server.origin}/eve/v1/info`, { redirect: "error" });
+  assert.equal(server.child.exitCode, null, "The spawned Eve process was not live at readiness.");
+  const rejectedDriveBy = await fetch(`${server.origin}/eve/v1/session`, {
+    method: "POST",
+    headers: {
+      "content-type": "text/plain",
+      "origin": "https://attacker.invalid",
+      "sec-fetch-site": "cross-site",
+    },
+    redirect: "error",
+    body: JSON.stringify({ message: "Create a drive-by session.", mode: "task" }),
+  });
+  assert.equal(rejectedDriveBy.status, 401);
+  assert.equal(readModelCalls().length, 0, "A rejected drive-by request reached the model boundary.");
+  assert.equal(server.child.exitCode, null, "The spawned Eve process stopped during rejection verification.");
+
+  const infoResponse = await fetch(`${server.origin}/eve/v1/info`, {
+    headers: sessionHeaders(server.origin),
+    redirect: "error",
+  });
   assert.equal(infoResponse.status, 200);
   assertCapabilityEnvelope(await infoResponse.json());
 
   const createResponse = await fetch(`${server.origin}/eve/v1/session`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: sessionHeaders(server.origin, true),
     redirect: "error",
     body: JSON.stringify({
       message: "Return one provider-free Recommendation Receipt for a well-specified, reviewable drafting task.",
@@ -227,7 +257,10 @@ try {
   const sessionId = created.sessionId ?? createResponse.headers.get("x-eve-session-id");
   assert.ok(sessionId);
 
-  const streamResponse = await fetch(`${server.origin}/eve/v1/session/${encodeURIComponent(sessionId)}/stream`, { redirect: "error" });
+  const streamResponse = await fetch(`${server.origin}/eve/v1/session/${encodeURIComponent(sessionId)}/stream`, {
+    headers: sessionHeaders(server.origin),
+    redirect: "error",
+  });
   assert.equal(streamResponse.status, 200);
   const events = await readEventsUntil(streamResponse.body, new Set(["session.completed", "session.failed"]));
   const receipt = parseRecommendationReceipt(receiptFromEvents(events));
@@ -242,7 +275,7 @@ try {
 
   const cancelCreateResponse = await fetch(`${server.origin}/eve/v1/session`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: sessionHeaders(server.origin, true),
     redirect: "error",
     body: JSON.stringify({ message: "CANCEL_ME_PROVIDER_FREE", mode: "task" }),
   });
@@ -250,13 +283,16 @@ try {
   const cancelCreated = await cancelCreateResponse.json();
   const cancelSessionId = cancelCreated.sessionId ?? cancelCreateResponse.headers.get("x-eve-session-id");
   assert.ok(cancelSessionId);
-  const cancelStreamResponse = await fetch(`${server.origin}/eve/v1/session/${encodeURIComponent(cancelSessionId)}/stream`, { redirect: "error" });
+  const cancelStreamResponse = await fetch(`${server.origin}/eve/v1/session/${encodeURIComponent(cancelSessionId)}/stream`, {
+    headers: sessionHeaders(server.origin),
+    redirect: "error",
+  });
   assert.equal(cancelStreamResponse.status, 200);
   const cancelEventsPromise = readEventsUntil(cancelStreamResponse.body, new Set(["session.waiting", "session.failed"]));
   await waitForModelCallCount(2);
   const cancelResponse = await fetch(`${server.origin}/eve/v1/session/${encodeURIComponent(cancelSessionId)}/cancel`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: sessionHeaders(server.origin, true),
     redirect: "error",
     body: "{}",
   });
@@ -282,6 +318,8 @@ try {
     state: "passed",
     build: "passed",
     origin: "loopback",
+    rejectedDriveByStatus: rejectedDriveBy.status,
+    rejectedDriveByModelCalls: 0,
     recommendation: receipt.recommendation,
     receiptId: receipt.receiptId,
     modelCall,
