@@ -47,6 +47,10 @@ Before expanding the UI or learning system, prove on a clean local tree:
 
 If this seam cannot be proven within six focused hours, freeze the evidence and stop the Eve-backed Tuesday route rather than hiding Eve behind a fake wrapper or silently switching frameworks.
 
+## Provider Ordering
+
+The real OpenRouter smoke is intentionally the latest safe release checkpoint. Before any credential access or provider call, complete the provider-free Eve seam, schemas and semantic validators, local event/learning model, owner-approval workflow, deterministic tests, UI, clean shutdown, secret exclusion, and clean-clone setup. The owner alone supplies the local key for the final smoke. A late provider failure must not corrupt local records or erase the otherwise demonstrable provider-free product path.
+
 ## Explicit Exclusions
 
 - Hosted deployment or Vercel runtime
@@ -66,4 +70,3 @@ If this seam cannot be proven within six focused hours, freeze the evidence and 
 - Core schemas, semantic validation, owner approval, rule application, rejection/supersession/deletion, and no-tools boundaries have deterministic tests.
 - Real OpenRouter smoke is performed only by the owner with a local key and records no secret or provider body.
 - Repository publication and licence choice remain separate owner actions.
-
