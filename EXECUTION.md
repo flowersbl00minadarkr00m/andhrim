@@ -1231,3 +1231,51 @@ event:
 ~~~
 
 **PROTO-R5B/R5C verdict: RETURN UNAVAILABLE BEFORE IMPLEMENTATION. The provider-free harness remains unimplemented; the live OpenRouter smoke remains untouched.**
+
+## 2026-08-30 — PROTO-R5D terminal transport verification failure
+
+~~~yaml
+event:
+  event_id: evt-agent-or-not-prototype-openrouter-smoke-r5d-verification-failed-20260830
+  task_id: PROTO-R5D
+  type: verification-failed
+  summary: The owner-authorized canonical-root writable addition did not permit the network-disabled worker to create linked-worktree Git metadata; the worker stopped before implementation.
+  worker:
+    model: gpt-5.6-sol
+    effort: high
+    herdr_pane: w1:pD
+    native_session: 01a052ca-b9e6-7cd3-bb11-8300f6b177a8
+    branch: codex/prototype-openrouter-smoke-harness-r5d
+    worktree: C:\Users\henry\andhrim-agent-or-not-worktrees\prototype-openrouter-smoke-harness-r5d
+    base: 52b86150543c8e255e604a83efa138f7e7416efd
+    sandbox: workspace-write; network_access=false; canonical repository root supplied through --add-dir for Git metadata only
+  exact_failure: "fatal: Unable to create 'C:/Users/henry/andhrim-agent-or-not/.git/worktrees/prototype-openrouter-smoke-harness-r5d/index.lock': Permission denied"
+  terminal_state:
+    acknowledgment_text_written: true
+    acknowledgment_committed: false
+    implementation_started: false
+    implementation_files_changed: 0
+    canonical_head_before_after: 52b86150543c8e255e604a83efa138f7e7416efd
+    canonical_source_mutation: false
+    residual_git_lock: false
+    harness_processes_started: 0
+    package_manager_invocations: 0
+    non_loopback_network: 0
+    openrouter_calls: 0
+    provider_calls: 0
+    credential_reads: 0
+  licence_decision:
+    project_licence: MIT
+    applied_in_r5d: false
+    reason: PROTO-R5D explicitly excluded licence selection and metadata changes; MIT remains queued for a separate isolated release-licensing ticket.
+  transport_conclusion: Expanding workspace-write roots does not overcome the Codex sandbox protection on linked-worktree .git metadata on this Windows host.
+  narrow_next_route:
+    - Use one fresh network-disabled Sol/high worker in a new isolated branch/worktree.
+    - The worker writes its acknowledgment and pauses without running git add or git commit.
+    - The sole Orchestrator independently verifies the exact acknowledgment diff and canonical invariants, commits it from the controller, then explicitly releases that same worker to implement.
+    - The worker writes and verifies the bounded implementation without package managers, egress, providers, credentials, publication, or licence changes; the Orchestrator independently verifies and commits the final owned diff.
+    - A fresh independent Sol/xhigh reviewer remains mandatory before integration.
+  requested_action: Owner authorization is required for controller-mediated acknowledgment and result commits because the worker cannot write linked-worktree Git metadata under network-disabled workspace-write.
+~~~
+
+**PROTO-R5D verdict: RETURN UNAVAILABLE BEFORE IMPLEMENTATION. The linked-worktree Git metadata denial is reproducible even with the canonical repository root added as writable; no provider or live-smoke budget was consumed.**
