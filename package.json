@@ -1,0 +1,50 @@
+{
+  "name": "andhrim-agent-or-not",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.18.0",
+  "engines": {
+    "node": ">=24.17.0",
+    "pnpm": ">=11.18.0"
+  },
+  "scripts": {
+    "eve:build": "eve build",
+    "verify:provider-free": "node scripts/verify-provider-free.mjs",
+    "test": "node scripts/verify-unit.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@openrouter/ai-sdk-provider": "3.0.0",
+    "ai": "7.0.77",
+    "eve": "0.44.0",
+    "next": "16.3.2",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "@types/node": "24.13.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "typescript": "5.9.2",
+    "vitest": "4.1.11"
+  },
+  "licenseEvidence": {
+    "projectLicense": "unselected",
+    "note": "The owner has not selected a public project licence.",
+    "dependencies": [
+      ["eve", "0.44.0", "Apache-2.0"],
+      ["ai", "7.0.77", "Apache-2.0"],
+      ["@openrouter/ai-sdk-provider", "3.0.0", "Apache-2.0"],
+      ["zod", "4.4.3", "MIT"],
+      ["next", "16.3.2", "MIT"],
+      ["react", "19.2.8", "MIT"],
+      ["react-dom", "19.2.8", "MIT"],
+      ["typescript", "5.9.2", "Apache-2.0"],
+      ["vitest", "4.1.11", "MIT"],
+      ["@playwright/test", "1.62.1", "Apache-2.0"]
+    ]
+  }
+}

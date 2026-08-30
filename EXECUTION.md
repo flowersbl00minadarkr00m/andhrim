@@ -99,3 +99,61 @@ Reconciled command evidence:
 7. Unflagged `npm cache ls ...` commands only enumerated cache keys; their debug logs contain no `http fetch` records. No package install completed and no lockfile was produced.
 
 Boundary decision: no further dependency-manager command will be run in the provider-free phase. Existing local files, installed local package bytes, Git objects, and commands preloaded with an explicit non-loopback guard are the only permitted sources. If those are insufficient, execution stops blocked. The OpenRouter adapter may exist only as an inert manifest declaration; no adapter runtime, provider endpoint, environment credential, provider body, or key has been loaded, inspected, printed, or called.
+
+## 2026-08-29 — Provider-free Eve seam verified
+
+```yaml
+event:
+  event_id: evt-agent-or-not-provider-free-eve-seam-verified-20260830
+  type: verified
+  occurred_at: 2026-08-29T22:29:46.5371048-07:00
+  state: provider-free-seam-passed
+  scope: Eve build/start, no-tools model envelope, strict terminal receipt, cancellation, shutdown, and non-loopback guard
+  provider_runtime_access: none
+  credential_access: none
+  openrouter_call: none
+  clean_clone_gate: unresolved
+```
+
+Source/provenance applied:
+
+- Eve `0.44.0`, AI SDK `7.0.77`, and Zod `4.4.3` are exact local bytes exposed through ignored junctions to the permitted read-only Andhrím checkout. They are execution transport, not committed dependencies or clean-clone evidence.
+- Provider-authored fixture, explicit `disableTool()` sentinels, public Eve NDJSON session flow, and process-cleanup patterns derive from permitted commit `018cfc2b765b28d7869186331395202ca51cf041`.
+- The TD-021 thrown-sentinel acknowledgment was not reused. The fixture returns a normal successful model result and writes only bounded temporary envelope evidence.
+- The protected canonical checkout remained clean at `main`; no Andhrím worktree was mutated and frozen TD-015 was not inspected.
+
+Important failure-path evidence:
+
+- An initial request carrying Eve `outputSchema` reached the actual fixture model with a non-empty callable tool envelope and failed closed as `PROVIDER_FREE_TOOL_ENVELOPE_PRESENT` after Eve's bounded retries. No receipt or pass was claimed.
+- Resolution: remove model-facing `outputSchema`; parse the terminal JSON message through the strict Zod receipt schema at the application boundary. This preserves a zero-tool request while retaining deterministic validation.
+- Eve exposes the exact inert `eve:connection-search-dynamic` resolver even with no connections. The verifier accepts only that pinned identity, requires zero declared connections and zero available/authored tools, and still inspects the actual model-call envelope.
+
+VERIFICATION REPORT
+
+Claim: The provider-free Eve seam builds and starts on loopback, both actual fixture calls contain zero callable tools, one strict receipt reaches `session.completed`, explicit turn cancellation reaches `turn.cancelled` then `session.waiting`, all guarded processes attempt zero non-loopback egress, and shutdown leaves no tracked process.
+
+Command: `node scripts/verify-provider-free.mjs`
+
+Exit code: `0`
+
+Output summary: `provider-free-eve-verification-v1` returned `state: passed`, `recommendation: ai-assisted`, model invocations `1` and `2` each with `toolDefinitionCount: 0`, cancellation `turn.cancelled -> session.waiting`, three guarded build/start processes, `nonLoopbackAttempts: 0`, and stopped PIDs `30648`, `43960`, `80664`. Eve built `.output` successfully. The only build warning is the explicit Eve transform override of root `compilerOptions.jsx`; it does not change the agent model/tool contract.
+
+Errors: none in the passing run.
+
+Verdict: PASS
+
+VERIFICATION REPORT
+
+Claim: The strict receipt accepts the deterministic fixture and rejects unknown fields and actionable receipts without a starter pack.
+
+Command: `node scripts/verify-unit.mjs`
+
+Exit code: `0`
+
+Output summary: Vitest `4.1.11` ran one file and three tests; all passed in a guarded two-process run with `nonLoopbackAttempts: 0`.
+
+Errors: none.
+
+Verdict: PASS
+
+Seam boundary: this verifies only the provider-free Eve/no-tools/validated-receipt slice and its important tool-envelope and cancellation paths. It does not verify the full schemas, learning projection, UI, clean-clone installation, real OpenRouter behavior, publication, licence, deployment, or demo video.
