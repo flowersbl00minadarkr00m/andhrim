@@ -23,7 +23,7 @@ The deterministic fixture path is verified on Windows. The direct OpenRouter BYO
 - Windows 11
 - Node.js `24.17.0` or newer in the Node 24 line
 - Corepack and pnpm `11.18.0`
-- A local Chromium installed by Playwright for browser verification
+- Playwright `1.62.1`'s matching Chromium binary for browser verification
 
 All dependency versions are exact and recorded in `pnpm-lock.yaml`. Do not substitute `npm install` or update dependencies during verification.
 
@@ -34,7 +34,8 @@ In PowerShell, from a new clone:
 ```powershell
 corepack enable
 corepack prepare pnpm@11.18.0 --activate
-pnpm install --frozen-lockfile
+pnpm install --frozen-lockfile --ignore-scripts
+pnpm exec playwright install chromium
 Copy-Item .env.example .env.local
 pnpm test
 pnpm typecheck
@@ -46,7 +47,11 @@ Open `http://127.0.0.1:3000`. `pnpm start` launches both built services on loopb
 
 The launcher creates a fresh unpredictable session nonce in memory and gives it only to the two child services. The same-origin UI obtains that nonce from the no-store runtime bootstrap and supplies it on local mutations and Eve session requests. The value is not written to source, `.env.local`, the event ledger, exports, screenshots, or normal logs.
 
-The install command may use the package registry in an ordinary owner-run clean clone. In the current implementation session it was intentionally not executed after the owner imposed a no-dependency-command boundary, so clean-clone installation remains an explicit unpassed gate in `EXECUTION.md`.
+The frozen install above is the security-focused qualification candidate. It materializes the locked JavaScript packages and may contact the configured package registry. It is not yet proven: the owner must authorize it and the complete sequence must pass in a disposable Windows clone before it becomes release evidence.
+
+The next command is a separate download. Each Playwright release needs its specific browser binaries, so `pnpm exec playwright install chromium` uses the installed Playwright CLI to obtain the Chromium build required by Playwright `1.62.1`. On Windows the default cache is `%LOCALAPPDATA%\ms-playwright`, and the default browser download comes from Microsoft's CDN. This is distinct from package-registry access during `pnpm install`; see the official [Playwright browser documentation](https://playwright.dev/docs/browsers). Neither command has been run in a clean clone for this release qualification.
+
+The source-only disposable-clone audit at exact commit `7b3bd38aa5a2df666f954b146561e7a44ec1cbfe` did not materialize packages or a browser. It confirmed a clean clone HEAD, a clean tree, 68 files with zero secret-scan findings, passing source syntax checks, zero forbidden tracked artifacts, and `.env.example` as the only tracked environment file. The licence verifier correctly failed closed because dependencies were deliberately absent. See [docs/DEPENDENCIES.md](./docs/DEPENDENCIES.md) for the evidence boundary and retained temporary-clone path.
 
 ## Local configuration
 
@@ -98,4 +103,4 @@ Deactivation writes a deletion tombstone and disables the rule. It does **not** 
 
 Verified locally: provider-free Eve/no-tools seam, guarded same-origin/session-nonce mutation boundary, strict schemas and six-item provider contract, factor-specific scales, learning projection and persistent owner controls, production builds, unique-port loopback browser flow, responsive screenshots, local export, process cancellation and documented launcher shutdown.
 
-Still gated: Windows clean-clone install, direct OpenRouter owner smoke, public licence selection, GitHub publication and demo-video recording. See [docs/RELEASE_CHECKLIST.md](./docs/RELEASE_CHECKLIST.md) and the append-only [EXECUTION.md](./EXECUTION.md) for exact evidence.
+Still gated: owner-authorized Windows clean-clone frozen install with ignored scripts, the separate matching Chromium download, test/build/start/browser verification, clean-clone transitive licence and notice reconciliation, the latest-safe direct OpenRouter owner smoke, public licence selection, GitHub publication and demo-video recording. See [docs/RELEASE_CHECKLIST.md](./docs/RELEASE_CHECKLIST.md) and the append-only [EXECUTION.md](./EXECUTION.md) for exact evidence.
