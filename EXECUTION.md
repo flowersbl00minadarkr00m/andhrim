@@ -301,3 +301,7 @@ Non-authoritative R1 review against `PROTOTYPE_SCOPE.md`, `LESSONS_LEARNED.md`, 
 - No further clean-clone install evidence can be produced without running a dependency-manager command. Under the owner's boundary, execution stops at that gate rather than using network or claiming a clean-clone pass.
 - OpenRouter credential entry and the real direct-provider smoke remain later owner-only actions. No key, credential store, provider endpoint, or raw provider body was accessed during this work.
 - Project-license selection, owner dependency/diff review, GitHub publication, hosting/deployment, and optional demo recording remain owner-only and untouched.
+
+### Committed-source clone inspection
+
+After commit `adffb0e142d68f8b9a0948e8bcb764d56931bd4a`, `git clone --local --no-hardlinks --branch codex/prototype-mvp --single-branch` created a temporary clone using local Git objects only. The clone was clean at that exact commit; `package.json` parsed, `pnpm-lock.yaml` and the expected release/verification files were tracked, `node_modules` and `.env.local` were absent, and `node scripts/scan-secrets.mjs` scanned 58 files with 0 findings. No install, dependency-manager command, build, provider access, credential access, or non-loopback operation occurred in the clone. This is committed-source/static evidence only and does not advance the blocked clean-clone install gate.
