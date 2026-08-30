@@ -7,6 +7,7 @@ const https = require("node:https");
 const net = require("node:net");
 const path = require("node:path");
 const tls = require("node:tls");
+const { threadId } = require("node:worker_threads");
 
 const metricsDirectory = process.env.AGENT_OR_NOT_EGRESS_METRICS_DIR;
 const metricsLabel = process.env.AGENT_OR_NOT_EGRESS_METRICS_LABEL;
@@ -16,8 +17,8 @@ if (!metricsDirectory || !path.isAbsolute(metricsDirectory) || !/^(build|start|v
   throw error;
 }
 
-const metricsPath = path.join(metricsDirectory, `${metricsLabel}-${process.pid}.json`);
-const metrics = { schemaVersion: "provider-free-egress-v1", label: metricsLabel, pid: process.pid, attempted: 0, blocked: 0 };
+const metricsPath = path.join(metricsDirectory, `${metricsLabel}-${process.pid}-${threadId}.json`);
+const metrics = { schemaVersion: "provider-free-egress-v1", label: metricsLabel, pid: process.pid, threadId, attempted: 0, blocked: 0 };
 let initialized = false;
 
 function writeMetrics() {

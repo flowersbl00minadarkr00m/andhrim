@@ -5,6 +5,7 @@ node_modules/
 .eve/
 dist/
 coverage/
+*.tsbuildinfo
 
 # Local secrets and configuration
 .env
@@ -21,4 +22,3 @@ logs/
 output/
 .DS_Store
 Thumbs.db
-

@@ -26,6 +26,7 @@ export const appliedRuleSchema = z.object({
 export const recommendationReceiptSchema = z.object({
   schemaVersion: z.literal("recommendation-receipt-v1"),
   receiptId: z.string().regex(/^receipt-[a-z0-9-]+$/),
+  assessmentId: z.string().regex(/^assessment-[a-z0-9-]+$/),
   recommendation: z.enum(RECOMMENDATION_MODES),
   summary: boundedText(240),
   why: boundedText(1200),

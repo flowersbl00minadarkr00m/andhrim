@@ -157,3 +157,84 @@ Errors: none.
 Verdict: PASS
 
 Seam boundary: this verifies only the provider-free Eve/no-tools/validated-receipt slice and its important tool-envelope and cancellation paths. It does not verify the full schemas, learning projection, UI, clean-clone installation, real OpenRouter behavior, publication, licence, deployment, or demo video.
+
+## 2026-08-29 — Provider-free product path verified
+
+```yaml
+event:
+  event_id: evt-agent-or-not-provider-free-product-path-verified-20260830
+  type: verified
+  occurred_at: 2026-08-29T22:54:54.6070414-07:00
+  state: provider-free-product-path-passed
+  scope: strict schemas, append-only learning, owner approval, production build, browser flow, responsive UI, and local export
+  provider_runtime_access: none
+  credential_access: none
+  openrouter_call: none
+  clean_clone_gate: unresolved
+```
+
+Implemented evidence:
+
+- Strict Zod intake, receipt, outcome, Learning Candidate, active-rule and append-only event schemas reject unknown fields and bounded-invariant violations.
+- Candidate edits preserve immutable identity, source-outcome and evidence provenance. Rejected, deleted, superseded and expired candidates cannot contribute active rules. Approval events must exactly match the candidate's bounded condition, adjustment, review date and expiry.
+- Local NDJSON events are projected into owner-controlled state. A proposal remains inert; only an explicit approval event activates its rule. Matching active, unexpired rules alter later receipts and expose rule/version/source-outcome provenance.
+- The code-native assessment, live receipt, outcome, candidate, before/after and approval surfaces use the approved warm-white/charcoal/copper editorial system, semantic controls, visible focus, reduced-motion handling, responsive stacking and minimum control targets.
+- The browser flow records only `recommendation.recorded`, `outcome.recorded`, `learning.proposed`, and owner-triggered `learning.approved` events in its isolated ledger. Export is local and inspectable.
+
+VERIFICATION REPORT
+
+Claim: strict receipt and learning semantics cover proposal inertia, explicit approval, provenance, bounded revision, rejection, supersession, deletion, expiry and rejection of unknown/tampered values.
+
+Command: `node scripts/verify-unit.mjs`
+
+Exit code: `0`
+
+Output summary: Vitest `4.1.11` ran two files and eleven deterministic tests; all passed. Three guarded processes recorded `nonLoopbackAttempts: 0`.
+
+Errors: none.
+
+Verdict: PASS
+
+VERIFICATION REPORT
+
+Claim: the application typechecks without credential-bearing environment and without non-loopback activity.
+
+Command: `node scripts/verify-typecheck.mjs`
+
+Exit code: `0`
+
+Output summary: TypeScript `5.9.2` completed with one guarded process and `nonLoopbackAttempts: 0`.
+
+Errors: none.
+
+Verdict: PASS
+
+VERIFICATION REPORT
+
+Claim: Eve and the Next.js production application build from the locally materialized source graph without non-loopback activity.
+
+Command: `node scripts/verify-build.mjs`
+
+Exit code: `0`
+
+Output summary: Eve `0.44.0` built its production server and Next.js `16.3.2` completed its webpack production build, TypeScript pass, page-data collection and static generation. Seventeen guarded processes recorded `nonLoopbackAttempts: 0`. Webpack is deliberate for the current offline junction transport because Turbopack rejects package bytes outside its hermetic workspace root.
+
+Errors: none in the passing run.
+
+Verdict: PASS for the current local source transport; not clean-clone evidence.
+
+VERIFICATION REPORT
+
+Claim: the real loopback browser path completes assessment → Eve receipt → local outcome → inert candidate → explicit owner approval, exports the append-only ledger, stays responsive and makes no non-loopback request.
+
+Command: `node scripts/verify-browser.mjs`
+
+Exit code: `0`
+
+Output summary: Playwright Chromium completed the production flow through the same-origin Eve proxy. Four guarded Node processes recorded `nonLoopbackAttempts: 0`; browser routing observed `browserNonLoopbackRequests: 0`; the isolated ledger contained the four expected ordered events. Desktop assessment, outcome, approved-learning and mobile assessment screenshots were captured and visually inspected against both approved concepts.
+
+Errors: none in the passing run. Earlier diagnostic runs correctly failed until the built Eve server was started on the documented stable loopback port and its fixture evidence sink was explicitly temporary; neither resolution involved provider or credential access.
+
+Verdict: PASS
+
+Remaining boundaries: clean-clone Windows installation, documentation, secret/licence review and the inert OpenRouter BYOK adapter path remain unresolved. The real OpenRouter smoke, provider credential access, publication, licence selection, hosting/deployment and demo recording remain owner-only gates.

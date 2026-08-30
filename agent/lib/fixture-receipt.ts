@@ -3,6 +3,7 @@ import type { RecommendationReceipt } from "../../src/domain/recommendation";
 export const fixtureReceipt = {
   schemaVersion: "recommendation-receipt-v1",
   receiptId: "receipt-provider-free-seam",
+  assessmentId: "assessment-provider-free-seam",
   recommendation: "ai-assisted",
   summary: "Use AI to draft and compare options while the owner retains the decision.",
   why: "The work is repeatable and well specified, but its consequences still benefit from accountable human review.",
