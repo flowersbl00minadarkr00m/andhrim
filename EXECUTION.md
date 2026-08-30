@@ -646,3 +646,111 @@ All seven screenshots were manually inspected against the two approved concept r
 - Remaining owner gates are unchanged: Windows clean-clone install/test/build/start/browser and transitive dependency/licence review; one owner-supplied direct OpenRouter smoke; public licence selection; final owner dependency/diff review; optional GitHub publication and demo recording.
 
 **R2 task verdict: PASS. Release verdict: NOT RELEASE-READY pending the owner gates above.**
+
+## 2026-08-30 — Prototype hardening R2 controller-race correction
+
+~~~yaml
+event:
+  event_id: evt-agent-or-not-prototype-hardening-r2-racefix-ready-20260830
+  type: ready-for-review
+  occurred_at: 2026-08-30T01:47:20.0432674-07:00
+  state: durable-fallback
+  assignment:
+    role: same fresh visible top-level sole implementation owner, reopened only for the focused R2 controller-race correction
+    model: gpt-5.6-sol
+    effort: high
+    branch: codex/prototype-release-hardening-r2
+    worktree: C:\Users\henry\andhrim-agent-or-not-worktrees\prototype-release-hardening-r2
+    exact_base: 3c4b09dd06b75964dbe28adda76804d0b126ce61
+    prior_r2_commit: 81ac2577d23f7890b21d004858427d17cdc1c8b9
+  incoming_discrepancy:
+    verdict: FAIL
+    observation: first fresh controller browser run timed out at the former scripts/verify-browser.mjs line 324 waiting 30 seconds for Approved lessons applied; one bounded rerun passed
+    treatment: nondeterministic verifier/product-transition race, not a pass
+  diagnosis:
+    retained_failed_run: C:\Users\henry\AppData\Local\Temp\agent-or-not-browser-aoXDaO
+    ledger_last_event: learning.approved at 2026-08-30T08:33:00.299Z; no second recommendation.recorded event existed before teardown
+    fixture_last_write: 2026-08-30T01:33:35.1236465-07:00
+    fixture_third_invocation: valid, correctionRequested false, zero tool definitions
+    elapsed_from_approval_to_fixture_write_ms: 34824
+    root_cause: the verifier used a fixed 30000ms presentation-text wait as completion evidence even though the third local Eve session was still progressing; the timeout tore down Next/Eve before the valid result could be posted to the ledger
+    product_fault_found: false
+  correction:
+    changed_files:
+      - scripts/verify-browser.mjs
+      - EXECUTION.md
+    behavior: poll /api/state until exactly one new receipt is persisted, then require its retained assessment to have specificationClarity 2, its recommendation to be human-led, and its appliedRules identity/version/source provenance to exactly match the approved rule; only then assert the UI projection text
+    focused_falsifier: delay only the third authenticated UI-originated fixture Eve session by 31000ms, which exceeds and would fail the former fixed 30000ms text wait; hostile requests and the invalid-first retry do not consume this counter
+    production_source_changed: false
+    authority_or_package_lock_changed: false
+  verification:
+    focused_browser:
+      command: node scripts/verify-browser.mjs
+      exit_code: 0
+      result: delayed semantic receipt persisted after 31594ms and 118 projection polls; exact assessment/rule semantics and UI projection passed
+    unit_security:
+      command: node scripts/verify-unit.mjs
+      exit_code: 0
+      result: 6 files and 23 tests passed; 7 guarded processes; 0 non-loopback attempts
+    typecheck:
+      command: node scripts/verify-typecheck.mjs
+      exit_code: 0
+      result: TypeScript passed; 1 guarded process; 0 non-loopback attempts
+    secrets:
+      command: node scripts/scan-secrets.mjs
+      exit_code: 0
+      result: 68 source files scanned; 0 findings
+    direct_licenses:
+      command: node scripts/verify-licenses.mjs
+      exit_code: 0
+      result: 13 direct dependency records reconciled; project licence remains owner-gated and unselected
+    direct_provider_free:
+      command: node scripts/verify-provider-free.mjs
+      exit_code: 0
+      result: Eve build, hostile 401 with zero model calls, strict receipt, cancellation, exact two fixture calls, and stopped child processes passed; 3 guarded processes; 0 non-loopback attempts
+    production_build:
+      command: node scripts/verify-build.mjs
+      exit_code: 0
+      result: Eve 0.44.0 and Next.js 16.3.2 webpack builds passed; 18 guarded processes; 0 non-loopback attempts
+    final_browser:
+      command: node scripts/verify-browser.mjs
+      exit_code: 0
+      result: web 61811, Eve 61812, hostile origin 61813; delayed semantic receipt persisted after 31413ms and 118 projection polls; exact nine-event flow, proxy/direct attack, invalid-first retry, resume review, export/tombstone, mobile/accessibility, and presentation assertions passed; 21 guarded processes and Chromium recorded 0 non-loopback attempts
+    launcher:
+      command: node scripts/verify-start-local.mjs
+      exit_code: 0
+      result: web 54518 and Eve 54519; 20 guarded processes; 0 non-loopback attempts; 0 residual processes
+    screenshot_sha256:
+      assessment_desktop: 53c3a48e7fd42451685468a4466cb85c81c8d43afe9bb75be0ded3911695e8f5
+      outcome_desktop: 1e0afe5d8cf38e91194a4074737608fd74b9cdd69fc545449091aa0c35ecdcad
+      learning_resumed_desktop: 4a2af1de42fd90347148619567920e174179eeee90f1c78843fcab3af6ee164b
+      learning_resumed_mobile: 8a896375514bcd23325045b8e7a0cbf15d62fc1c315ed8b92db482eac4e78cc6
+      learning_approved_desktop: 2cf29c5c54dfe0c0866df27b84acbfd3ab2fbe8de319e794348128f3d1b419a8
+      approved_rule_provenance: bafe5b63e8585bcc01b722c264af4da9ef4785cfd57732efb7654bf35e14dfeb
+      assessment_mobile: 70fc244975b4c888155079c3ceaafdc884253ee453cb05fc02b27ccb6b105311
+    diff:
+      command: git diff --check
+      exit_code: 0
+      result: correction diff inspected; only the browser verifier plus this append-only execution receipt changed
+  authority:
+    prototype_scope_sha256: 863c44a31f5c8806cc614da6b6a1958f30d78f523e5203331882bd170ccd17f7
+    lessons_learned_sha256: 40ba06e8e2b256f6c723ba23271a0a0ba689b5aa872f1477d7088dc7d86410ed
+    implementation_brief_sha256: 1847f44d41fb7967ee39cc510ae089009ffa237c36735d4ea831f5bf0e95502f
+    hashes_recomputed_after_correction: unchanged
+    ai_sdd_authority_created: false
+  task_verdict: PASS
+  release_verdict: NOT_RELEASE_READY
+  return_delivery:
+    state: durable-fallback
+    receipt_evidence: This stable correction event and exact provider-free evidence are committed in append-only EXECUTION.md.
+~~~
+
+### Correction review and boundaries
+
+- **Spec alignment — PASS.** This correction changes no product behavior or R2 authority. It replaces a presentation-timing proxy with exact persisted assessment/receipt/rule readiness and then independently verifies presentation, directly addressing the only reopened controller discrepancy.
+- **Standards/code quality — PASS.** The verifier-local 31-second delay makes the former failure deterministic without adding a production seam. Semantic mismatches fail immediately with specific evidence; a bounded deadline remains only as an outer failure limit. No package, lock, authority, or production source changed.
+- All seven regenerated screenshots were inspected. Desktop, resumed-review mobile, applied-rule provenance, and final tombstoned mobile states remain unclipped, coherent, and truthful.
+- No package-manager or registry access, credential or `.env.local` access, OpenRouter/provider call, non-loopback access, authority change, canonical/prior-worktree mutation, frozen TD-015 access, hosting, deployment, publication, licence choice, or demo occurred.
+- Remaining owner gates are unchanged: Windows clean-clone install/test/build/start/browser and transitive dependency/licence review; one owner-supplied direct OpenRouter smoke; public licence selection; final owner dependency/diff review; optional GitHub publication and demo recording.
+
+**R2 race-fix verdict: PASS. Release verdict: NOT RELEASE-READY pending the unchanged owner gates.**

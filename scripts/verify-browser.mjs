@@ -17,6 +17,8 @@ const dataDirectory = path.join(scratch, "data");
 const artifactDirectory = path.join(root, ".playwright");
 const fixtureEvidencePath = path.join(scratch, "browser-model-call.ndjson");
 const sessionNonce = randomBytes(32).toString("base64url");
+const learningTransitionDelayMs = 31_000;
+const semanticReceiptDeadlineMs = 120_000;
 fs.mkdirSync(metricsDirectory);
 fs.mkdirSync(artifactDirectory, { recursive: true });
 
@@ -34,6 +36,62 @@ async function reserveLoopbackPort() {
     server.close(() => resolve(address.port));
   });
   });
+}
+
+async function waitForAppliedLearningReceipt(page, baseUrl, {
+  existingReceiptIds,
+  expectedCandidateId,
+  expectedRule,
+}) {
+  const startedAt = Date.now();
+  const deadline = startedAt + semanticReceiptDeadlineMs;
+  let polls = 0;
+  let lastStateSummary = "state not read";
+  while (Date.now() <= deadline) {
+    polls += 1;
+    const response = await page.request.get(`${baseUrl}/api/state`);
+    if (response.ok()) {
+      const state = await response.json();
+      const newReceipts = Object.values(state.projection.receipts)
+        .filter((receipt) => !existingReceiptIds.has(receipt.receiptId));
+      lastStateSummary = JSON.stringify({
+        receiptIds: Object.keys(state.projection.receipts),
+        assessmentIds: Object.keys(state.projection.assessments),
+        candidateStatus: state.projection.candidates[expectedCandidateId]?.status,
+        ruleActive: state.projection.rules[expectedRule.ruleId]?.active,
+      });
+      if (newReceipts.length > 0) {
+        assert.equal(newReceipts.length, 1, "The learning transition must persist exactly one new receipt.");
+        const receipt = newReceipts[0];
+        const assessment = state.projection.assessments[receipt.assessmentId];
+        assert.ok(assessment, "The applied-rule receipt must retain its source assessment.");
+        assert.equal(assessment.answers.specificationClarity, 2, "The rapid answer transition persisted stale assessment state.");
+        assert.equal(receipt.recommendation, "human-led", "The approved learning rule did not adjust the persisted recommendation.");
+        assert.deepEqual(receipt.appliedRules, [{
+          ruleId: expectedRule.ruleId,
+          version: expectedRule.version,
+          sourceOutcomeId: expectedRule.sourceOutcomeId,
+          explanation: `Approved candidate ${expectedCandidateId} matched specificationClarity lte 3.`,
+        }], "The persisted receipt did not retain exact approved-rule provenance.");
+        return {
+          assessmentId: assessment.assessmentId,
+          receiptId: receipt.receiptId,
+          elapsedMs: Date.now() - startedAt,
+          polls,
+        };
+      }
+    } else {
+      lastStateSummary = `state request returned ${response.status()}`;
+    }
+
+    const alert = page.getByRole("alert");
+    if (await alert.count() > 0 && await alert.first().isVisible()) {
+      const alertText = (await alert.first().innerText()).trim();
+      if (alertText) throw new Error(`Learning transition failed before persistence: ${alertText}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error(`Learning transition did not persist its semantic receipt within ${semanticReceiptDeadlineMs}ms. Last state: ${lastStateSummary}`);
 }
 const port = await reserveLoopbackPort();
 const evePort = await reserveLoopbackPort();
@@ -104,6 +162,7 @@ let rejectedApiStatus;
 let rejectedProxyEveStatus;
 let rejectedDirectEveStatus;
 let exportEvidence;
+let learningTransitionEvidence;
 try {
   const baseUrl = `http://127.0.0.1:${port}`;
   const deadline = Date.now() + 45_000;
@@ -169,9 +228,21 @@ try {
 
   browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, colorScheme: "light" });
+  let browserEveSessionRequests = 0;
+  let delayedLearningSession = false;
   await context.route("**/*", async (route) => {
     const url = new URL(route.request().url());
     if (["data:", "blob:", "about:"].includes(url.protocol) || ["127.0.0.1", "localhost", "::1"].includes(url.hostname)) {
+      if (url.origin === baseUrl
+        && url.pathname === "/eve/v1/session"
+        && route.request().method() === "POST"
+        && route.request().headers()["x-agent-or-not-session"] === sessionNonce) {
+        browserEveSessionRequests += 1;
+        if (browserEveSessionRequests === 3) {
+          delayedLearningSession = true;
+          await new Promise((resolve) => setTimeout(resolve, learningTransitionDelayMs));
+        }
+      }
       await route.continue();
       return;
     }
@@ -314,6 +385,8 @@ try {
   const state = await stateResponse.json();
   assert.equal(Object.values(state.projection.candidates)[0].status, "approved");
   assert.equal(Object.values(state.projection.rules)[0].active, true);
+  const approvedRule = Object.values(state.projection.rules)[0];
+  const receiptIdsBeforeLearningTransition = new Set(Object.keys(state.projection.receipts));
   await page.getByRole("button", { name: "New case" }).click();
   await page.getByRole("heading", { name: "Learning history" }).waitFor();
   await page.getByText(approvedCandidateId, { exact: true }).waitFor();
@@ -321,8 +394,21 @@ try {
   await page.getByRole("radio", { name: "2 — Ambiguous; major constraints are missing" }).click();
   await page.getByRole("button", { name: "Go to step 5" }).click();
   await page.getByRole("button", { name: /Generate receipt/ }).click();
-  await page.getByText("Approved lessons applied").waitFor({ timeout: 30_000 });
-  await page.getByText("Human-led", { exact: true }).waitFor();
+  const semanticReceipt = await waitForAppliedLearningReceipt(page, baseUrl, {
+    existingReceiptIds: receiptIdsBeforeLearningTransition,
+    expectedCandidateId: approvedCandidateId,
+    expectedRule: approvedRule,
+  });
+  assert.equal(delayedLearningSession, true, "The focused learning-transition race falsifier did not run.");
+  assert.ok(semanticReceipt.elapsedMs >= learningTransitionDelayMs, "Semantic readiness returned before the injected slow transition completed.");
+  await page.getByText("Approved lessons applied").waitFor({ timeout: 10_000 });
+  await page.getByText("Human-led", { exact: true }).waitFor({ timeout: 10_000 });
+  learningTransitionEvidence = {
+    delayedSessionMs: learningTransitionDelayMs,
+    semanticReceipt,
+    persistedBeforePresentationAssertion: true,
+    uiProjectionConfirmed: true,
+  };
   await page.screenshot({ path: path.join(artifactDirectory, "approved-rule-provenance.png"), fullPage: true });
 
   await page.getByRole("button", { name: "New case" }).click();
@@ -428,6 +514,7 @@ process.stdout.write(`${JSON.stringify({
     correctedSecondSessionAccepted: true,
     unexpectedThirdSession: false,
   },
+  learningTransitionRace: learningTransitionEvidence,
   exportEvidence,
   fixtureEvidence,
   eventTypes: ledger.map((event) => event.type),
