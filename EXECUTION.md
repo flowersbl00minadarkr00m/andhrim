@@ -833,3 +833,130 @@ event:
 ~~~
 
 Acknowledgment: I accept the exact branch, isolated worktree, base commit, model/effort assignment, documentation-only ownership, prohibited surfaces, provider/network/dependency boundaries, verification limits, and durable return-event requirement. Release-document edits may begin only after this receipt is committed separately.
+
+## 2026-08-30 — Prototype release documentation R4 ready for review
+
+~~~yaml
+event:
+  event_id: evt-agent-or-not-prototype-release-docs-r4-ready-20260830
+  task_id: prototype-release-docs-r4
+  type: ready-for-review
+  occurred_at: 2026-08-30T02:21:34.8532197-07:00
+  summary: Release documentation now states the bounded Windows clean-clone, Playwright browser, audit, and transitive-licence evidence truthfully without advancing any owner gate.
+  execution_mode: orchestrated-worker
+  tracking_owner: orchestrator
+  assignment:
+    role: fresh visible top-level documentation-only implementation worker
+    model: gpt-5.6-sol
+    effort: high
+    branch: codex/prototype-release-docs-r4
+    worktree: C:\Users\henry\andhrim-agent-or-not-worktrees\prototype-release-docs-r4
+  exact_commits:
+    base: 7b3bd38aa5a2df666f954b146561e7a44ec1cbfe
+    acknowledgment: 8d8602ed37f3cbc6f32f2133e2ff4f4a43165e60
+    documentation_correction: c05051d8f28b85041a94c97a426f12b1b198d74c
+  changed_files:
+    - README.md
+    - docs/DEPENDENCIES.md
+    - docs/RELEASE_CHECKLIST.md
+    - EXECUTION.md
+  changed_file_sha256:
+    README.md: b0fee9234747212edcc591c115c85a8e3c618b5f3eada53bc3815d4963c5c481
+    docs/DEPENDENCIES.md: de1edf5c30c9acd357390847b2db529d40934531b7eb46e5e59eae3f5f58ed26
+    docs/RELEASE_CHECKLIST.md: a3f78a12a7b73117df394fef766f1f0403e7e587938ec24406419c28389cd64c
+  correction:
+    playwright:
+      package_version: 1.62.1
+      command_after_frozen_install: pnpm exec playwright install chromium
+      windows_cache: '%LOCALAPPDATA%\ms-playwright'
+      default_download_source: Microsoft's CDN
+      package_registry_boundary: Frozen package materialization and the browser CDN download are separate network actions.
+      clean_clone_claim: Neither dependency installation nor Chromium download was run in a clean clone.
+      primary_source: https://playwright.dev/docs/browsers
+    frozen_install:
+      security_focused_candidate: pnpm install --frozen-lockfile --ignore-scripts
+      state: unproven-pending-owner-authorization-and-successful-qualification
+    dependency_free_clone_audit:
+      evidence_source: incoming controller-provided disposable-clone audit, recorded without rerunning dependency materialization
+      exact_clone_head: 7b3bd38aa5a2df666f954b146561e7a44ec1cbfe
+      tree: clean
+      secret_scan: 68 files, 0 findings
+      source_syntax_checks: passed
+      forbidden_tracked_artifacts: 0
+      tracked_environment_files:
+        - .env.example
+      licence_verifier: failed closed because packages were deliberately not materialized
+      retained_temp_clone: C:\Users\henry\AppData\Local\Temp\andhrim-agent-or-not-cleanclone-audit-7dce38ef34244cacb843333d7f990af6
+      cleanup_limitation: Host policy rejected recursive cleanup; retained clone contains only public committed source.
+    preliminary_transitive_inventory:
+      evidence_source: read-only inventory from the already-materialized previously verified tree; not clean-clone evidence
+      package_roots: 99
+      missing_licence_fields: 0
+      counts:
+        MIT: 73
+        Apache-2.0: 16
+        ISC: 3
+        MPL-2.0: 2
+        BSD-3-Clause: 1
+        0BSD: 1
+        CC-BY-4.0: 1
+        '(AFL-2.1 OR BSD-3-Clause)': 1
+        'Apache-2.0 AND LGPL-3.0-or-later': 1
+      notable_roots:
+        - '@img/sharp-win32-x64 0.35.3'
+        - caniuse-lite 1.0.30001809
+        - json-schema 0.4.0
+        - lightningcss 1.33.0
+        - lightningcss-win32-x64-msvc 1.33.0
+      gate_state: unpassed; compatibility and notice obligations require disposable clean-clone reconciliation
+  verification:
+    git_diff_check:
+      command: git diff --check
+      exit_code: 0
+      result: no whitespace errors
+    source_secret_scan:
+      command: node scripts/scan-secrets.mjs
+      exit_code: 0
+      result: 68 files scanned, 0 findings; script was inspected first and is read-only
+    local_link_path_consistency:
+      command: read-only PowerShell Markdown-link extraction plus Test-Path for local targets
+      exit_code: 0
+      result: all local links in README.md, docs/DEPENDENCIES.md, and docs/RELEASE_CHECKLIST.md resolve
+    changed_file_ownership:
+      command: compare git diff --name-only with the declared owned documentation files
+      exit_code: 0
+      result: only owned files changed
+    authority_hashes:
+      command: Get-FileHash -Algorithm SHA256 for all three pinned authority files
+      exit_code: 0
+      result: all hashes unchanged from the acknowledgment
+    complete_diff_inspection:
+      command: git diff inspection for acknowledgment, documentation correction, and ready-event append
+      exit_code: 0
+      result: documentation claims and append-only control-plane changes inspected
+  preserved_boundaries:
+    - OpenRouter remains the latest safe owner-only smoke after provider-free clean-clone qualification.
+    - The project licence remains unselected.
+    - Canonical Andhrím feature 001 and TD-022 remain unchanged and incomplete.
+    - No product code, dependency manifest, lockfile, environment example, authority source, SDD tracking, canonical checkout, or C:\Users\henry\andhrim content changed.
+    - No package-manager command, dependency/browser installation, registry/CDN/OpenRouter/provider/credential access, non-loopback action, licence choice, publication, deployment, or hosting occurred.
+  limitations:
+    - The disposable-clone audit and preliminary transitive inventory were recorded from the supplied evidence; this worker did not recreate them.
+    - No clean-clone install, matching Chromium download, runtime qualification, or transitive licence/notice reconciliation has passed.
+    - The retained temporary clone was not deleted because host policy rejected recursive cleanup.
+  remaining_gates:
+    - Owner authorization and successful disposable-clone qualification of pnpm install --frozen-lockfile --ignore-scripts.
+    - Separate Playwright 1.62.1 matching Chromium download through pnpm exec playwright install chromium.
+    - Windows clean-clone test, typecheck, build, start, browser, and shutdown verification.
+    - Clean-clone transitive licence compatibility and notice reconciliation.
+    - Latest-safe owner-supplied direct OpenRouter smoke with safe evidence.
+    - Public project licence selection and final owner dependency/diff review.
+    - Optional GitHub publication and demo recording.
+  task_verdict: PASS
+  release_verdict: NOT_RELEASE_READY
+  return_delivery:
+    state: durable-fallback
+    receipt_evidence: This stable ready-for-review event, exact commits, evidence, limitations, and remaining gates are committed in append-only EXECUTION.md and returned natively.
+~~~
+
+**Documentation task verdict: PASS. Release verdict: NOT RELEASE-READY pending the explicit owner and clean-clone gates above.**
