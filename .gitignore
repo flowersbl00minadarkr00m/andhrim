@@ -1,0 +1,24 @@
+# Dependencies and build output
+node_modules/
+.next/
+.output/
+.eve/
+dist/
+coverage/
+
+# Local secrets and configuration
+.env
+.env.*
+!.env.example
+
+# Local product data and logs
+data/
+logs/
+*.log
+
+# Local tooling
+.playwright/
+output/
+.DS_Store
+Thumbs.db
+
