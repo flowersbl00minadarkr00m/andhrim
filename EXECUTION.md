@@ -55,3 +55,47 @@ event:
 ```
 
 Acknowledgment: I accept the exact ownership, goal, deadline, identities, protected surfaces, provider-last ordering, and first seam above. The predecessor may cease prototype mutation. Provider-free implementation may begin only after this acknowledgment is committed by itself.
+
+## 2026-08-29 — Provider-free execution checklist
+
+- Mode/gate: direct, explicitly authorized non-binding prototype spike; canonical feature 001 and TD-022 remain outside scope.
+- Frontier: provider-free Eve/no-tools/strict validated-receipt seam.
+- Blockers: acknowledgment commit `7440f55` complete; required handoff sources and both concept images read and hash-verified.
+- Assignment: `codex/prototype-mvp` in `C:\Users\henry\andhrim-agent-or-not-worktrees\prototype-mvp`, fresh visible top-level `w1:p2`, model `gpt-5.6-sol`, effort `medium`.
+- Bootstrap: clean handoff head `077c333dc8f94e3f828cf2854fa0c26184b6c129`; acknowledgment head `7440f55`.
+- Authority: `PROTOTYPE_SCOPE.md` SHA-256 `863c44a31f5c8806cc614da6b6a1958f30d78f523e5203331882bd170ccd17f7`; `LESSONS_LEARNED.md` SHA-256 `40ba06e8e2b256f6c723ba23271a0a0ba689b5aa872f1477d7088dc7d86410ed`; `docs/design/IMPLEMENTATION_BRIEF.md` SHA-256 `1847f44d41fb7967ee39cc510ae089009ffa237c36735d4ea831f5bf0e95502f`.
+- Source provenance: Eve `0.44.0`; permitted read-only Andhrím commit `018cfc2b765b28d7869186331395202ca51cf041`, especially the provider-authored fixture, public Eve stream, explicit eleven-tool disable list, and cleanup pattern. The TD-021 thrown-sentinel acknowledgment is explicitly not reused.
+- First approved seam: provider-free Eve build/start on loopback → actual model request with zero callable tools → strict validated terminal receipt; failure path is rejection of a non-empty tool envelope; cancellation/shutdown must leave no residual child.
+- Owned implementation surfaces: this repository only. `C:\Users\henry\andhrim` and every Andhrím worktree remain read-only/protected; frozen TD-015 is not inspected.
+- Return/evidence: append exact commands and results here. Real OpenRouter smoke, publication, licence selection, hosting, deployment, and demo video remain owner gates.
+
+## 2026-08-29 — Dependency-boundary reconciliation
+
+```yaml
+event:
+  event_id: evt-agent-or-not-dependency-boundary-reconciliation-20260830
+  type: boundary-reconciled
+  occurred_at: 2026-08-29T22:15:05.0353443-07:00
+  provider_free_seam: not-passed
+  provider_runtime_access: none
+  credential_access: none
+  openrouter_call: none
+  conclusion: >-
+    The commands were not independently packet-captured, so this record does not
+    claim packet-level observation. Command arguments, npm 11.13.0 cache-mode
+    implementation, npm debug logs, pnpm output, and pre-existing cache evidence
+    establish that the successful package materialization was cache-only and that
+    the failed resolution attempts did not download package bytes.
+```
+
+Reconciled command evidence:
+
+1. `pnpm install --offline --frozen-lockfile=false` reported `downloaded 0` throughout and stopped with `ERR_PNPM_NO_OFFLINE_TARBALL` for `@types/node@24.10.13`. No success or seam claim resulted.
+2. `npm install --offline --ignore-scripts --no-audit --no-fund` is recorded in `C:\Users\henry\AppData\Local\npm-cache\_logs\2026-08-30T05_11_43_349Z-debug-0.log` with the exact `--offline` argument. Its `http fetch GET` records are all annotated `(cache stale)` and it stopped with `ETARGET` for uncached `@ai-sdk/gateway@4.0.62`.
+3. The active npm is `11.13.0` under `C:\Program Files\nodejs\node_modules\npm`. Its local `npm-registry-fetch\lib\index.js` maps `opts.offline` to cache mode `only-if-cached`. Its local `make-fetch-happen\lib\cache\index.js` throws when that mode has no cached entry and returns a cached stale entry without invoking `remote()` when one exists. Therefore the log phrase `(cache stale)` under `--offline` means a cached response, not a registry revalidation.
+4. The first local-path `npm pack C:\Users\henry\andhrim\...` had no `--offline` flag, but log `2026-08-30T05_12_20_173Z-debug-0.log` shows it failed immediately with local `ENOENT` and contains no `http fetch` record.
+5. `npm pack @types/node@24.13.3 --offline --pack-destination %TEMP%\agent-or-not-pnpm-seed` is recorded in log `2026-08-30T05_12_35_083Z-debug-0.log`. Its three fetch-shaped records are `(cache stale)` under the cache-only implementation above. The resulting local tarball is 461,946 bytes with SHA-512 `0e1f2f02c577ea2839c1af4e5f8a57bcc73d0f755e89b7f0db08b1d0253060e0cb0fc9e48fd52c2e3012af8f673e0fb678acf184157ebfb2fca57bd3e1eeb7f5`.
+6. `pnpm store add %TEMP%\agent-or-not-pnpm-seed\types-node-24.13.3.tgz; pnpm install --offline --frozen-lockfile=false` added that explicit local file, reported `downloaded 0`, and then stopped with `ERR_PNPM_NO_OFFLINE_TARBALL` for `baseline-browser-mapping@2.11.18`.
+7. Unflagged `npm cache ls ...` commands only enumerated cache keys; their debug logs contain no `http fetch` records. No package install completed and no lockfile was produced.
+
+Boundary decision: no further dependency-manager command will be run in the provider-free phase. Existing local files, installed local package bytes, Git objects, and commands preloaded with an explicit non-loopback guard are the only permitted sources. If those are insufficient, execution stops blocked. The OpenRouter adapter may exist only as an inert manifest declaration; no adapter runtime, provider endpoint, environment credential, provider body, or key has been loaded, inspected, printed, or called.
