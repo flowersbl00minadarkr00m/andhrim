@@ -1279,3 +1279,75 @@ event:
 ~~~
 
 **PROTO-R5D verdict: RETURN UNAVAILABLE BEFORE IMPLEMENTATION. The linked-worktree Git metadata denial is reproducible even with the canonical repository root added as writable; no provider or live-smoke budget was consumed.**
+
+## 2026-08-30 — PROTO-R5E phase A acknowledgment
+
+~~~yaml
+event:
+  event_id: evt-agent-or-not-prototype-openrouter-smoke-r5e-ack-20260830
+  task_id: PROTO-R5E
+  type: acknowledged
+  occurred_at: 2026-08-30T06:46:40.9921159-07:00
+  summary: Fresh visible bounded implementation worker accepted PROTO-R5E phase A and paused before implementation for the Orchestrator-mediated acknowledgment commit and explicit phase B release.
+  execution_mode: orchestrated-worker
+  tracking_owner: orchestrator
+  phase: A-only
+  assignment:
+    role: fresh visible bounded implementation worker, not an Orchestrator
+    model: gpt-5.6-sol
+    effort: high
+    branch: codex/prototype-openrouter-smoke-harness-r5e
+    worktree: C:\Users\henry\andhrim-agent-or-not-worktrees\prototype-openrouter-smoke-harness-r5e
+    exact_base: e339a3f8dea5fbf4b2aae4d7ff526f4f861c1eed
+    inspected_head: e339a3f8dea5fbf4b2aae4d7ff526f4f861c1eed
+    worktree_state_before_acknowledgment: clean
+    canonical_integration_checkout: C:\Users\henry\andhrim-agent-or-not
+    canonical_main_head_before_acknowledgment: e339a3f8dea5fbf4b2aae4d7ff526f4f861c1eed
+    controller_mediated_commits: true
+  authority:
+    prototype_scope_sha256: 863c44a31f5c8806cc614da6b6a1958f30d78f523e5203331882bd170ccd17f7
+    lessons_learned_sha256: 40ba06e8e2b256f6c723ba23271a0a0ba689b5aa872f1477d7088dc7d86410ed
+    implementation_brief_sha256: 1847f44d41fb7967ee39cc510ae089009ffa237c36735d4ea831f5bf0e95502f
+    ai_sdd_authority_present: false
+    boundary: Canonical Andhrím feature 001, TD-022, and the frozen TD-015 worktree remain untouched and incomplete.
+  ownership:
+    phase_a_owned_surfaces:
+      - append-only EXECUTION.md acknowledgment only
+    phase_b_owned_surfaces_after_explicit_release:
+      - scripts/lib/openrouter-smoke-contract.mjs
+      - scripts/openrouter-smoke.mjs
+      - scripts/verify-openrouter-smoke.mjs
+      - agent/agent.ts only if narrowly required
+      - package.json only for script entries
+      - README.md and docs/RELEASE_CHECKLIST.md only for the smoke route
+      - append-only EXECUTION.md
+    prohibited_surfaces_and_actions:
+      - every file other than append-only EXECUTION.md during phase A
+      - PROTOTYPE_SCOPE.md, LESSONS_LEARNED.md, and docs/design/IMPLEMENTATION_BRIEF.md
+      - canonical checkout source, every prior R5/R5B/R5C/R5D worktree, C:\Users\henry\andhrim, full Andhrím feature 001, and TD-022
+      - tasks.md, .status, .ai/sdd/INDEX.md, .ai/sdd/handoff/sdd-brief.md, and all orchestration tracking
+      - pnpm, npm, yarn, npx, Corepack, dependency changes, dependency materialization, and package or browser downloads
+      - OpenRouter or other provider requests, provider bodies, keys, credentials, credential stores, .env.local, and non-loopback network access
+      - publication, deployment, hosting, project-licence selection, MIT application, and all other licence changes
+  observed_boundaries:
+    network_disabled: true
+    package_manager_invocations: 0
+    dependency_materialization: 0
+    package_or_registry_access: 0
+    provider_requests: 0
+    openrouter_calls: 0
+    credential_or_key_access: 0
+    non_loopback_network_access: 0
+    canonical_source_mutation: false
+    licence_or_mit_changes: 0
+  commit_control:
+    worker_git_add: prohibited_and_not_run
+    worker_git_commit: prohibited_and_not_run
+    sole_git_index_and_commit_owner: Orchestrator
+    next_gate: The Orchestrator must independently verify and commit this exact acknowledgment diff, then explicitly release this same worker to phase B.
+  return_delivery:
+    state: durable-fallback
+    receipt_evidence: This stable acknowledgment is appended to EXECUTION.md for Orchestrator verification and controller-mediated commit before any implementation edit.
+~~~
+
+Acknowledgment: I accept the exact `gpt-5.6-sol` / `high` assignment, fresh visible bounded-worker role, branch/worktree/base, phase-A and deferred phase-B ownership, absolute prohibited surfaces, network-disabled and zero-access boundaries, controller-mediated commit rule, and explicit exclusion of MIT and all licence changes. I am acknowledgment-ready and will not begin phase B without an explicit Orchestrator release.
