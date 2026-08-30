@@ -526,3 +526,123 @@ event:
 ```
 
 Acknowledgment: I accept the exact model/effort assignment, branch/worktree/base identity, bounded R2 task, owned and prohibited surfaces, provider-free constraints, verification contract, and stable return-event requirement. Implementation edits may begin only after this acknowledgment is committed by itself.
+
+## 2026-08-30 — Prototype hardening R2 verified implementation
+
+~~~yaml
+event:
+  event_id: evt-agent-or-not-prototype-hardening-r2-ready-20260830
+  type: ready-for-review
+  occurred_at: 2026-08-30T01:29:37.2594726-07:00
+  state: durable-fallback
+  assignment:
+    role: fresh visible top-level sole implementation owner
+    model: gpt-5.6-sol
+    effort: high
+    branch: codex/prototype-release-hardening-r2
+    worktree: C:\Users\henry\andhrim-agent-or-not-worktrees\prototype-release-hardening-r2
+    exact_base: 3c4b09dd06b75964dbe28adda76804d0b126ce61
+    acknowledgment_commit: 0d0b36199b3e52c5d182a602f21ced8e9de0f4f6
+  incoming_review:
+    event_id: evt-agent-or-not-focused-r2-3c4b09d-sol-xhigh-20260830
+    verdict: FAIL
+  authority:
+    prototype_scope_sha256: 863c44a31f5c8806cc614da6b6a1958f30d78f523e5203331882bd170ccd17f7
+    lessons_learned_sha256: 40ba06e8e2b256f6c723ba23271a0a0ba689b5aa872f1477d7088dc7d86410ed
+    implementation_brief_sha256: 1847f44d41fb7967ee39cc510ae089009ffa237c36735d4ea831f5bf0e95502f
+    hashes_recomputed_after_implementation: unchanged
+    ai_sdd_authority_created: false
+  changed_files:
+    - agent/agent.ts
+    - agent/lib/fixture-scenario.ts
+    - components/AgentOrNotApp.tsx
+    - components/LearningHistory.tsx
+    - components/LearningPanel.tsx
+    - scripts/verify-browser.mjs
+    - scripts/verify-provider-free.mjs
+    - src/client/eve.test.ts
+    - EXECUTION.md
+  r2_dispositions:
+    R2-M01: PASS
+    proxied_attack_evidence: PASS
+    post_tombstone_export_evidence: PASS
+    invalid_first_retry_evidence: PASS
+  verification:
+    unit_security:
+      command: node scripts/verify-unit.mjs
+      exit_code: 0
+      result: 6 files and 23 tests passed; 7 guarded processes; 0 non-loopback attempts
+    typecheck:
+      command: node scripts/verify-typecheck.mjs
+      exit_code: 0
+      result: TypeScript passed; 1 guarded process; 0 non-loopback attempts
+    secrets:
+      command: node scripts/scan-secrets.mjs
+      exit_code: 0
+      result: 68 source files scanned; 0 findings
+    direct_licenses:
+      command: node scripts/verify-licenses.mjs
+      exit_code: 0
+      result: 13 dependency records reconciled; project licence unselected; publication owner-gated
+    eve_seam:
+      command: node scripts/verify-provider-free.mjs
+      exit_code: 0
+      result: Eve build, hostile 401 before model work, two zero-tool fixture calls, strict receipt, cancellation, and shutdown passed; 3 guarded processes; 0 non-loopback attempts
+    production_build:
+      command: node scripts/verify-build.mjs
+      exit_code: 0
+      result: Eve 0.44.0 and Next.js 16.3.2 webpack production builds passed; routes /, /api/events, /api/export, /api/runtime, /api/state built; 18 guarded processes; 0 non-loopback attempts
+    browser:
+      command: node scripts/verify-browser.mjs
+      exit_code: 0
+      result: full production flow passed on web 60143, Eve 60144, hostile origin 60145; 21 guarded processes and Chromium recorded 0 non-loopback attempts; no page or console errors
+    launcher:
+      command: node scripts/verify-start-local.mjs
+      exit_code: 0
+      result: combined launcher passed on web 55290 and Eve 55291; 20 guarded processes; 0 non-loopback attempts; 0 residual processes
+    diff:
+      command: git diff --check
+      exit_code: 0
+      result: no whitespace errors; all implementation and verifier changes inspected
+  task_verdict: PASS
+  release_verdict: NOT_RELEASE_READY
+  return_delivery:
+    state: durable-fallback
+    receipt_evidence: This stable ready-for-review event and its exact evidence are committed in append-only EXECUTION.md.
+~~~
+
+### R2 As Built and acceptance evidence
+
+Truth label: **verified** — source: final inspected diff plus node scripts/verify-browser.mjs.
+
+1. **Persisted proposed-candidate review resumes after New case and reload — PASS.** LearningHistory renders **Resume review** only for proposed candidates. AgentOrNotApp resolves the selected candidate to its immutable sourceOutcomeId, then to the source outcome's receiptId, then to the already-projected receipt. It mounts the existing LearningPanel, so edit, approve, reject, deactivation, and before/after impact remain in one implementation. LearningPanel is keyed by receipt identity to prevent stale local edit state, and focus moves to the reopened review heading.
+2. **The real browser case crosses persistence and reuse boundaries — PASS.** The browser created a proposal, selected **New case**, reloaded the production page, found the persisted candidate in history, resumed it, verified the original receipt/outcome/candidate chain, edited rationale to revision 2, and approved it. The candidate identity, source outcome, evidence references, and receipt provenance remained unchanged. Desktop and 390px mobile resume screenshots were inspected; no clipping, overlap, or misleading state was observed. The Resume review control and resumed mobile actions were each at least 44px, and keyboard focus landed on the review heading.
+3. **Hostile traffic now traverses the UI's actual Next /eve proxy — PASS.** Both direct Node traffic and a real hostile-origin browser page sent cross-site text/plain requests through http://127.0.0.1:60143/eve/v1/session. The proxy path and preserved direct Eve-port path each returned 401, neither returned a session identity, the ledger remained absent, and fixture/model evidence remained absent. The legitimate UI flow then proceeded normally.
+4. **Post-tombstone export truth is joined and complete — PASS.** After owner expiry and deactivation, /api/export retained the candidate under its original identity with status deleted, retained the original source outcome, and exactly matched the nine-event on-disk ledger. Candidate events included learning.proposed, learning.edited, learning.approved, learning.expired, and learning.deleted. Recursive field inspection found zero API-key, authorization, raw-provider-body, or provider-response fields.
+5. **Invalid-first correction uses exactly one retry — PASS.** A fixture-only invalid-first-receipt scenario produced a classified invalid first output and a valid second output. The real UI invoked requestEveReceipt; evidence showed session 1 with correctionRequested false, session 2 with correctionRequested true, acceptance of the strict valid receipt, and no third session before another explicit user request. Every request still had zero callable tools. A pure unit guard rejects this scenario in openrouter mode, and production receipt validation remains unchanged.
+
+### Final browser evidence
+
+- assessment-desktop.png — SHA-256 53c3a48e7fd42451685468a4466cb85c81c8d43afe9bb75be0ded3911695e8f5
+- outcome-desktop.png — SHA-256 1e0afe5d8cf38e91194a4074737608fd74b9cdd69fc545449091aa0c35ecdcad
+- learning-resumed-desktop.png — SHA-256 3dc487735f32593918d6ab3fc3462622ea5599ac4a545eddd2cf602c5375926d
+- learning-resumed-mobile.png — SHA-256 053c3fb3d8f70eb7cfdebabbe91f764b02e2e911ded6dfb223bf7ce057fd57c4
+- learning-approved-desktop.png — SHA-256 9915fb52a293eb75efc758fa68d2a0443933c4c4b963e12a89de6af296ab0621
+- approved-rule-provenance.png — SHA-256 580a6f92e50ee3ec17adb5684dd46280300a6c98394d7faf344378abf53b7219
+- assessment-mobile.png — SHA-256 ec92c7335f3b601e5fd555e0dcc7b84f00122cc4407ad332be205325eef9a086
+
+All seven screenshots were manually inspected against the two approved concept references. The warm-white/charcoal/copper system, responsive stacking, visible state, provenance, and history controls remain coherent.
+
+### Two-axis closure review
+
+- **Spec alignment — PASS.** All four bounded R2 closure items were observed at the highest useful real seam. The UI behavior crosses projection persistence, reload, history selection, source-chain resolution, existing review workflow, mutation, and projection update. Security and export claims cross the actual production routes and ledger/export boundaries.
+- **Standards/code quality — PASS.** No business action was duplicated; history only selects identity and the existing panel owns review behavior. The fixture seam is provider-free, typed, deterministic, visibly classified, and rejected in OpenRouter mode. No dead UI, new package, broad refactor, speculative abstraction, authority change, package/lock change, or additional user/maintainer decision was introduced. The complete diff and every new file were inspected.
+
+### Execution boundaries and remaining owner gates
+
+- No package-manager command or package-registry access occurred. Verification used one ignored local node_modules junction in this worktree pointing to the exact already-verified bytes in C:\Users\henry\andhrim-agent-or-not-worktrees\prototype-mvp\node_modules; the source worktree was not mutated. This is not clean-clone evidence.
+- No .env.local, credential store, key value, provider body, OpenRouter call, or provider call was inspected, printed, or used. The secret scan found zero findings.
+- No non-loopback access, canonical-main mutation, prior-worktree mutation, C:\Users\henry\andhrim mutation, frozen TD-015 access, .ai/sdd authority, hosting, deployment, GitHub publication, licence choice, or demo recording occurred.
+- Remaining owner gates are unchanged: Windows clean-clone install/test/build/start/browser and transitive dependency/licence review; one owner-supplied direct OpenRouter smoke; public licence selection; final owner dependency/diff review; optional GitHub publication and demo recording.
+
+**R2 task verdict: PASS. Release verdict: NOT RELEASE-READY pending the owner gates above.**

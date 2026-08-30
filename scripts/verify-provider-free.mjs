@@ -271,6 +271,9 @@ try {
     invocationCount: 1,
     toolDefinitionCount: 0,
     modelId: "agent-or-not-fixture",
+    fixtureScenario: "valid",
+    outputKind: "valid",
+    correctionRequested: false,
   });
 
   const cancelCreateResponse = await fetch(`${server.origin}/eve/v1/session`, {
@@ -309,6 +312,9 @@ try {
     invocationCount: 2,
     toolDefinitionCount: 0,
     modelId: "agent-or-not-fixture",
+    fixtureScenario: "valid",
+    outputKind: "valid",
+    correctionRequested: false,
   });
   const stoppedProcessIds = await stopServer(server.child);
   server = undefined;

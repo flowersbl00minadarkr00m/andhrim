@@ -7,6 +7,7 @@ type Props = {
   sessionNonce?: string;
   onProjection: (projection: ProductProjection) => void;
   onError: (message: string) => void;
+  onResumeReview: (candidateId: string) => void;
 };
 
 const statusCopy: Record<LearningCandidate["status"], string> = {
@@ -18,7 +19,7 @@ const statusCopy: Record<LearningCandidate["status"], string> = {
   expired: "Expired — inactive",
 };
 
-export function LearningHistory({ projection, sessionNonce, onProjection, onError }: Props) {
+export function LearningHistory({ projection, sessionNonce, onProjection, onError, onResumeReview }: Props) {
   const [busyCandidateId, setBusyCandidateId] = useState<string>();
   const candidates = Object.values(projection?.candidates ?? {})
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
@@ -74,6 +75,9 @@ export function LearningHistory({ projection, sessionNonce, onProjection, onErro
                 </dl>
                 <p>{candidate.rationale}</p>
                 <div className="candidate-actions">
+                  {candidate.status === "proposed" ? (
+                    <button className="button button--primary" type="button" disabled={busy} aria-label={`Resume review ${candidate.candidateId}`} onClick={() => onResumeReview(candidate.candidateId)}>Resume review</button>
+                  ) : null}
                   {candidate.status === "approved" ? (
                     <button className="button" type="button" disabled={busy} onClick={() => run(candidate.candidateId, {
                       action: "expire-learning",

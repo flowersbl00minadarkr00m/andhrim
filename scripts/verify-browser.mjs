@@ -56,6 +56,7 @@ childEnvironment.AGENT_OR_NOT_EGRESS_METRICS_DIR = metricsDirectory;
 childEnvironment.AGENT_OR_NOT_EGRESS_METRICS_LABEL = "start";
 childEnvironment.AGENT_OR_NOT_DATA_DIR = dataDirectory;
 childEnvironment.AGENT_OR_NOT_FIXTURE_EVIDENCE_PATH = fixtureEvidencePath;
+childEnvironment.AGENT_OR_NOT_FIXTURE_SCENARIO = "invalid-first-receipt";
 childEnvironment.AGENT_OR_NOT_SESSION_NONCE = sessionNonce;
 childEnvironment.NEXT_TELEMETRY_DISABLED = "1";
 childEnvironment.NODE_ENV = "production";
@@ -100,7 +101,9 @@ server.stderr.on("data", (chunk) => { serverLog += chunk.toString(); });
 let browser;
 const browserBlocked = [];
 let rejectedApiStatus;
-let rejectedEveStatus;
+let rejectedProxyEveStatus;
+let rejectedDirectEveStatus;
+let exportEvidence;
 try {
   const baseUrl = `http://127.0.0.1:${port}`;
   const deadline = Date.now() + 45_000;
@@ -137,19 +140,32 @@ try {
   });
   assert.equal(rejectedApiResponse.status, 403);
   rejectedApiStatus = rejectedApiResponse.status;
-  const rejectedEveResponse = await fetch(`http://127.0.0.1:${evePort}/eve/v1/session`, {
+  const rejectedProxyEveResponse = await fetch(`${baseUrl}/eve/v1/session`, {
     method: "POST",
     headers: {
       "content-type": "text/plain",
       "origin": `http://127.0.0.1:${attackerPort}`,
       "sec-fetch-site": "cross-site",
     },
-    body: JSON.stringify({ message: "Create a drive-by session.", mode: "task" }),
+    body: JSON.stringify({ message: "Create a drive-by session through the UI proxy.", mode: "task" }),
   });
-  assert.equal(rejectedEveResponse.status, 401);
-  rejectedEveStatus = rejectedEveResponse.status;
+  assert.equal(rejectedProxyEveResponse.status, 401);
+  assert.equal(rejectedProxyEveResponse.headers.get("x-eve-session-id"), null);
+  rejectedProxyEveStatus = rejectedProxyEveResponse.status;
+  const rejectedDirectEveResponse = await fetch(`http://127.0.0.1:${evePort}/eve/v1/session`, {
+    method: "POST",
+    headers: {
+      "content-type": "text/plain",
+      "origin": `http://127.0.0.1:${attackerPort}`,
+      "sec-fetch-site": "cross-site",
+    },
+    body: JSON.stringify({ message: "Create a drive-by session on the direct Eve port.", mode: "task" }),
+  });
+  assert.equal(rejectedDirectEveResponse.status, 401);
+  assert.equal(rejectedDirectEveResponse.headers.get("x-eve-session-id"), null);
+  rejectedDirectEveStatus = rejectedDirectEveResponse.status;
   assert.equal(fs.existsSync(path.join(dataDirectory, "events.ndjson")), false, "Rejected API request mutated the ledger.");
-  assert.equal(fs.existsSync(fixtureEvidencePath), false, "Rejected Eve request reached the model boundary.");
+  assert.equal(fs.existsSync(fixtureEvidencePath), false, "Rejected proxied/direct Eve requests reached the model boundary.");
 
   browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, colorScheme: "light" });
@@ -169,7 +185,7 @@ try {
 
   const attackerPage = await context.newPage();
   await attackerPage.goto(`http://127.0.0.1:${attackerPort}`, { waitUntil: "domcontentloaded" });
-  await attackerPage.evaluate(async ({ applicationOrigin, eveOrigin }) => {
+  await attackerPage.evaluate(async ({ applicationOrigin, directEveOrigin }) => {
     await Promise.allSettled([
       fetch(`${applicationOrigin}/api/events`, {
         method: "POST",
@@ -177,14 +193,20 @@ try {
         headers: { "content-type": "text/plain" },
         body: JSON.stringify({ action: "delete-learning", candidateId: "candidate-drive-by", reason: "drive-by" }),
       }),
-      fetch(`${eveOrigin}/eve/v1/session`, {
+      fetch(`${applicationOrigin}/eve/v1/session`, {
         method: "POST",
         mode: "no-cors",
         headers: { "content-type": "text/plain" },
-        body: JSON.stringify({ message: "Create a drive-by session.", mode: "task" }),
+        body: JSON.stringify({ message: "Create a drive-by session through the UI proxy.", mode: "task" }),
+      }),
+      fetch(`${directEveOrigin}/eve/v1/session`, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "content-type": "text/plain" },
+        body: JSON.stringify({ message: "Create a drive-by session on the direct Eve port.", mode: "task" }),
       }),
     ]);
-  }, { applicationOrigin: baseUrl, eveOrigin: `http://127.0.0.1:${evePort}` });
+  }, { applicationOrigin: baseUrl, directEveOrigin: `http://127.0.0.1:${evePort}` });
   await attackerPage.close();
   await new Promise((resolve) => setTimeout(resolve, 250));
   assert.equal(fs.existsSync(path.join(dataDirectory, "events.ndjson")), false, "No-CORS drive-by request mutated the ledger.");
@@ -222,6 +244,29 @@ try {
     throw new Error(`Receipt did not complete. Page: ${await page.locator("body").innerText()}\nBrowser errors: ${browserErrors.join(" | ")}\nServer: ${serverLog}`, { cause: error });
   }
   await page.getByRole("heading", { name: "Turn an outcome into reviewable learning." }).waitFor();
+  const retryEvidence = fs.readFileSync(fixtureEvidencePath, "utf8").trim().split(/\r?\n/u).map(JSON.parse);
+  assert.deepEqual(retryEvidence, [
+    {
+      schemaVersion: "provider-free-model-call-v1",
+      invocationCount: 1,
+      toolDefinitionCount: 0,
+      modelId: "agent-or-not-fixture",
+      fixtureScenario: "invalid-first-receipt",
+      outputKind: "invalid",
+      correctionRequested: false,
+    },
+    {
+      schemaVersion: "provider-free-model-call-v1",
+      invocationCount: 2,
+      toolDefinitionCount: 0,
+      modelId: "agent-or-not-fixture",
+      fixtureScenario: "invalid-first-receipt",
+      outputKind: "valid",
+      correctionRequested: true,
+    },
+  ], "requestEveReceipt must open one corrected second session and accept its strict receipt.");
+  await new Promise((resolve) => setTimeout(resolve, 250));
+  assert.equal(fs.readFileSync(fixtureEvidencePath, "utf8").trim().split(/\r?\n/u).length, 2, "requestEveReceipt opened an unexpected third session.");
   await page.screenshot({ path: path.join(artifactDirectory, "outcome-desktop.png"), fullPage: true });
 
   await page.getByRole("button", { name: "Edit locally" }).click();
@@ -232,6 +277,30 @@ try {
   await page.getByRole("radio", { name: "2" }).click();
   await page.getByRole("button", { name: "Record outcome locally" }).click();
   await page.getByText("Inert until you approve.").waitFor();
+  const proposedStateResponse = await page.request.get(`${baseUrl}/api/state`);
+  assert.equal(proposedStateResponse.ok(), true);
+  const proposedState = await proposedStateResponse.json();
+  const approvedCandidateId = Object.keys(proposedState.projection.candidates)[0];
+  assert.equal(proposedState.projection.candidates[approvedCandidateId].status, "proposed");
+  await page.getByRole("button", { name: "New case" }).click();
+  await page.reload({ waitUntil: "networkidle" });
+  await page.getByRole("heading", { name: "Learning history" }).waitFor();
+  await page.getByText(approvedCandidateId, { exact: true }).waitFor();
+  const resumeReviewButton = page.getByRole("button", { name: `Resume review ${approvedCandidateId}` });
+  const resumeReviewBox = await resumeReviewButton.boundingBox();
+  assert.ok(resumeReviewBox && resumeReviewBox.height >= 44, "Resume review must keep a minimum 44px target.");
+  await resumeReviewButton.click();
+  await page.getByRole("heading", { name: "Turn an outcome into reviewable learning." }).waitFor();
+  await page.waitForFunction(() => document.activeElement?.id === "outcome-heading");
+  await page.getByText("Inert until you approve.").waitFor();
+  await page.screenshot({ path: path.join(artifactDirectory, "learning-resumed-desktop.png"), fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobileReviewTargetHeights = await page.locator(".learning-panel .candidate-actions button").evaluateAll((elements) => (
+    elements.map((element) => element.getBoundingClientRect().height)
+  ));
+  assert.ok(mobileReviewTargetHeights.length >= 3 && mobileReviewTargetHeights.every((height) => height >= 44));
+  await page.screenshot({ path: path.join(artifactDirectory, "learning-resumed-mobile.png"), fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.getByRole("button", { name: "Edit", exact: true }).click();
   await page.getByLabel("Bounded rationale").fill("Owner revised this bounded rationale before approval.");
   await page.getByRole("button", { name: "Save new revision" }).click();
@@ -245,11 +314,6 @@ try {
   const state = await stateResponse.json();
   assert.equal(Object.values(state.projection.candidates)[0].status, "approved");
   assert.equal(Object.values(state.projection.rules)[0].active, true);
-  const exportResponse = await page.request.get(`${baseUrl}/api/export`);
-  assert.equal(exportResponse.ok(), true);
-  assert.match(await exportResponse.text(), /learning\.approved/u);
-
-  const approvedCandidateId = Object.keys(state.projection.candidates)[0];
   await page.getByRole("button", { name: "New case" }).click();
   await page.getByRole("heading", { name: "Learning history" }).waitFor();
   await page.getByText(approvedCandidateId, { exact: true }).waitFor();
@@ -272,6 +336,38 @@ try {
   const deletedState = await deletedStateResponse.json();
   assert.equal(deletedState.projection.candidates[approvedCandidateId].status, "deleted");
   assert.equal(Object.values(deletedState.projection.rules)[0].active, false);
+  const exportResponse = await page.request.get(`${baseUrl}/api/export`);
+  assert.equal(exportResponse.ok(), true);
+  const exportPayload = await exportResponse.json();
+  assert.equal(exportPayload.projection.candidates[approvedCandidateId].status, "deleted");
+  assert.equal(exportPayload.projection.candidates[approvedCandidateId].sourceOutcomeId, proposedState.projection.candidates[approvedCandidateId].sourceOutcomeId);
+  const exportedCandidateEventTypes = exportPayload.events
+    .filter((event) => event.candidate?.candidateId === approvedCandidateId || event.candidateId === approvedCandidateId)
+    .map((event) => event.type);
+  assert.deepEqual(exportedCandidateEventTypes, [
+    "learning.proposed", "learning.edited", "learning.approved", "learning.expired", "learning.deleted",
+  ]);
+  const ledgerAtExport = fs.readFileSync(path.join(dataDirectory, "events.ndjson"), "utf8").trim().split(/\r?\n/u).map(JSON.parse);
+  assert.deepEqual(exportPayload.events, ledgerAtExport, "Export must contain the complete event stream.");
+  const forbiddenExportKeys = [];
+  const exportValues = [exportPayload];
+  while (exportValues.length > 0) {
+    const current = exportValues.pop();
+    if (!current || typeof current !== "object") continue;
+    for (const [key, value] of Object.entries(current)) {
+      if (/^(apiKey|authorization|openrouterApiKey|providerBody|providerResponse|rawProviderBody)$/iu.test(key)) forbiddenExportKeys.push(key);
+      exportValues.push(value);
+    }
+  }
+  assert.deepEqual(forbiddenExportKeys, [], "Export contains a provider credential or raw-provider-body field.");
+  assert.doesNotMatch(JSON.stringify(exportPayload), /OPENROUTER_API_KEY|raw provider body/iu);
+  exportEvidence = {
+    retainedCandidateId: approvedCandidateId,
+    tombstoneStatus: exportPayload.projection.candidates[approvedCandidateId].status,
+    completeEventCount: exportPayload.events.length,
+    candidateEventTypes: exportedCandidateEventTypes,
+    forbiddenProviderFields: forbiddenExportKeys.length,
+  };
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("heading", { name: "Delegation assessment" }).waitFor();
   await page.screenshot({ path: path.join(artifactDirectory, "assessment-mobile.png"), fullPage: true });
@@ -301,10 +397,15 @@ assert.deepEqual(ledger.map((event) => event.type), [
   "recommendation.recorded", "recommendation.edited", "outcome.recorded", "learning.proposed", "learning.edited", "learning.approved", "recommendation.recorded", "learning.expired", "learning.deleted",
 ]);
 const fixtureEvidence = fs.readFileSync(fixtureEvidencePath, "utf8").trim().split(/\r?\n/u).map(JSON.parse);
-assert.equal(fixtureEvidence.length, 2, "The browser flow must reconcile exactly two fixture calls.");
+assert.equal(fixtureEvidence.length, 3, "The browser flow must reconcile the two-session validation attempt plus one later explicit request.");
 assert.ok(fixtureEvidence.every((call, index) => call.invocationCount === index + 1
   && call.toolDefinitionCount === 0
   && call.modelId === "agent-or-not-fixture"));
+assert.deepEqual(fixtureEvidence.map((call) => [call.outputKind, call.correctionRequested]), [
+  ["invalid", false],
+  ["valid", true],
+  ["valid", false],
+]);
 process.stdout.write(`${JSON.stringify({
   schemaVersion: "provider-free-browser-verification-v1",
   state: "passed",
@@ -314,9 +415,22 @@ process.stdout.write(`${JSON.stringify({
   uniquePorts: { web: port, eve: evePort, attacker: attackerPort },
   spawnedProcessesLiveAtReadiness: true,
   uniquePortProductionBuild: "passed",
-  rejectedDriveBy: { apiStatus: rejectedApiStatus, eveStatus: rejectedEveStatus, ledgerMutations: 0, eveModelCalls: 0 },
+  rejectedDriveBy: {
+    apiStatus: rejectedApiStatus,
+    proxyEveStatus: rejectedProxyEveStatus,
+    directEveStatus: rejectedDirectEveStatus,
+    eveSessionIdentities: 0,
+    ledgerMutations: 0,
+    eveModelCalls: 0,
+  },
+  invalidFirstRetry: {
+    sessionsBeforeNextExplicitRequest: 2,
+    correctedSecondSessionAccepted: true,
+    unexpectedThirdSession: false,
+  },
+  exportEvidence,
   fixtureEvidence,
   eventTypes: ledger.map((event) => event.type),
-  screenshots: ["assessment-desktop.png", "outcome-desktop.png", "learning-approved-desktop.png", "approved-rule-provenance.png", "assessment-mobile.png"],
+  screenshots: ["assessment-desktop.png", "outcome-desktop.png", "learning-resumed-desktop.png", "learning-resumed-mobile.png", "learning-approved-desktop.png", "approved-rule-provenance.png", "assessment-mobile.png"],
 })}\n`);
 fs.rmSync(scratch, { recursive: true, force: true });

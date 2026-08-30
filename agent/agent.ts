@@ -2,8 +2,13 @@ import { appendFileSync } from "node:fs";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { defineAgent } from "eve";
 import { fixtureReceipt } from "./lib/fixture-receipt";
+import { resolveFixtureScenario } from "./lib/fixture-scenario";
 
 let invocationCount = 0;
+
+function configuredFixtureScenario() {
+  return resolveFixtureScenario("fixture", process.env.AGENT_OR_NOT_FIXTURE_SCENARIO?.trim());
+}
 
 function recordProviderFreeCall(options: { tools?: unknown }) {
   invocationCount += 1;
@@ -13,6 +18,9 @@ function recordProviderFreeCall(options: { tools?: unknown }) {
       ? options.tools.length
       : 1;
   if (toolDefinitionCount !== 0) throw new Error("PROVIDER_FREE_TOOL_ENVELOPE_PRESENT");
+  const fixtureScenario = configuredFixtureScenario();
+  const outputKind = fixtureScenario === "invalid-first-receipt" && invocationCount === 1 ? "invalid" : "valid";
+  const correctionRequested = JSON.stringify(options).includes("The previous response failed strict validation.");
   const evidencePath = process.env.AGENT_OR_NOT_FIXTURE_EVIDENCE_PATH;
   if (evidencePath) {
     appendFileSync(evidencePath, `${JSON.stringify({
@@ -20,9 +28,14 @@ function recordProviderFreeCall(options: { tools?: unknown }) {
       invocationCount,
       toolDefinitionCount,
       modelId: "agent-or-not-fixture",
+      fixtureScenario,
+      outputKind,
+      correctionRequested,
     })}\n`, { encoding: "utf8", flag: "a" });
   }
-  return JSON.stringify(fixtureReceipt);
+  return outputKind === "invalid"
+    ? JSON.stringify({ schemaVersion: "recommendation-receipt-v1", invalidFixtureOutput: true })
+    : JSON.stringify(fixtureReceipt);
 }
 
 function isCancellationProbe(options: unknown) {
@@ -114,7 +127,11 @@ function withoutCallableTools<T extends object>(model: T): T {
 
 function configuredModel() {
   const mode = process.env.AGENT_OR_NOT_PROVIDER_MODE?.trim() || "fixture";
-  if (mode === "fixture") return fixtureModel;
+  const fixtureScenario = process.env.AGENT_OR_NOT_FIXTURE_SCENARIO?.trim();
+  resolveFixtureScenario(mode, fixtureScenario);
+  if (mode === "fixture") {
+    return fixtureModel;
+  }
   if (mode !== "openrouter") throw new Error("AGENT_OR_NOT_PROVIDER_MODE must be fixture or openrouter.");
   const apiKey = process.env.OPENROUTER_API_KEY?.trim();
   const modelId = process.env.OPENROUTER_MODEL?.trim();

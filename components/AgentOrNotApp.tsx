@@ -139,6 +139,23 @@ export function AgentOrNotApp() {
     }
   };
 
+  const resumeLearningReview = (candidateId: string) => {
+    const candidate = projection?.candidates[candidateId];
+    if (!candidate || candidate.status !== "proposed") {
+      setError("Only a proposed Learning Candidate can resume review.");
+      return;
+    }
+    const sourceOutcome = projection?.outcomes[candidate.sourceOutcomeId];
+    const sourceReceipt = sourceOutcome ? projection?.receipts[sourceOutcome.receiptId] : undefined;
+    if (!sourceOutcome || !sourceReceipt) {
+      setError("The candidate's source outcome or receipt is missing from the local projection.");
+      return;
+    }
+    setReceipt(sourceReceipt);
+    setError("");
+    window.requestAnimationFrame(() => document.getElementById("outcome-heading")?.focus());
+  };
+
   return (
     <main>
       <header className="app-header">
@@ -196,12 +213,12 @@ export function AgentOrNotApp() {
       ) : (
         <div className="completed-layout">
           <section className="completed-receipt"><Receipt receipt={receipt} previewRecommendation={receipt.recommendation} step={4} onStarterPackSave={saveStarterPack} privacyDisclosure={runtimeStatus?.privacyDisclosure} /></section>
-          <LearningPanel receipt={receipt} projection={projection} sessionNonce={runtimeStatus?.sessionNonce} onProjection={setProjection} onError={setError} />
+          <LearningPanel key={receipt.receiptId} receipt={receipt} projection={projection} sessionNonce={runtimeStatus?.sessionNonce} onProjection={setProjection} onError={setError} />
           {error ? <p className="error completed-error" role="alert">{error}</p> : null}
         </div>
       )}
 
-      <LearningHistory projection={projection} sessionNonce={runtimeStatus?.sessionNonce} onProjection={setProjection} onError={setError} />
+      <LearningHistory projection={projection} sessionNonce={runtimeStatus?.sessionNonce} onProjection={setProjection} onError={setError} onResumeReview={resumeLearningReview} />
 
       <footer className="app-footer" id="about">
         <p><b>Loopback application</b> · Eve session · No tools enabled · Local ledger</p>

@@ -62,7 +62,7 @@ export function LearningPanel({ receipt, projection, sessionNonce, onProjection,
   return (
     <section className="learning-panel" aria-labelledby="outcome-heading">
       <div className="learning-panel__eyebrow">What happened?</div>
-      <h2 id="outcome-heading">Turn an outcome into reviewable learning.</h2>
+      <h2 id="outcome-heading" tabIndex={-1}>Turn an outcome into reviewable learning.</h2>
 
       <div className="outcome-step">
         <span className="step-number">1</span>
