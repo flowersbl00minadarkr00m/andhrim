@@ -305,3 +305,79 @@ Non-authoritative R1 review against `PROTOTYPE_SCOPE.md`, `LESSONS_LEARNED.md`, 
 ### Committed-source clone inspection
 
 After commit `adffb0e142d68f8b9a0948e8bcb764d56931bd4a`, `git clone --local --no-hardlinks --branch codex/prototype-mvp --single-branch` created a temporary clone using local Git objects only. The clone was clean at that exact commit; `package.json` parsed, `pnpm-lock.yaml` and the expected release/verification files were tracked, `node_modules` and `.env.local` were absent, and `node scripts/scan-secrets.mjs` scanned 58 files with 0 findings. No install, dependency-manager command, build, provider access, credential access, or non-loopback operation occurred in the clone. This is committed-source/static evidence only and does not advance the blocked clean-clone install gate.
+
+## 2026-08-29 — Prototype release-hardening R1 acknowledgment
+
+```yaml
+event:
+  event_id: evt-agent-or-not-prototype-hardening-r1-ack-20260830
+  task_id: prototype-release-hardening-r1
+  type: acknowledged
+  occurred_at: 2026-08-29T23:56:23.7199011-07:00
+  mode: direct
+  tracking_owner: direct-worker
+  session_policy: new-top-level-required
+  worker:
+    session_id: 01a05171-0dac-7ce3-a4e3-32d43fb6524e
+    visibility: fresh-visible-top-level
+    role: sole implementation owner for bounded prototype release-hardening R1
+    model: gpt-5.6-sol
+    effort: high
+    rationale: exact worker mapping assigned for the six-finding security, privacy, contract, history, and browser-hardening correction
+  routing:
+    registry_id: andhr-m-agent-or-not-prototype
+    registry_alias: andhrim-agent-or-not
+    registry_health: ok
+    canonical_path: C:\Users\henry\andhrim-agent-or-not
+    owned_worktree: C:\Users\henry\andhrim-agent-or-not-worktrees\prototype-release-hardening-r1
+    owned_branch: codex/prototype-release-hardening-r1
+    exact_base: 0a9ab76684afe0337d1c96d6c5cd4c6819652833
+    acknowledged_head: 0a9ab76684afe0337d1c96d6c5cd4c6819652833
+    worktree_state: clean
+  authority:
+    prototype_kind: non-binding
+    sdd_status: absent-by-contract
+    sdd_authority_creation: prohibited
+    prototype_scope_sha256: 863c44a31f5c8806cc614da6b6a1958f30d78f523e5203331882bd170ccd17f7
+    lessons_learned_sha256: 40ba06e8e2b256f6c723ba23271a0a0ba689b5aa872f1477d7088dc7d86410ed
+    implementation_brief_sha256: 1847f44d41fb7967ee39cc510ae089009ffa237c36735d4ea831f5bf0e95502f
+    read_through_physical_eof:
+      - C:\Users\henry\AGENTS.md
+      - PROTOTYPE_SCOPE.md
+      - LESSONS_LEARNED.md
+      - docs/design/IMPLEMENTATION_BRIEF.md
+      - README.md
+      - docs/DEPENDENCIES.md
+      - docs/RELEASE_CHECKLIST.md
+      - EXECUTION.md
+  owned_surfaces:
+    - implementation, test, verification-script, and bounded documentation files inside the assigned R1 worktree
+    - append-only EXECUTION.md evidence and commits on the assigned R1 branch
+  prohibited_surfaces_and_actions:
+    - C:\Users\henry\andhrim and every Andhrim branch or worktree
+    - the prior prototype-mvp worktree and canonical main
+    - frozen TD-015 inspection or mutation
+    - credentials, credential stores, .env.local, provider bodies, and real OpenRouter access
+    - dependency-manager commands, package-registry access, and all non-loopback network access
+    - hosting, deployment, GitHub publication, licence choice, and demo recording
+  task: >-
+    Implement and provider-free verify the six incoming R1 findings as one bounded correction:
+    protect all local mutation and the Eve session boundary with same-origin/fetch-metadata,
+    JSON, and unpredictable per-process nonce controls; make privacy disclosure runtime-aware;
+    add factor-specific 1–5 labels; reconcile prompt/schema item maxima within one retry and two
+    sessions; add persistent inspectable learning history with explicit tombstone controls; and
+    isolate browser verification on a unique Eve port with exact zero-tool fixture evidence.
+  incoming_review:
+    event_id: evt-agent-or-not-independent-release-audit-0a9ab76-sol-xhigh-20260830
+    verdict: FAIL
+    disposition: accepted-for-bounded-correction
+  boundaries:
+    provider_runtime_access: none
+    credential_access: none
+    openrouter_call: none
+    non_loopback_access: none
+    dependency_manager_commands: none
+    clean_clone_claim: prohibited
+```
+
+Acknowledgment: I accept the exact `gpt-5.6-sol` / `high` assignment, fresh visible sole-owner role, branch, isolated worktree, clean base, owned and prohibited surfaces, six-finding task, provider-free boundaries, and the independent FAIL audit receipt above. No implementation edit precedes this standalone acknowledgment commit.
