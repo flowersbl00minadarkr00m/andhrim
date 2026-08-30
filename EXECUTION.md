@@ -1049,3 +1049,126 @@ event:
 ~~~
 
 Acknowledgment: I accept the exact task, authority digests, model/effort assignment, fresh visible Herdr identity, isolated branch/worktree/base, owned-surface boundary, provider/network/credential exclusions, bounded-attempt and cleanup contract, orchestrator-only shared tracking, and durable return requirement. Implementation may begin only after this acknowledgment is committed separately.
+
+## 2026-08-30 — PROTO-R5 verification failed: package-manager network and shared-junction mutation
+
+~~~yaml
+event:
+  event_id: evt-agent-or-not-prototype-openrouter-smoke-r5-verification-failed-20260830
+  task_id: PROTO-R5
+  type: verification-failed
+  occurred_at: 2026-08-30T03:23:04.9844269-07:00
+  summary: Two mistakenly invoked pnpm script commands initiated unguarded registry activity and dependency materialization through a node_modules junction shared with prototype-mvp; controller stop conditions are met.
+  execution_mode: orchestrated-worker
+  tracking_owner: orchestrator
+  assignment:
+    branch: codex/prototype-openrouter-smoke-harness-r5
+    worktree: C:\Users\henry\andhrim-agent-or-not-worktrees\prototype-openrouter-smoke-harness-r5
+    acknowledgment_commit: 6cff72dcbcd0dc28e33b267df572441ef092529b
+  failed_commands:
+    invocation: concurrent
+    commands:
+      - pnpm verify:openrouter-smoke
+      - pnpm smoke:openrouter
+    exit_status: unavailable; both calls yielded package-manager output before the orchestration wrapper retained their session identifiers
+    guard_state: The pnpm parent processes were not under the Node provider-free egress guard; registry requests were not blocked.
+    observed_output:
+      - '? Verifying lockfile against supply-chain policies (176 entries)...'
+      - 'Lockfile is up to date, resolution step is skipped'
+      - 'Packages: +115'
+      - 'Packages are hard linked from the content-addressable store to the virtual store.'
+      - 'Content-addressable store is at C:\Users\henry\AppData\Local\pnpm\store\v11'
+      - 'Virtual store is at node_modules/.pnpm'
+      - 'downloaded 0 was reported while reused/added counters advanced'
+      - 'The lockfile supply-chain policy check reported success after registry request-duration messages.'
+  network_evidence:
+    non_loopback_attempts_observed: true
+    blocked: false
+    success_assessment: Registry metadata requests completed sufficiently for pnpm to continue and pass its policy check; exact per-request HTTP status codes were not emitted, so individual statuses are unavailable.
+    safely_observed_origin: https://registry.npmjs.org
+    safely_observed_paths:
+      - /@img%2Fsharp-win32-ia32
+      - /@img%2Fsharp-win32-x64
+      - /@types%2Freact-dom
+      - /@types%2Fnode
+      - /@ai-sdk%2Fprovider-utils
+      - /@ai-sdk%2Fopenai
+      - /@ai-sdk%2Fgateway
+      - /@ai-sdk%2Fanthropic
+      - /@oxc-project%2Ftypes
+      - /@rolldown%2Fbinding-freebsd-x64
+      - /@rolldown%2Fbinding-android-arm64
+      - /@rolldown%2Fbinding-darwin-x64
+      - /@rolldown%2Fbinding-darwin-arm64
+      - /@rolldown%2Fbinding-linux-arm-gnueabihf
+      - /@rolldown%2Fbinding-linux-arm64-gnu
+      - /@rolldown%2Fbinding-linux-arm64-musl
+      - /@rolldown%2Fbinding-linux-x64-gnu
+      - /@rolldown%2Fbinding-linux-x64-musl
+      - /@rolldown%2Fbinding-win32-arm64-msvc
+      - /@next%2Fswc-linux-x64-musl
+      - /@next%2Fswc-linux-x64-gnu
+      - /@next%2Fswc-linux-arm64-musl
+      - /@next%2Fswc-linux-arm64-gnu
+      - /@next%2Fswc-win32-arm64-msvc
+      - /@next%2Fswc-win32-x64-msvc
+      - /@next%2Fswc-darwin-x64
+      - /@next%2Fswc-darwin-arm64
+      - /@next%2Fenv
+      - /@playwright%2Ftest
+  mutation_evidence:
+    node_modules_path: C:\Users\henry\andhrim-agent-or-not-worktrees\prototype-openrouter-smoke-harness-r5\node_modules
+    node_modules_type: junction
+    junction_target: C:\Users\henry\andhrim-agent-or-not-worktrees\prototype-mvp\node_modules
+    shared_target_mutated: true
+    evidence:
+      - node_modules/.modules.yaml creation and last-write time were both 2026-08-30T03:17:04 local, during the failed command window
+      - package-manager output reported 115 packages and advancing added counters
+      - package-manager output identified the shared virtual store under node_modules/.pnpm
+    cleanup_action: none; the worker did not mutate or attempt to repair the shared target after discovery
+  repository_evidence:
+    pnpm_lock_changed: false
+    pnpm_lock_git_blob_index: 6829878d32e31a3ff5e6f39a7a611e5f22e5b3cd
+    pnpm_lock_git_blob_worktree: 6829878d32e31a3ff5e6f39a7a611e5f22e5b3cd
+    package_name_changed: false
+    package_version_changed: false
+    package_manager_field_changed: false
+    engines_changed: false
+    dependencies_changed: false
+    dev_dependencies_changed: false
+    licence_evidence_changed: false
+    intended_package_script_change_uncommitted: true
+    tracked_implementation_files_modified:
+      - README.md
+      - agent/agent.ts
+      - docs/RELEASE_CHECKLIST.md
+      - package.json
+    untracked_implementation_files:
+      - scripts/lib/openrouter-smoke-contract.mjs
+      - scripts/openrouter-smoke.mjs
+      - scripts/verify-openrouter-smoke.mjs
+  process_evidence:
+    processes_terminated_by_worker: []
+    final_workspace_package_process_search: no matching node, pnpm, corepack, or npm process remained
+    note: Two direct-node verifier children observed during the subsequent allowed provider-free check exited normally; they were not package-manager processes and left no residual process.
+  provider_and_secret_evidence:
+    openrouter_calls: 0
+    credential_reads: 0
+    environment_secrets_printed: false
+    live_smoke_executed: false
+  authority:
+    prototype_scope_sha256: 863c44a31f5c8806cc614da6b6a1958f30d78f523e5203331882bd170ccd17f7
+    lessons_learned_sha256: 40ba06e8e2b256f6c723ba23271a0a0ba689b5aa872f1477d7088dc7d86410ed
+    implementation_brief_sha256: 1847f44d41fb7967ee39cc510ae089009ffa237c36735d4ea831f5bf0e95502f
+    authority_changed: false
+  verdict: VERIFICATION_FAILED
+  requested_action: Controller must disposition the shared prototype-mvp node_modules mutation and decide whether to preserve, repair, or recreate the assigned worktree before any continuation.
+  return_delivery:
+    source_session: andhr-m-agent-or-not-prototype
+    source_workspace: w1
+    source_pane_id: w1:pA
+    state: durable-fallback
+    receipt_evidence: This stable verification-failed event is committed alone in append-only EXECUTION.md and returned natively; no ready-for-review event is emitted.
+~~~
+
+**PROTO-R5 verdict: VERIFICATION FAILED. Implementation and verification stopped for controller disposition. The live OpenRouter smoke was not run.**
