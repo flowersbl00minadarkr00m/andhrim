@@ -2138,3 +2138,55 @@ event:
 ~~~
 
 **PROTO-Q1R worker verdict: READY FOR REVIEW. Provider-free Windows qualification is recorded as passed for the pinned source-only release boundary; bundled or binary redistribution remains uncleared, and the real OpenRouter smoke remains owner-only, unexecuted and last.**
+
+## 2026-08-31 — PROTO-Q1R R2 documentation correction ready for rereview
+
+~~~yaml
+event:
+  event_id: evt-agent-or-not-prototype-q1r-r2-correction-ready-20260831
+  task_id: PROTO-Q1R
+  type: ready-for-review
+  occurred_at: 2026-08-31T09:33:29.6642924-07:00
+  verdict: READY_FOR_REREVIEW
+  review_input:
+    event_id: evt-agent-or-not-prototype-q1r-review-r2-sol-xhigh-20260831
+    verdict: NEEDS_FIXES
+    finding: Q1R-SPEC-001
+  correction:
+    state: corrected
+    file: README.md
+    evidence: The qualification sentence now refers strictly to the twelve commands listed immediately below; it no longer describes the broader clean-clone installation block as qualified.
+  changed_files:
+    - README.md
+    - EXECUTION.md
+  verification:
+    - command: dependency-free README qualification-boundary assertion
+      exit_code: 0
+      result: Bounded wording present; excluded setup commands absent from the claim; exactly twelve command-table rows found.
+    - command: node scripts/scan-secrets.mjs
+      exit_code: 0
+      result: 72 files scanned; zero findings.
+    - command: git diff --check
+      exit_code: 0
+      result: No whitespace errors before this append.
+    - command: authority SHA-256 and canonical main/status inspection
+      exit_code: 0
+      result: All three authority hashes unchanged; canonical main remained clean at 15a6b52fd80f22b60ab228acb00b36e37a93842b.
+  preserved_findings:
+    Q1-SPEC-002: resolved; real OpenRouter remains owner-only, unexecuted and last.
+    Q1-STD-001: resolved; Work Starter Pack UI and strict schema limits remain aligned at 800.
+  observed_boundaries:
+    other_source_or_documentation_edits: 0
+    package_manager_invocations: 0
+    dependency_materialization: 0
+    provider_or_openrouter_calls: 0
+    credential_access: 0
+    non_loopback_network_access: 0
+    canonical_mutations: 0
+    git_metadata_writes: 0
+  requested_action: Perform the narrow R2 documentation reinspection of Q1R-SPEC-001 and regressions caused by this sentence-only correction.
+  return_delivery:
+    source_thread_id: 01a0469c-2ac1-7573-93a3-aed2f92345c7
+    state: durable-fallback
+    receipt_evidence: This compact correction event is appended to EXECUTION.md without rewriting prior events.
+~~~
