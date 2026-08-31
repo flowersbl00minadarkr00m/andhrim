@@ -17,6 +17,7 @@ import {
   reconcileSharedDependencyIntegrity,
   reserveLoopbackPort,
   residualLoopbackPorts,
+  settleOperationWithin,
   SMOKE_SESSION_BUDGET,
   terminateOwnedProcesses,
   writeSmokeReport,
@@ -24,6 +25,7 @@ import {
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const guardPath = path.join(root, "scripts", "provider-free-egress-guard.cjs");
+export const BROWSER_CLOSE_TIMEOUT_MS = 5_000;
 
 function safeError(error, fallbackClass = "internal", fallbackCode = "INTERNAL_ERROR") {
   if (error instanceof SmokeContractError) return { class: error.errorClass, code: error.code };
@@ -164,6 +166,22 @@ function stopStartupDiagnostic(child) {
   child.stderr?.off("data", child.smokeDiagnosticListener);
   child.smokeDiagnosticListener = null;
   child.smokeStartupDiagnostic = "";
+}
+
+export async function closeBrowserResourcesBounded(browser, browserServer, timeoutMs = BROWSER_CLOSE_TIMEOUT_MS) {
+  const closeOne = async (resource) => (
+    resource
+      ? await settleOperationWithin(() => resource.close(), timeoutMs)
+      : { status: "not-applicable" }
+  );
+  const browserResult = await closeOne(browser);
+  const browserServerResult = await closeOne(browserServer);
+  const successful = new Set(["fulfilled", "not-applicable"]);
+  return {
+    browserCloseStatus: browserResult.status,
+    browserServerCloseStatus: browserServerResult.status,
+    complete: successful.has(browserResult.status) && successful.has(browserServerResult.status),
+  };
 }
 
 const liveEveWrapperSource = String.raw`
@@ -492,12 +510,8 @@ export async function executeSmoke({
   } catch (error) {
     failure = safeError(error);
   } finally {
-    if (browser) {
-      try { await browser.close(); } catch { failure ??= { class: "cleanup", code: "CLEANUP_FAILED" }; }
-    }
-    if (browserServer) {
-      try { await browserServer.close(); } catch { failure ??= { class: "cleanup", code: "CLEANUP_FAILED" }; }
-    }
+    const browserCloseResult = await closeBrowserResourcesBounded(browser, browserServer);
+    if (!browserCloseResult.complete) failure ??= { class: "cleanup", code: "CLEANUP_FAILED" };
     try {
       const result = await terminateOwnedProcesses(children);
       cleanup.residualProcessCount = result.residualProcessIds.length;

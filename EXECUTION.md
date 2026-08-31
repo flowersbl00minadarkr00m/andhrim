@@ -1595,3 +1595,112 @@ event:
 ~~~
 
 **PROTO-R5E R2 correction verdict: READY FOR R2 REVIEW. All four R1 findings are reconciled with green provider-free verification, complete process/port cleanup proof, and matching pre/post SHA-256 coverage of every shared dependency file reachable through the scratch overlay.**
+
+## 2026-08-31 — PROTO-R5E R3 cleanup correction ready for review
+
+~~~yaml
+event:
+  event_id: evt-agent-or-not-prototype-openrouter-smoke-r5e-r3-ready-20260830
+  task_id: PROTO-R5E
+  type: ready-for-review
+  occurred_at: 2026-08-31T00:26:17.5808749-07:00
+  summary: The sole unresolved R1-002 cleanup finding is corrected at candidate d70c93f60cd677addee56f1270e4db2bf45c1730 with finite CIM inspection, browser shutdown, and Windows force-kill bounds plus deterministic refusal-of-proof falsifiers.
+  execution_mode: orchestrated-worker
+  tracking_owner: orchestrator
+  review_input:
+    event_id: evt-agent-or-not-prototype-openrouter-smoke-r5e-review-r2-sol-xhigh-20260830
+    verdict: CHANGES_REQUIRED
+    correction_scope: unresolved R1-002 Medium finding, its fixes, and regressions caused by those fixes only
+  assignment:
+    model: gpt-5.6-sol
+    effort: high
+    branch: codex/prototype-openrouter-smoke-harness-r5e
+    worktree: C:\Users\henry\andhrim-agent-or-not-worktrees\prototype-openrouter-smoke-harness-r5e
+    candidate_before_corrections: d70c93f60cd677addee56f1270e4db2bf45c1730
+    exact_base: e339a3f8dea5fbf4b2aae4d7ff526f4f861c1eed
+    worker_git_add: prohibited_and_not_run
+    worker_git_commit: prohibited_and_not_run
+  changed_files:
+    - scripts/lib/openrouter-smoke-contract.mjs
+    - scripts/openrouter-smoke.mjs
+    - scripts/verify-openrouter-smoke.mjs
+    - EXECUTION.md
+  finding_reconciliation:
+    R1-002:
+      state: corrected
+      evidence:
+        - Windows CIM descendant discovery now gives spawnSync a deterministic 5000 ms timeout and kill signal; the outer inspector await is independently bounded and classifies timeout or rejection as incomplete inspection.
+        - Registered roots remain tracked independently of inspection. After the finite inspection attempt, every live registered child receives SIGTERM; surviving roots and known descendants are force-killed, with Windows taskkill itself capped at 5000 ms.
+        - Cleanup returns inspectionTimedOut=true for a timed-out inspector and can set processTreeProofComplete=true only when inspection is complete and every tracked PID is absent.
+        - browser.close and browserServer.close are each capped at 5000 ms. A rejection or timeout marks cleanup failed, while control always advances to the central owned-process teardown.
+        - A deterministic never-resolving inspector falsifier completes under its 25 ms inspection bound, observes SIGTERM on the registered root, removes that root, and proves inspectionComplete=false, inspectionTimedOut=true, and processTreeProofComplete=false.
+        - A deterministic never-resolving browser/browser-server close falsifier calls both close methods, observes timed-out statuses, and refuses complete cleanup evidence.
+        - The verifier waiter now recognizes a child that exited before listener attachment; this regression fix removed a false 15-minute wait without changing the smoke contract.
+  verification:
+    - command: node scripts/verify-openrouter-smoke.mjs
+      exit_code: 0
+      result: provider-free preflight and wrapper passed; fixtureSessions=2; fixtureModelCalls=2; boundedSessionBudget=2; receiptValidated=true; residualProcessCount=0; residualPortCount=0; processInspectionComplete=true; sharedDependencyIntegrityVerified=true; liveProviderCalls=0; credentialReadsOutsideExistingAdapter=0; nonLoopbackAttempts=0
+    - command: node --check scripts/lib/openrouter-smoke-contract.mjs; node --check scripts/openrouter-smoke.mjs; node --check scripts/verify-openrouter-smoke.mjs
+      exit_code: 0
+      result: all directly affected JavaScript modules parsed successfully
+    - command: targeted source and full diff inspection
+      exit_code: 0
+      result: finite CIM and taskkill timeouts, bounded browser shutdown, incomplete-inspection refusal, registered-root signaling, and focused falsifiers are present; no unrelated contract or owned-surface changes were found
+    - command: git diff --check
+      exit_code: 0
+      result: passed before and after this append-only event
+    - initial_attempt:
+        command: node scripts/verify-openrouter-smoke.mjs
+        exit_code: 1
+        disposition: manually interrupted after read-only process inspection proved the preflight child had exited while the verifier parent remained in its existing missed-exit wait; the waiter race was corrected and the complete rerun passed
+    - skipped: node scripts/verify-unit.mjs, node scripts/verify-typecheck.mjs, node scripts/verify-build.mjs, node scripts/verify-start-local.mjs, node scripts/scan-secrets.mjs
+      reason: R3 requested the narrowest provider-free verification and limited work to the sole cleanup finding; the focused smoke verifier exercises the changed cleanup paths and all retained preflight contracts
+  provider_free_evidence:
+    shared_dependency_integrity:
+      algorithm: sha256
+      reachable_file_count: 21187
+      reachable_total_bytes: 474486906
+      digest_before_and_after: b5b180bb898e0dab3fe22e1e6616870104b304504bdf85e6c1621781e8e1992e
+      before_after_match: true
+    cleanup:
+      scratch_removed: true
+      residual_owned_process_count: 0
+      residual_owned_port_count: 0
+      descendant_inspection_complete: true
+      process_tree_proof_complete: true
+      shared_dependency_integrity_verified: true
+  observed_access_counts:
+    package_manager_invocations: 0
+    dependency_installs_or_materialization: 0
+    shared_dependency_target_mutations: 0
+    package_registry_or_cdn_access: 0
+    live_mode_executions: 0
+    live_model_calls: 0
+    openrouter_calls: 0
+    provider_calls: 0
+    credential_or_key_value_accesses: 0
+    credential_reads_outside_existing_adapter: 0
+    external_network_attempts: 0
+    non_loopback_network_attempts: 0
+    publication_actions: 0
+    canonical_source_mutations: 0
+    licence_or_mit_changes: 0
+  canonical_state:
+    checkout: C:\Users\henry\andhrim-agent-or-not
+    main_head_before: e339a3f8dea5fbf4b2aae4d7ff526f4f861c1eed
+    main_head_after: e339a3f8dea5fbf4b2aae4d7ff526f4f861c1eed
+    status_before: clean
+    status_after: clean
+  remaining_risks:
+    - Live mode and real OpenRouter behavior remain deliberately unexecuted and provider-unverified.
+    - Cleanup can refuse proof after an incomplete inspector, but no in-process JavaScript timeout can preempt an arbitrary synchronously non-returning injected function; the real synchronous CIM subprocess is independently OS-timeout bounded.
+    - The smoke intentionally does not qualify the shipped Next key-status/runtime-bootstrap path.
+    - Complete dependency integrity reconciliation remains read-intensive and depends on the prepared shared dependency bytes.
+  verdict: READY_FOR_R3_REVIEW
+  requested_action: The Orchestrator should independently reconcile this event and exact unstaged diff, then use controller-mediated Git metadata; this worker does not stage, commit, or approve completion.
+  return_delivery:
+    state: durable
+    receipt_evidence: This stable event is appended to EXECUTION.md for Orchestrator inspection and controller-mediated Git handling.
+~~~
+
+**PROTO-R5E R3 correction verdict: READY FOR R3 REVIEW. The remaining cleanup path is fail-bounded, every registered root is still signaled after inspection timeout, incomplete inspection cannot yield passing proof, and the focused provider-free seam is green with zero live/provider/credential/non-loopback activity and zero residual owned processes or ports.**

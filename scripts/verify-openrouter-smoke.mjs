@@ -14,7 +14,11 @@ import {
   smokeReportSchema,
   terminateOwnedProcesses,
 } from "./lib/openrouter-smoke-contract.mjs";
-import { executeSmoke, spawnAllowlistedLiveEve } from "./openrouter-smoke.mjs";
+import {
+  closeBrowserResourcesBounded,
+  executeSmoke,
+  spawnAllowlistedLiveEve,
+} from "./openrouter-smoke.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -106,6 +110,9 @@ function assertInvocationAndReportContracts() {
   assert.match(harnessSource, /chromium\.launchServer/u);
   assert.match(harnessSource, /browserServer\.process\(\)/u);
   assert.doesNotMatch(harnessSource, /function runBuild[\s\S]*?spawnSync\(process\.execPath/u);
+  const contractSource = fs.readFileSync(path.join(root, "scripts", "lib", "openrouter-smoke-contract.mjs"), "utf8");
+  assert.match(contractSource, /spawnSync\("powershell"[\s\S]*?timeout: timeoutMs/u);
+  assert.match(contractSource, /inspectionTimedOut/u);
 }
 
 async function waitForExit(child, timeoutMs = 15_000) {
@@ -120,6 +127,9 @@ async function waitForExit(child, timeoutMs = 15_000) {
     const timer = setTimeout(() => finish({ code: null, timedOut: true }), timeoutMs);
     child.once("error", () => finish({ code: null, timedOut: false }));
     child.once("exit", (code) => finish({ code, timedOut: false }));
+    if (child.exitCode !== null || child.signalCode !== null) {
+      finish({ code: child.exitCode, timedOut: false });
+    }
   });
 }
 
@@ -190,6 +200,27 @@ function assertDependencyIntegrityFalsifiers() {
   }
 }
 
+async function assertBoundedBrowserCloseFalsifier() {
+  const calls = [];
+  const neverReturns = (name) => ({
+    close() {
+      calls.push(name);
+      return new Promise(() => {});
+    },
+  });
+  const startedAt = Date.now();
+  const result = await closeBrowserResourcesBounded(
+    neverReturns("browser"),
+    neverReturns("browser-server"),
+    25,
+  );
+  assert.deepEqual(calls, ["browser", "browser-server"]);
+  assert.equal(result.browserCloseStatus, "timed-out");
+  assert.equal(result.browserServerCloseStatus, "timed-out");
+  assert.equal(result.complete, false);
+  assert.ok(Date.now() - startedAt < 1_000);
+}
+
 async function assertCleanupFalsifiers() {
   const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "agent-or-not-cleanup-falsifier-"));
   const spawnedRoots = [];
@@ -226,11 +257,20 @@ async function assertCleanupFalsifiers() {
       windowsHide: true,
     });
     spawnedRoots.push(inspectionFailureRoot);
+    const killSignals = [];
+    const signalRoot = inspectionFailureRoot.kill.bind(inspectionFailureRoot);
+    inspectionFailureRoot.kill = (signal) => {
+      killSignals.push(signal);
+      return signalRoot(signal);
+    };
     const incompleteCleanup = await terminateOwnedProcesses([inspectionFailureRoot], {
       graceMs: 500,
-      inspectDescendants() { throw new Error("deterministic inspection failure"); },
+      inspectionTimeoutMs: 25,
+      inspectDescendants: () => new Promise(() => {}),
     });
+    assert.ok(killSignals.includes("SIGTERM"));
     assert.equal(incompleteCleanup.inspectionComplete, false);
+    assert.equal(incompleteCleanup.inspectionTimedOut, true);
     assert.equal(incompleteCleanup.processTreeProofComplete, false);
     assert.deepEqual(incompleteCleanup.residualProcessIds, []);
   } finally {
@@ -246,6 +286,7 @@ async function runFixtureAssertions(metricsDirectory) {
   assertInvocationAndReportContracts();
   await assertLiveEnvironmentAllowlist();
   assertDependencyIntegrityFalsifiers();
+  await assertBoundedBrowserCloseFalsifier();
   await assertCleanupFalsifiers();
 
   const cleanupChild = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {

@@ -7,6 +7,7 @@ import { z } from "zod";
 
 export const SMOKE_SESSION_BUDGET = 2;
 export const SMOKE_REPORT_PATH = path.join("output", "openrouter-smoke-report.json");
+export const PROCESS_INSPECTION_TIMEOUT_MS = 5_000;
 
 const explicitModelIdSchema = z.string().regex(/^[a-z0-9._-]+\/[a-z0-9._:-]+$/iu).max(120);
 const runtimeModelIdSchema = z.union([explicitModelIdSchema, z.literal("agent-or-not-fixture")]);
@@ -346,15 +347,48 @@ function processIsAlive(pid) {
   }
 }
 
-function descendantProcessIds(rootPids) {
+export async function settleOperationWithin(operation, timeoutMs) {
+  if (!Number.isFinite(timeoutMs) || timeoutMs < 1) {
+    return {
+      status: "rejected",
+      error: new SmokeContractError("cleanup", "CLEANUP_FAILED"),
+    };
+  }
+
+  return await new Promise((resolve) => {
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(result);
+    };
+    const timer = setTimeout(() => finish({ status: "timed-out" }), timeoutMs);
+    Promise.resolve()
+      .then(operation)
+      .then(
+        (value) => finish({ status: "fulfilled", value }),
+        (error) => finish({ status: "rejected", error }),
+      );
+  });
+}
+
+function descendantProcessIds(rootPids, timeoutMs = PROCESS_INSPECTION_TIMEOUT_MS) {
   if (process.platform !== "win32" || rootPids.length === 0) return [];
   const roots = rootPids.filter(Number.isInteger).join(",");
   const command = `$all=Get-CimInstance Win32_Process; $frontier=@(${roots}); $seen=@(); while($frontier.Count -gt 0){$next=@(); foreach($pidValue in $frontier){foreach($child in $all|Where-Object ParentProcessId -eq $pidValue){if($seen -notcontains $child.ProcessId){$seen += $child.ProcessId; $next += $child.ProcessId}}}; $frontier=$next}; $seen -join ','`;
   const result = spawnSync("powershell", ["-NoProfile", "-Command", command], {
     encoding: "utf8",
     env: providerFreeEnvironment(),
+    timeout: timeoutMs,
+    killSignal: "SIGKILL",
     windowsHide: true,
   });
+  if (result.error?.code === "ETIMEDOUT") {
+    const error = new SmokeContractError("cleanup", "CLEANUP_FAILED");
+    error.inspectionTimedOut = true;
+    throw error;
+  }
   if (result.status !== 0) throw new SmokeContractError("cleanup", "CLEANUP_FAILED");
   return result.stdout.trim().split(",").filter(Boolean).map(Number).filter(Number.isInteger);
 }
@@ -364,6 +398,8 @@ function forceKillProcessTree(pid) {
     spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], {
       env: providerFreeEnvironment(),
       stdio: "ignore",
+      timeout: PROCESS_INSPECTION_TIMEOUT_MS,
+      killSignal: "SIGKILL",
       windowsHide: true,
     });
     return;
@@ -375,16 +411,23 @@ export async function terminateOwnedProcesses(children, options = {}) {
   const roots = children.map((child) => child?.pid).filter(Number.isInteger);
   const inspectDescendants = options.inspectDescendants ?? descendantProcessIds;
   const graceMs = options.graceMs ?? 8_000;
+  const inspectionTimeoutMs = options.inspectionTimeoutMs ?? PROCESS_INSPECTION_TIMEOUT_MS;
   const tracked = new Set(roots);
   let inspectionComplete = true;
-  const inspect = () => {
-    try {
-      for (const pid of inspectDescendants(roots)) tracked.add(pid);
-    } catch {
+  let inspectionTimedOut = false;
+  const inspect = async () => {
+    const result = await settleOperationWithin(
+      () => inspectDescendants(roots, inspectionTimeoutMs),
+      inspectionTimeoutMs,
+    );
+    if (result.status !== "fulfilled") {
       inspectionComplete = false;
+      inspectionTimedOut ||= result.status === "timed-out" || result.error?.inspectionTimedOut === true;
+      return;
     }
+    for (const pid of result.value) tracked.add(pid);
   };
-  inspect();
+  await inspect();
   for (const child of children) {
     if (child && child.exitCode === null && child.signalCode === null) child.kill("SIGTERM");
   }
@@ -413,11 +456,11 @@ export async function terminateOwnedProcesses(children, options = {}) {
       }
     });
   }
-  inspect();
+  await inspect();
   const residualBeforeForce = [...tracked].filter(processIsAlive);
   for (const pid of residualBeforeForce) forceKillProcessTree(pid);
   await new Promise((resolve) => setTimeout(resolve, 500));
-  inspect();
+  await inspect();
   const lateResiduals = [...tracked].filter(processIsAlive);
   for (const pid of lateResiduals) forceKillProcessTree(pid);
   if (lateResiduals.length > 0) await new Promise((resolve) => setTimeout(resolve, 500));
@@ -426,6 +469,7 @@ export async function terminateOwnedProcesses(children, options = {}) {
     trackedProcessCount: tracked.size,
     rootProcessCount: roots.length,
     inspectionComplete,
+    inspectionTimedOut,
     processTreeProofComplete: inspectionComplete && residualProcessIds.length === 0,
     residualProcessIds,
   };
