@@ -1929,3 +1929,45 @@ event:
   history_rewritten: false
   integration_recommendation: approved
 ~~~
+
+## 2026-08-31 — PROTO-R5E and PROTO-LIC-R1 integrated; clean-clone gate
+
+~~~yaml
+event:
+  event_id: evt-agent-or-not-prototype-r5e-mit-integrated-clean-clone-gate-20260831
+  type: integration-and-gate
+  canonical_checkout: C:\Users\henry\andhrim-agent-or-not
+  canonical_main_head: 5183280577d7aa08c3b7c1002c5a1369ff1d79ab
+  integrated_tickets:
+    PROTO-R5E:
+      final_branch_commit: 8ee2b55990cdbc9d6997fb4d17e1947c280345c2
+      review_event_id: evt-agent-or-not-prototype-openrouter-smoke-r5e-review-r3-sol-xhigh-20260831
+      review_verdict: APPROVE_WITH_LOW_FOLLOWUPS
+      low_followup: reconciled
+    PROTO-LIC-R1:
+      final_branch_commit: 5183280577d7aa08c3b7c1002c5a1369ff1d79ab
+      review_event_id: evt-agent-or-not-prototype-mit-lic-r1-review-sol-xhigh-retry-20260831
+      review_verdict: APPROVE_WITH_LOW_FOLLOWUPS
+      low_followup: reconciled
+  canonical_checks:
+    source_secret_scan: passed_72_files_zero_findings
+    smoke_module_resolution: stopped_before_execution_missing_zod
+    unit_module_resolution: stopped_before_execution_missing_vitest
+    typecheck_module_resolution: stopped_before_execution_missing_typescript
+    javascript_syntax: passed
+    mit_metadata: passed
+    licence_verifier_syntax: passed
+  qualification_interpretation: Canonical has no materialized node_modules. The three red checks are an environment-materialization gate, not observed product or runtime failures. The identical R5E source passed the complete provider-free smoke in the prepared isolated overlay before integration.
+  observed_boundaries:
+    package_manager_invocations: 0
+    dependency_installs_or_materialization: 0
+    package_registry_or_cdn_access: 0
+    provider_or_openrouter_calls: 0
+    credential_or_key_access: 0
+    non_loopback_network_access: 0
+    publication_or_remote_actions: 0
+  next_owner_gate:
+    requested_scope: One disposable Windows clean-clone qualification using pnpm install --frozen-lockfile --ignore-scripts, the separately pinned Playwright Chromium download, full provider-free test/typecheck/build/start/browser verification, secret scanning, and transitive licence/notice reconciliation.
+    excluded_until_later: OpenRouter, credentials, provider calls, publication, deployment, GitHub remote mutation, and canonical dependency materialization.
+  release_state: not_release_ready
+~~~
