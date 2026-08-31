@@ -1903,3 +1903,29 @@ event:
 ~~~
 
 **PROTO-LIC-R1 worker verdict: READY FOR REVIEW. The project licence is MIT, third-party terms remain separate and explicitly unqualified at the transitive notice gate, and no prohibited package, provider, credential, network, publication, runtime, canonical, staging, or commit action occurred.**
+
+## 2026-08-31 — PROTO-LIC-R1 independent review reconciliation
+
+~~~yaml
+event:
+  event_id: evt-agent-or-not-prototype-mit-lic-r1-review-reconciled-20260831
+  task_id: PROTO-LIC-R1
+  type: review-reconciliation
+  review_event_id: evt-agent-or-not-prototype-mit-lic-r1-review-sol-xhigh-retry-20260831
+  review_verdict: APPROVE_WITH_LOW_FOLLOWUPS
+  reviewed_commit: 5707214480b51ebf80ede372ee12d824195cdad4
+  findings:
+    high: 0
+    medium: 0
+    low: 1
+  low_followup:
+    topic: durable provenance for the verifier ownership expansion
+    disposition: reconciled_mechanically
+    worker_thread_id: 01a056c2-fd21-7513-9e73-439e7ddc75a6
+    authorization_timing: before scripts/verify-licenses.mjs was edited
+    authorization: Phase-B ownership was narrowly expanded to scripts/verify-licenses.mjs only to reconcile the owner-approved MIT state, while preserving dependency and transitive checks, fail-closed semantics, the dependency-materialization prohibition, and dependency-free falsification.
+  implementation_scope_breach: false
+  runtime_or_licence_change_after_review: none
+  history_rewritten: false
+  integration_recommendation: approved
+~~~
