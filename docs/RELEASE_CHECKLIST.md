@@ -13,6 +13,7 @@
 - [x] Persistent learning history with owner expiry/deactivation controls and retained tombstone export semantics at final source head.
 - [x] Unique-port browser Eve ownership and exact zero-tool fixture-call reconciliation at final source head.
 - [x] Source secret scan and direct dependency-licence evidence pass at final source head.
+- [x] MIT project licence recorded in `LICENSE` and `package.json`; third-party dependency terms remain separate.
 - [x] Dependency-free disposable-clone source audit at exact `7b3bd38aa5a2df666f954b146561e7a44ec1cbfe`: clean HEAD/tree, 68-file zero-finding secret scan, passing syntax checks, zero forbidden tracked artifacts, and only `.env.example` tracked; the licence verifier failed closed because packages were absent.
 - [ ] Owner-authorize and qualify `pnpm install --frozen-lockfile --ignore-scripts` in a disposable Windows clone. This security-focused candidate may access the configured package registry and is not yet proven.
 - [ ] After the frozen install, run `pnpm exec playwright install chromium`. This separately downloads Playwright `1.62.1`'s matching Chromium from Microsoft's CDN by default into `%LOCALAPPDATA%\ms-playwright`; it has not yet been run in a clean clone.
@@ -50,7 +51,7 @@ The frozen install's package-registry access and Playwright's separate Microsoft
 - [ ] With `OPENROUTER_API_KEY` already inherited privately by the parent shell, run exactly `node scripts/openrouter-smoke.mjs --live-openrouter --confirm-provider-data-transfer --provider openrouter --model "provider/model"` after replacing the placeholder with the explicit model identifier. Do not put the key on the command line. No flags means provider-free preflight only. Live Playwright substitutes a key-free `/api/runtime` bootstrap while exercising the real built Eve session/stream and client strict-validation path; this smoke does not qualify the shipped Next key-status/bootstrap behavior.
 - [ ] Inspect ignored `output/openrouter-smoke-report.json`: require `state: passed`, one strictly validated receipt, one or two exactly reconciled Eve/model calls, zero tool definitions, zero blocked-third-session attempts, zero browser non-loopback requests, scratch removal, zero residual owned processes, zero residual ports, and no prompt/assessment/provider/header/key/raw-output/ledger content.
 - [ ] Remove the key from the shell/session and confirm secret scan remains clean.
-- [ ] Select a public project licence. Current state is deliberately `unselected`.
+- [x] Select the MIT project licence and record the non-personal holder as Andhrím contributors.
 - [ ] Review final dependency evidence and repository diff.
 - [ ] Publish the GitHub repository, if desired.
 - [ ] Record the optional install/demo video using the plan below.

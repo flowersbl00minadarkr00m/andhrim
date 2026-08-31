@@ -1,6 +1,6 @@
 # Dependency and licence evidence
 
-The project licence is intentionally unselected; public distribution is an owner gate. Dependency versions are exact in `package.json` and `pnpm-lock.yaml`.
+The project source is licensed under the [MIT License](../LICENSE). That project licence does not relicense third-party packages; each dependency retains its own terms. Dependency versions are exact in `package.json` and `pnpm-lock.yaml`.
 
 | Package | Version | Role | Licence |
 | --- | ---: | --- | --- |

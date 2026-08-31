@@ -15,5 +15,5 @@ for (const [name, expected] of evidence) {
   assert.equal(manifest.version, expected.version, `${name} version differs from evidence.`);
   assert.equal(manifest.license, expected.license, `${name} licence differs from evidence.`);
 }
-assert.equal(project.licenseEvidence.projectLicense, "unselected");
-process.stdout.write(`${JSON.stringify({ schemaVersion: "dependency-license-verification-v1", state: "passed", dependenciesRecorded: evidence.size, projectLicense: "unselected", publicationGate: "owner-required" })}\n`);
+assert.equal(project.licenseEvidence.projectLicense, "MIT");
+process.stdout.write(`${JSON.stringify({ schemaVersion: "dependency-license-verification-v1", state: "passed", dependenciesRecorded: evidence.size, projectLicense: "MIT", publicationGate: "owner-required" })}\n`);

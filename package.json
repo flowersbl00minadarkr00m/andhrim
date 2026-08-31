@@ -1,6 +1,7 @@
 {
   "name": "andhrim-agent-or-not",
   "version": "0.1.0",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.18.0",
@@ -41,8 +42,8 @@
     "vitest": "4.1.11"
   },
   "licenseEvidence": {
-    "projectLicense": "unselected",
-    "note": "The owner has not selected a public project licence.",
+    "projectLicense": "MIT",
+    "note": "Project source is licensed under MIT; third-party dependencies retain their own licence terms.",
     "dependencies": [
       ["eve", "0.44.0", "Apache-2.0"],
       ["ai", "7.0.77", "Apache-2.0"],

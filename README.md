@@ -18,6 +18,12 @@ This is a non-production exploratory repository. It does not complete canonical 
 
 The deterministic fixture path is verified on Windows. The direct OpenRouter BYOK runtime and its real smoke are deliberately withheld until the final owner-only gate. No hosted deployment is part of this prototype.
 
+## Licence
+
+The project source is licensed under the [MIT License](./LICENSE), with copyright attributed to Andhrím contributors. Third-party packages retain their own licence terms; the direct dependency record and preliminary transitive inventory are in [docs/DEPENDENCIES.md](./docs/DEPENDENCIES.md).
+
+The MIT project licence does not complete the clean-clone transitive licence and notice review. That release gate remains open until the locked dependency tree is materialized and its compatibility and notice obligations are reconciled from the authorized disposable clone.
+
 ## Requirements
 
 - Windows 11
@@ -125,4 +131,4 @@ Deactivation writes a deletion tombstone and disables the rule. It does **not** 
 
 Verified locally: provider-free Eve/no-tools seam, guarded same-origin/session-nonce mutation boundary, strict schemas and six-item provider contract, factor-specific scales, learning projection and persistent owner controls, production builds, unique-port loopback browser flow, responsive screenshots, local export, process cancellation and documented launcher shutdown.
 
-Still gated: owner-authorized Windows clean-clone frozen install with ignored scripts, the separate matching Chromium download, test/build/start/browser verification, clean-clone transitive licence and notice reconciliation, the latest-safe direct OpenRouter owner smoke, public licence selection, GitHub publication and demo-video recording. See [docs/RELEASE_CHECKLIST.md](./docs/RELEASE_CHECKLIST.md) and the append-only [EXECUTION.md](./EXECUTION.md) for exact evidence.
+Still gated: owner-authorized Windows clean-clone frozen install with ignored scripts, the separate matching Chromium download, test/build/start/browser verification, clean-clone transitive licence and notice reconciliation, the latest-safe direct OpenRouter owner smoke, GitHub publication and demo-video recording. See [docs/RELEASE_CHECKLIST.md](./docs/RELEASE_CHECKLIST.md) and the append-only [EXECUTION.md](./EXECUTION.md) for exact evidence.

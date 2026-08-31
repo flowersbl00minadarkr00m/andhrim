@@ -1798,3 +1798,108 @@ event:
 ~~~
 
 Acknowledgment: I accept the exact `gpt-5.6-sol` / `high` assignment, fresh visible bounded-worker role, branch/worktree/base, MIT owner decision, phase-A and deferred phase-B ownership, absolute prohibited surfaces, network-disabled and zero-access boundaries, controller-mediated Git rule, and explicit phase-B release gate. I am acknowledgment-ready and will not begin phase B without an explicit Orchestrator release.
+
+## 2026-08-31 — PROTO-LIC-R1 MIT licensing ready for review
+
+~~~yaml
+event:
+  event_id: evt-agent-or-not-prototype-mit-lic-r1-ready-20260831
+  task_id: PROTO-LIC-R1
+  type: ready-for-review
+  occurred_at: 2026-08-31T00:52:56.3751127-07:00
+  summary: The repository now carries the owner-approved MIT project licence with non-personal Andhrím contributors attribution, aligned package and release metadata, and an unchanged fail-closed third-party qualification boundary.
+  execution_mode: orchestrated-worker
+  tracking_owner: orchestrator
+  assignment:
+    role: fresh visible bounded implementation worker, not an Orchestrator
+    model: gpt-5.6-sol
+    effort: high
+    branch: codex/prototype-mit-release-licensing-r1
+    worktree: C:\Users\henry\andhrim-agent-or-not-worktrees\prototype-mit-release-licensing-r1
+    phase_b_start_commit: 46d91ea958b60d750f06a6c938a923524be5fba8
+    exact_base: 8ee2b55990cdbc9d6997fb4d17e1947c280345c2
+    worker_git_add: prohibited_and_not_run
+    worker_git_commit: prohibited_and_not_run
+  authority:
+    owner_project_licence_decision: MIT
+    holder: Andhrím contributors
+    prototype_scope_sha256: 863c44a31f5c8806cc614da6b6a1958f30d78f523e5203331882bd170ccd17f7
+    lessons_learned_sha256: 40ba06e8e2b256f6c723ba23271a0a0ba689b5aa872f1477d7088dc7d86410ed
+    implementation_brief_sha256: 1847f44d41fb7967ee39cc510ae089009ffa237c36735d4ea831f5bf0e95502f
+    authority_hashes_after_implementation: unchanged
+  changed_files:
+    - LICENSE
+    - package.json
+    - README.md
+    - docs/RELEASE_CHECKLIST.md
+    - docs/DEPENDENCIES.md
+    - scripts/verify-licenses.mjs
+    - EXECUTION.md
+  implementation:
+    - Added the standard MIT licence text with Copyright (c) 2026 Andhrím contributors and no personal identity or email.
+    - Set package.json license and licenseEvidence.projectLicense to MIT without changing scripts, dependencies, devDependencies, package manager, engines, or runtime metadata.
+    - Updated README and release checklist wording to record MIT while keeping publication, OpenRouter, clean-clone, and transitive licence/notice gates separate.
+    - Updated the existing dependency inventory only to replace its stale unselected project-licence statement; direct and preliminary transitive evidence is otherwise unchanged.
+    - Reconciled scripts/verify-licenses.mjs under the explicit ownership expansion so it expects and reports MIT while retaining its dependency allowlist, exact manifest checks, and fail-closed missing-materialization behavior.
+    - Did not create THIRD_PARTY_NOTICES because existing local transitive evidence is explicitly preliminary and cannot support a complete notice claim; the qualification item remains open.
+  verification:
+    metadata_and_notice_falsifier:
+      command: dependency-free node --input-type=module static assertions over package.json, LICENSE, scripts/verify-licenses.mjs, README.md, docs/DEPENDENCIES.md, and docs/RELEASE_CHECKLIST.md
+      exit_code: 0
+      result: MIT metadata and holder matched; verifier expects MIT; unsupported direct licence acceptance remained false; materialization check remained; no third-party completeness claim or notice file exists
+    package_scope_falsifier:
+      command: dependency-free Node comparison of current package.json with git show HEAD:package.json after normalizing only approved licence fields
+      exit_code: 0
+      result: scripts, dependencies, and devDependencies unchanged; only project licence metadata changed
+    package_json_parse:
+      command: node -e JSON.parse package.json
+      exit_code: 0
+      result: package.json parsed successfully
+    verifier_syntax:
+      command: node --check scripts/verify-licenses.mjs
+      exit_code: 0
+      result: verifier parsed successfully without executing its dependency-reading path
+    secret_scan:
+      command: node scripts/scan-secrets.mjs
+      exit_code: 0
+      result: 72 files scanned; zero findings
+    link_resolution:
+      command: dependency-free PowerShell Test-Path for LICENSE and docs/DEPENDENCIES.md targets
+      exit_code: 0
+      result: licence documentation targets resolve
+    diff_check:
+      command: git diff --check
+      exit_code: 0
+      result: no whitespace errors before this append
+    initial_metadata_falsifier_attempt:
+      exit_code: 1
+      disposition: invocation used the projectless shell directory and failed with ENOENT before reading a project file; the identical check was rerun from the exact isolated worktree and passed
+    not_run:
+      command: node scripts/verify-licenses.mjs
+      reason: phase-B release prohibited any path requiring materialized dependencies; static checks verified its MIT expectation and retained fail-closed dependency behavior instead
+  observed_boundaries:
+    package_manager_invocations: 0
+    dependency_installs_or_materialization: 0
+    package_registry_or_cdn_access: 0
+    provider_or_openrouter_calls: 0
+    credential_or_key_access: 0
+    non_loopback_network_access: 0
+    publication_or_remote_actions: 0
+    product_runtime_learning_or_eve_changes: 0
+    canonical_source_mutations: 0
+  verdict: READY_FOR_REVIEW
+  release_verdict: NOT_RELEASE_READY
+  remaining_gates:
+    - owner-authorized disposable clean-clone dependency and browser materialization plus test/build/start/browser qualification
+    - clean-clone transitive licence compatibility and notice reconciliation
+    - latest-safe owner direct OpenRouter smoke
+    - final owner dependency and repository diff review
+    - optional GitHub publication and demo recording
+  requested_action: The Orchestrator should independently inspect the exact unstaged diff, run any permitted controller-side checks, and use controller-mediated Git staging and commit before independent review or integration.
+  return_delivery:
+    source_thread_id: 01a0469c-2ac1-7573-93a3-aed2f92345c7
+    state: durable-fallback
+    receipt_evidence: This stable ready-for-review event is appended to EXECUTION.md for Orchestrator reconciliation and controller-mediated Git handling.
+~~~
+
+**PROTO-LIC-R1 worker verdict: READY FOR REVIEW. The project licence is MIT, third-party terms remain separate and explicitly unqualified at the transitive notice gate, and no prohibited package, provider, credential, network, publication, runtime, canonical, staging, or commit action occurred.**
