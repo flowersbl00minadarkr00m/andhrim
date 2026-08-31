@@ -20,15 +20,15 @@ The project source is licensed under the [MIT License](../LICENSE). That project
 
 Direct-dependency evidence source: the `license` fields in the exact locally materialized package manifests, cross-checked by `scripts/verify-licenses.mjs`. Transitive packages and integrity hashes are recorded by the lockfile. No project licence is inferred from dependency licences.
 
-## Preliminary transitive inventory
+## Qualified clean-clone transitive inventory
 
-A read-only inventory of the already-materialized, previously verified dependency tree found 99 package roots and zero missing licence fields:
+The disposable Windows clean-clone qualification at exact source commit `15a6b52fd80f22b60ab228acb00b36e37a93842b` reconstructed 115 unique package roots. It found zero missing manifest licence fields and zero missing lockfile mentions:
 
 | Licence expression | Package roots |
 | --- | ---: |
-| MIT | 73 |
-| Apache-2.0 | 16 |
-| ISC | 3 |
+| MIT | 85 |
+| Apache-2.0 | 18 |
+| ISC | 5 |
 | MPL-2.0 | 2 |
 | BSD-3-Clause | 1 |
 | 0BSD | 1 |
@@ -44,7 +44,11 @@ The notable exact package roots in that inventory include:
 - `lightningcss` `1.33.0`
 - `lightningcss-win32-x64-msvc` `1.33.0`
 
-This is preliminary read-only evidence from an existing dependency tree, explicitly not clean-clone evidence. Licence compatibility and notice obligations still need to be reconciled from the disposable clean clone after the owner authorizes dependency and browser materialization. The transitive-licence release gate remains unpassed.
+Packaged NOTICE records exist for Eve and the three Playwright roots. Nine roots have manifest licence metadata but no root licence/notice file. Non-simple obligations were identified for `@img/sharp-win32-x64` `0.35.3`, `caniuse-lite` `1.0.30001809`, `json-schema` `0.4.0`, `lightningcss` `1.33.0`, and `lightningcss-win32-x64-msvc` `1.33.0`.
+
+This evidence clears the transitive-inventory gate for a GitHub source-only release because `node_modules`, `.eve`, `.next`, `.output`, Playwright and Chromium are ignored and are not redistributed. The MIT project licence applies only to project source and does not relicense third-party packages. A bundled installer, generated runtime archive, vendored dependency tree or browser-inclusive release requires a separate audit of the actual bundle, including Apache and Chromium notices, the obligations above and the nine roots lacking packaged licence files. This is an engineering assessment, not legal advice.
+
+The qualification materialized 21,215 files totalling 474,605,647 bytes. The provider-free smoke matched pre/post SHA-256 evidence over 21,193 shared dependency files totalling 474,502,379 bytes. `pnpm install --frozen-lockfile --ignore-scripts` exited `0` with 115 packages, all reused and `downloaded 0`; no packet capture was performed, so this is bounded command evidence rather than proof of no network traffic.
 
 ## Dependency-free disposable-clone audit
 
@@ -61,10 +65,10 @@ The temporary clone remains at `C:\Users\henry\AppData\Local\Temp\andhrim-agent-
 
 ## Browser binary boundary
 
-The locked package is `@playwright/test` `1.62.1`, but a fresh Windows checkout also needs that Playwright version's matching Chromium binary. After the owner-authorized frozen package install, run:
+The locked package is `@playwright/test` `1.62.1`, and a fresh Windows checkout needs that Playwright version's matching Chromium binary. The qualified installation command remains:
 
 ```powershell
 pnpm exec playwright install chromium
 ```
 
-[Playwright's browser documentation](https://playwright.dev/docs/browsers) states that each version needs specific browser binaries. On Windows the default browser cache is `%LOCALAPPDATA%\ms-playwright`; the default browser download comes from Microsoft's CDN and is separate from package-registry access used to materialize JavaScript dependencies. This command has not been run in a clean clone for release qualification.
+[Playwright's browser documentation](https://playwright.dev/docs/browsers) states that each version needs specific browser binaries. In the clean-clone qualification this command exited `0`; matching Chromium/headless-shell revision `1234` was already present and no browser-download output occurred. On Windows the default cache is `%LOCALAPPDATA%\ms-playwright`, and the default download channel is separate from package-registry access. No packet capture was performed.

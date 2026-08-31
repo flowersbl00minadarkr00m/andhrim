@@ -84,7 +84,7 @@ export function Receipt({ receipt, previewRecommendation, step, privacyDisclosur
             {starterPack.map((item, index) => (
               <div key={item.id}>
                 <label>Label<input value={item.label} maxLength={80} onChange={(event) => setStarterPack((items) => items.map((entry, itemIndex) => itemIndex === index ? { ...entry, label: event.target.value } : entry))} /></label>
-                <label>Instruction<textarea value={item.content} maxLength={1200} onChange={(event) => setStarterPack((items) => items.map((entry, itemIndex) => itemIndex === index ? { ...entry, content: event.target.value } : entry))} /></label>
+                <label>Instruction<textarea value={item.content} maxLength={800} onChange={(event) => setStarterPack((items) => items.map((entry, itemIndex) => itemIndex === index ? { ...entry, content: event.target.value } : entry))} /></label>
               </div>
             ))}
             <button className="button button--primary" type="button" onClick={async () => { await onStarterPackSave?.({ ...receipt, starterPack }); setEditing(false); }}>Save starter pack</button>

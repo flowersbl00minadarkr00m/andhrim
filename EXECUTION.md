@@ -1971,3 +1971,170 @@ event:
     excluded_until_later: OpenRouter, credentials, provider calls, publication, deployment, GitHub remote mutation, and canonical dependency materialization.
   release_state: not_release_ready
 ~~~
+
+## 2026-08-31 — PROTO-Q1R qualification review reconciliation ready for review
+
+~~~yaml
+event:
+  event_id: evt-agent-or-not-prototype-q1r-ready-20260831
+  task_id: PROTO-Q1R
+  type: ready-for-review
+  occurred_at: 2026-08-31T09:18:06.6556202-07:00
+  summary: The successful provider-free Windows clean-clone qualification and independent Q1 review are reconciled into the tracked release documents, with the source-only distribution boundary preserved and the Work Starter Pack editor aligned to the strict 800-character schema limit.
+  execution_mode: orchestrated-worker
+  tracking_owner: orchestrator
+  assignment:
+    role: fresh visible bounded implementation worker, not an Orchestrator
+    model: gpt-5.6-sol
+    effort: high
+    branch: codex/proto-q1-reconcile
+    worktree: C:\Users\henry\andhrim-agent-or-not-worktrees\proto-q1-reconcile
+    exact_base: 15a6b52fd80f22b60ab228acb00b36e37a93842b
+    worker_git_add: prohibited_and_not_run
+    worker_git_commit: prohibited_and_not_run
+  authority:
+    prototype_scope_sha256: 863c44a31f5c8806cc614da6b6a1958f30d78f523e5203331882bd170ccd17f7
+    lessons_learned_sha256: 40ba06e8e2b256f6c723ba23271a0a0ba689b5aa872f1477d7088dc7d86410ed
+    implementation_brief_sha256: 1847f44d41fb7967ee39cc510ae089009ffa237c36735d4ea831f5bf0e95502f
+    authority_hashes_after_implementation: unchanged
+    canonical_integration_checkout: C:\Users\henry\andhrim-agent-or-not
+    canonical_main_after_implementation: 15a6b52fd80f22b60ab228acb00b36e37a93842b
+    canonical_status_after_implementation: clean
+  review_input:
+    event_id: evt-agent-or-not-prototype-q1-independent-review-sol-xhigh-20260831
+    reviewed_commit: 15a6b52fd80f22b60ab228acb00b36e37a93842b
+    verdict: APPROVE_WITH_FOLLOWUPS
+    provider_free_windows_qualification: ACCEPT
+    github_source_release: CONDITIONALLY_READY
+    bundled_or_binary_release: NOT_CLEARED
+  finding_reconciliation:
+    Q1-SPEC-001:
+      state: corrected
+      evidence:
+        - README, release checklist and dependency evidence now record exact commit 15a6b52fd80f22b60ab228acb00b36e37a93842b, the qualified commands and results, and the 115-root clean-clone inventory.
+        - The four clean-clone provider-free checklist gates are checked only against the successful qualification evidence.
+        - Source-only GitHub distribution is distinguished from bundled installers, generated runtime archives, vendored dependencies and browser-inclusive releases.
+        - The documentation expressly states that the engineering assessment is not legal advice or binary-distribution clearance.
+    Q1-SPEC-002:
+      state: preserved_open_owner_gate
+      evidence:
+        - README and the release checklist state that the real OpenRouter smoke remains owner-only, unexecuted and the latest safe checkpoint.
+        - No provider-backed behavior is described as verified.
+        - Publication must wait for the smoke unless the owner explicitly re-scopes the gate.
+    Q1-STD-001:
+      state: corrected
+      evidence:
+        - components/Receipt.tsx now caps Work Starter Pack instruction input at 800 characters, matching src/domain/recommendation.ts.
+  changed_files:
+    - README.md
+    - docs/RELEASE_CHECKLIST.md
+    - docs/DEPENDENCIES.md
+    - components/Receipt.tsx
+    - EXECUTION.md
+  qualification_evidence:
+    result_event_id: evt-agent-or-not-prototype-q1-result-20260831
+    source_commit: 15a6b52fd80f22b60ab228acb00b36e37a93842b
+    commands:
+      - command: pnpm install --frozen-lockfile --ignore-scripts
+        exit_code: 0
+        result: 115 packages, all reused, downloaded 0
+      - command: pnpm exec playwright install chromium
+        exit_code: 0
+        result: Playwright 1.62.1 matching Chromium/headless-shell revision 1234 present; no browser-download output
+      - command: pnpm scan:secrets
+        exit_code: 0
+        result: 72 files, zero findings
+      - command: pnpm test
+        exit_code: 0
+        result: 6 files and 23 tests passed; zero guarded egress
+      - command: pnpm typecheck
+        exit_code: 0
+        result: passed; zero guarded egress
+      - command: pnpm verify:licenses
+        exit_code: 0
+        result: 13 direct dependency records passed; project MIT
+      - command: pnpm verify:provider-free
+        exit_code: 0
+        result: zero-tool receipt and cancellation seam passed
+      - command: pnpm build
+        exit_code: 0
+        result: Eve and Next production builds passed
+      - command: pnpm verify:start
+        exit_code: 0
+        result: loopback ports 64323 and 64324; zero residual processes
+      - command: pnpm verify:browser
+        exit_code: 0
+        result: full browser flow passed on loopback ports 56791 through 56793
+      - command: node scripts/verify-openrouter-smoke.mjs
+        exit_code: 0
+        result: provider-free preflight only
+      - command: node scripts/openrouter-smoke.mjs
+        exit_code: 0
+        result: provider-free no-live-flag preflight only
+    materialized_tree:
+      package_roots: 115
+      files: 21215
+      bytes: 474605647
+    shared_dependency_integrity:
+      files: 21193
+      bytes: 474502379
+      pre_post_sha256_match: true
+    licence_inventory:
+      MIT: 85
+      Apache-2.0: 18
+      ISC: 5
+      MPL-2.0: 2
+      BSD-3-Clause: 1
+      0BSD: 1
+      CC-BY-4.0: 1
+      (AFL-2.1 OR BSD-3-Clause): 1
+      Apache-2.0 AND LGPL-3.0-or-later: 1
+      missing_manifest_licence_fields: 0
+      missing_lockfile_mentions: 0
+      packaged_notice_roots: Eve and three Playwright roots
+      roots_without_packaged_licence_or_notice_file: 9
+    evidence_boundary:
+      network: Package-manager and Playwright observations are command-output evidence; no packet capture was performed.
+      distribution: Source-only GitHub publication does not redistribute ignored dependency, build, Playwright or Chromium bytes.
+      bundle: Any bundled or binary distribution requires a separate actual-bundle notice and source-obligation audit.
+      legal: This is engineering evidence, not legal clearance.
+  worker_verification:
+    - command: dependency-free PowerShell static assertions over README.md, docs/RELEASE_CHECKLIST.md, docs/DEPENDENCIES.md, components/Receipt.tsx and src/domain/recommendation.ts
+      exit_code: 0
+      result: exact commit, twelve qualified commands, 115-root counts, four completed gates, source/bundle boundary, packet-capture limitation, owner-only unexecuted OpenRouter boundary and matching 800-character limits all present; stale qualification wording absent
+    - command: node scripts/scan-secrets.mjs
+      exit_code: 0
+      result: 72 files scanned; zero findings
+    - command: git diff --check
+      exit_code: 0
+      result: no whitespace errors before this append
+    - command: authority SHA-256 and canonical main/status inspection
+      exit_code: 0
+      result: all three authority hashes unchanged; canonical main remained clean at 15a6b52fd80f22b60ab228acb00b36e37a93842b
+    - initial_wrapper_attempt:
+        state: not_dispatched
+        result: The JavaScript orchestration wrapper rejected a quoting error before any nested command ran; the simplified identical static check was then dispatched and passed.
+    - skipped: package-manager, dependency-backed test/typecheck/build/browser, provider and live-smoke commands
+      reason: This correction worker was prohibited from package activity, dependency materialization, non-loopback access, providers and credentials; the ticket required dependency-free checks only and the exact qualification evidence is preserved above.
+  observed_worker_boundaries:
+    package_manager_invocations: 0
+    dependency_installs_or_materialization: 0
+    package_registry_or_cdn_access: 0
+    live_mode_executions: 0
+    provider_or_openrouter_calls: 0
+    credential_or_key_access: 0
+    non_loopback_network_access: 0
+    publication_deployment_or_remote_actions: 0
+    canonical_source_mutations: 0
+    licence_selection_changes: 0
+    feature_001_or_td_022_changes: 0
+    git_metadata_writes: 0
+  verdict: READY_FOR_REVIEW
+  requested_action: The Orchestrator should inspect the exact unstaged owned diff, run any permitted controller-side checks, reconcile this recommendation and use controller-mediated Git staging and commit before any integration or publication decision.
+  return_delivery:
+    source_thread_id: 01a0469c-2ac1-7573-93a3-aed2f92345c7
+    state: durable-fallback
+    receipt_evidence: This stable ready-for-review event is appended to EXECUTION.md for Orchestrator reconciliation and controller-mediated Git handling.
+~~~
+
+**PROTO-Q1R worker verdict: READY FOR REVIEW. Provider-free Windows qualification is recorded as passed for the pinned source-only release boundary; bundled or binary redistribution remains uncleared, and the real OpenRouter smoke remains owner-only, unexecuted and last.**

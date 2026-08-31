@@ -16,13 +16,13 @@ This is a non-production exploratory repository. It does not complete canonical 
 - Visible rule/version/source-outcome provenance when an approved rule affects a later receipt.
 - Five factor-specific 1–5 assessment scales plus responsive, keyboard-usable assessment, receipt, learning and persistent history/control UI.
 
-The deterministic fixture path is verified on Windows. The direct OpenRouter BYOK runtime and its real smoke are deliberately withheld until the final owner-only gate. No hosted deployment is part of this prototype.
+The provider-free fixture path is qualified on Windows from a disposable clean clone at exact source commit `15a6b52fd80f22b60ab228acb00b36e37a93842b`. The direct OpenRouter BYOK runtime and its real smoke remain deliberately unexecuted until the final owner-only gate. No hosted deployment is part of this prototype.
 
 ## Licence
 
-The project source is licensed under the [MIT License](./LICENSE), with copyright attributed to Andhrím contributors. Third-party packages retain their own licence terms; the direct dependency record and preliminary transitive inventory are in [docs/DEPENDENCIES.md](./docs/DEPENDENCIES.md).
+The project source is licensed under the [MIT License](./LICENSE), with copyright attributed to Andhrím contributors. Third-party packages retain their own licence terms; the direct dependency record and qualified clean-clone transitive inventory are in [docs/DEPENDENCIES.md](./docs/DEPENDENCIES.md).
 
-The MIT project licence does not complete the clean-clone transitive licence and notice review. That release gate remains open until the locked dependency tree is materialized and its compatibility and notice obligations are reconciled from the authorized disposable clone.
+The clean-clone inventory reconstructed 115 package roots with no missing manifest licence fields or lockfile mentions. For a GitHub source-only release, no additional third-party notice file is identified as a blocker because dependencies, generated builds, Playwright and Chromium are ignored and are not redistributed. The MIT project licence covers only this project's source. A bundled installer, generated runtime archive, vendored dependency tree or browser-inclusive distribution is not cleared and requires a separate audit of the actual bundle and its notice/source obligations. This is an engineering assessment, not legal advice.
 
 ## Requirements
 
@@ -53,9 +53,26 @@ Open `http://127.0.0.1:3000`. `pnpm start` launches both built services on loopb
 
 The launcher creates a fresh unpredictable session nonce in memory and gives it only to the two child services. The same-origin UI obtains that nonce from the no-store runtime bootstrap and supplies it on local mutations and Eve session requests. The value is not written to source, `.env.local`, the event ledger, exports, screenshots, or normal logs.
 
-The frozen install above is the security-focused qualification candidate. It materializes the locked JavaScript packages and may contact the configured package registry. It is not yet proven: the owner must authorize it and the complete sequence must pass in a disposable Windows clone before it becomes release evidence.
+The security-focused sequence above was qualified on Windows in the disposable clone at exact commit `15a6b52fd80f22b60ab228acb00b36e37a93842b`. `pnpm install --frozen-lockfile --ignore-scripts` exited `0` with 115 packages, all reused and `downloaded 0`. `pnpm exec playwright install chromium` exited `0` with Playwright `1.62.1`'s Chromium/headless-shell revision `1234` already present; it produced no browser-download output. These are bounded command observations, not packet-capture proof: the authorized network classes were the configured npm registry and the matching Playwright Chromium channel.
 
-The next command is a separate download. Each Playwright release needs its specific browser binaries, so `pnpm exec playwright install chromium` uses the installed Playwright CLI to obtain the Chromium build required by Playwright `1.62.1`. On Windows the default cache is `%LOCALAPPDATA%\ms-playwright`, and the default browser download comes from Microsoft's CDN. This is distinct from package-registry access during `pnpm install`; see the official [Playwright browser documentation](https://playwright.dev/docs/browsers). Neither command has been run in a clean clone for this release qualification.
+The exact provider-free qualification commands and results were:
+
+| Command | Result |
+| --- | --- |
+| `pnpm install --frozen-lockfile --ignore-scripts` | Exit `0`; 115 packages, all reused, `downloaded 0` |
+| `pnpm exec playwright install chromium` | Exit `0`; matching Playwright `1.62.1` Chromium/headless-shell revision `1234` present |
+| `pnpm scan:secrets` | Exit `0`; 72 files, zero findings |
+| `pnpm test` | Exit `0`; 6 files and 23 tests passed; zero guarded egress |
+| `pnpm typecheck` | Exit `0`; guarded typecheck passed |
+| `pnpm verify:licenses` | Exit `0`; 13 direct records and project MIT passed |
+| `pnpm verify:provider-free` | Exit `0`; zero-tool receipt and cancellation seam passed |
+| `pnpm build` | Exit `0`; Eve and Next production builds passed |
+| `pnpm verify:start` | Exit `0`; loopback ports `64323`/`64324`, zero residual processes |
+| `pnpm verify:browser` | Exit `0`; full browser flow passed on loopback ports `56791`–`56793` |
+| `node scripts/verify-openrouter-smoke.mjs` | Exit `0`; provider-free preflight only |
+| `node scripts/openrouter-smoke.mjs` | Exit `0`; same provider-free no-live-flag preflight only |
+
+The clone and canonical `main` remained clean at the pinned commit; only ignored generated surfaces were present. The materialized tree contained 115 unique package roots, 21,215 files and 474,605,647 bytes. The smoke reconciled a matching pre/post SHA-256 over 21,193 shared dependency files and 474,502,379 bytes. No `.env.local`, retained live-smoke report, clone-owned process or occupied qualification port remained.
 
 The source-only disposable-clone audit at exact commit `7b3bd38aa5a2df666f954b146561e7a44ec1cbfe` did not materialize packages or a browser. It confirmed a clean clone HEAD, a clean tree, 68 files with zero secret-scan findings, passing source syntax checks, zero forbidden tracked artifacts, and `.env.example` as the only tracked environment file. The licence verifier correctly failed closed because dependencies were deliberately absent. See [docs/DEPENDENCIES.md](./docs/DEPENDENCIES.md) for the evidence boundary and retained temporary-clone path.
 
@@ -129,6 +146,6 @@ Deactivation writes a deletion tombstone and disables the rule. It does **not** 
 
 ## Release status
 
-Verified locally: provider-free Eve/no-tools seam, guarded same-origin/session-nonce mutation boundary, strict schemas and six-item provider contract, factor-specific scales, learning projection and persistent owner controls, production builds, unique-port loopback browser flow, responsive screenshots, local export, process cancellation and documented launcher shutdown.
+Qualified on Windows at exact commit `15a6b52fd80f22b60ab228acb00b36e37a93842b`: frozen ignored-scripts install, matching Chromium availability, secret scan, unit tests, typecheck, direct and transitive licence inventory, provider-free Eve/no-tools receipt and cancellation, Eve/Next builds, launcher cleanup, and the desktop/mobile browser flow. OpenRouter/provider/live calls and credential-value access were all zero.
 
-Still gated: owner-authorized Windows clean-clone frozen install with ignored scripts, the separate matching Chromium download, test/build/start/browser verification, clean-clone transitive licence and notice reconciliation, the latest-safe direct OpenRouter owner smoke, GitHub publication and demo-video recording. See [docs/RELEASE_CHECKLIST.md](./docs/RELEASE_CHECKLIST.md) and the append-only [EXECUTION.md](./EXECUTION.md) for exact evidence.
+Still gated: the latest-safe real OpenRouter owner smoke remains unexecuted and must stay last before any publication decision unless the owner explicitly re-scopes that gate. Final owner dependency/repository-diff review, optional GitHub source publication and optional demo recording also remain owner actions. Bundled or binary redistribution is not cleared. See [docs/RELEASE_CHECKLIST.md](./docs/RELEASE_CHECKLIST.md) and the append-only [EXECUTION.md](./EXECUTION.md) for exact evidence.
