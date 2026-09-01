@@ -28,8 +28,24 @@ function expectContractCode(operation, code) {
 
 function sampleCalls() {
   return [
-    { timestamp: "2026-08-30T10:00:00.000Z", modelId: "provider/model", callIndex: 1, toolDefinitionCount: 0 },
-    { timestamp: "2026-08-30T10:00:01.000Z", modelId: "provider/model", callIndex: 2, toolDefinitionCount: 0 },
+    {
+      timestamp: "2026-08-30T10:00:00.000Z",
+      modelId: "provider/model",
+      callIndex: 1,
+      classification: "eve-final-output-only-v1",
+      toolDefinitionCount: 1,
+      toolNames: ["final_output"],
+      actionCapableToolDefinitionCount: 0,
+    },
+    {
+      timestamp: "2026-08-30T10:00:01.000Z",
+      modelId: "provider/model",
+      callIndex: 2,
+      classification: "eve-final-output-only-v1",
+      toolDefinitionCount: 1,
+      toolNames: ["final_output"],
+      actionCapableToolDefinitionCount: 0,
+    },
   ];
 }
 
@@ -55,7 +71,7 @@ function assertInvocationAndReportContracts() {
   assert.equal(reconcileBoundaryEvidence(calls, "provider/model", 2, true).modelCallCount, 2);
   expectContractCode(() => reconcileBoundaryEvidence([], "provider/model", 1, true), "MODEL_BOUNDARY_NOT_OBSERVED");
   expectContractCode(() => reconcileBoundaryEvidence([...calls, { ...calls[1], callIndex: 3 }], "provider/model", 2, false), "ATTEMPT_BUDGET_EXCEEDED");
-  expectContractCode(() => reconcileBoundaryEvidence([{ ...calls[0], toolDefinitionCount: 1 }], "provider/model", 1, false), "MODEL_TOOL_ENVELOPE_PRESENT");
+  expectContractCode(() => reconcileBoundaryEvidence([{ ...calls[0], toolNames: ["web_search"] }], "provider/model", 1, false), "MODEL_TOOL_ENVELOPE_INVALID");
 
   const validReport = {
     schemaVersion: "openrouter-owner-smoke-report-v1",
@@ -66,7 +82,13 @@ function assertInvocationAndReportContracts() {
     receiptValidated: true,
     sessionCount: 1,
     blockedSessionRequests: 0,
-    modelBoundary: { observed: true, modelCallCount: 1, toolDefinitionCount: 0, calls: calls.slice(0, 1) },
+    modelBoundary: {
+      observed: true,
+      modelCallCount: 1,
+      toolDefinitionCount: 1,
+      toolEnvelope: "eve-final-output-only-v1",
+      calls: calls.slice(0, 1),
+    },
     browserNonLoopbackRequests: 0,
     liveEveEnvironmentAllowlistVerified: true,
     cleanup: {
@@ -311,7 +333,7 @@ async function runFixtureAssertions(metricsDirectory) {
   assert.equal(fixture.report.sessionCount, 2);
   assert.equal(fixture.report.blockedSessionRequests, 0);
   assert.equal(fixture.report.modelBoundary.modelCallCount, 2);
-  assert.deepEqual(fixture.report.modelBoundary.calls.map((call) => [call.callIndex, call.toolDefinitionCount]), [[1, 0], [2, 0]]);
+  assert.deepEqual(fixture.report.modelBoundary.calls.map((call) => [call.callIndex, call.toolDefinitionCount]), [[1, 1], [2, 1]]);
   assert.equal(fixture.report.browserNonLoopbackRequests, 0);
   assert.deepEqual(fixture.report.cleanup, {
     scratchRemoved: true,

@@ -2190,3 +2190,159 @@ event:
     state: durable-fallback
     receipt_evidence: This compact correction event is appended to EXECUTION.md without rewriting prior events.
 ~~~
+
+## 2026-08-31 — PROTO-R6 structured-output recovery ready for review
+
+~~~yaml
+event:
+  event_id: evt-agent-or-not-proto-r6-structured-output-ready-20260831
+  task_id: PROTO-R6
+  type: ready-for-review
+  occurred_at: 2026-08-31T19:00:07.7006467-07:00
+  verdict: READY_FOR_REVIEW
+  review_input:
+    event_id: evt-agent-or-not-proto-r6-output-schema-review-sol-xhigh-20260831
+    verdict: CONTRACT_AMENDMENT_REQUIRED
+  worker_acknowledgment: evt-agent-or-not-proto-r6-worker-ack-20260831
+  transport:
+    branch: codex/proto-r6-structured-output
+    worktree: C:\\Users\\henry\\andhrim-agent-or-not-worktrees\\proto-r6-structured-output
+    base_commit: a575b69ad33444a79537cff6012043e4f8344418
+  worker_mapping:
+    class: Fresh visible top-level Codex implementation worker; exact host model identifier and effort were not exposed to the worker.
+    rationale: Satisfies the authorized fresh-worker policy without hidden or reused worker transport.
+  implementation:
+    - Canonical `recommendationReceiptSchema` is now the Eve 0.44.0 `defineAgent.outputSchema`.
+    - The provider boundary fails closed unless it contains exactly Eve's non-executing `final_output` tool and no action-capable, authored, provider, filesystem, search or subagent tool.
+    - The client consumes only `result.completed.data.result`, overwrites local assessment/runtime fields, then applies the complete local Zod contract; local receipt-id replacement remains at persistence.
+    - The two-session correction path is preserved with a JSON-schema-structurally-valid but semantically invalid first fixture result.
+    - Unit, provider-free, browser and OpenRouter-preflight evidence now reconcile the exact final-output-only envelope; directly conflicting current UI/release copy was amended narrowly.
+  verification:
+    - command: node scripts/verify-unit.mjs
+      exit_code: 0
+      result: 7 files and 32 tests passed; zero guarded non-loopback attempts.
+    - command: node scripts/verify-typecheck.mjs
+      exit_code: 0
+      result: TypeScript passed; zero guarded non-loopback attempts.
+    - command: node scripts/verify-provider-free.mjs
+      exit_code: 0
+      result: Strict result.completed receipt, exact eve-final-output-only-v1 envelope, cancellation and cleanup passed.
+    - command: node scripts/verify-browser.mjs
+      exit_code: 0
+      result: Full loopback flow passed; semantic-invalid first result corrected in session two; no unexpected third session; zero browser or process non-loopback attempts.
+    - command: node scripts/verify-openrouter-smoke.mjs
+      exit_code: 0
+      result: Provider-free preflight passed with two fixture calls, strict receipt, unchanged shared-dependency digest and complete cleanup.
+    - command: node scripts/openrouter-smoke.mjs
+      attempts:
+        - exit_code: 1
+          result: Correct receipt/envelope and zero residual process/port results were observed, but the final process-inspection proof timed out and failed closed as CLEANUP_FAILED.
+        - exit_code: 0
+          result: Clean retry passed with complete process inspection, scratch cleanup, unchanged dependency digest and zero live-provider, credential or non-loopback activity.
+    - command: node scripts/verify-build.mjs
+      exit_code: 0
+      result: Eve and Next production builds passed; zero guarded non-loopback attempts.
+    - command: node scripts/verify-start-local.mjs
+      exit_code: 0
+      result: Unique loopback ports, healthy services, zero residual processes and zero guarded non-loopback attempts.
+    - command: node scripts/scan-secrets.mjs
+      exit_code: 0
+      result: 74 files scanned; zero findings.
+    - command: git diff --check
+      exit_code: 0
+      result: No whitespace errors before this append.
+  boundaries:
+    package_manager_invocations: 0
+    dependency_installs_or_updates: 0
+    package_lock_or_manifest_changes: 0
+    schema_weakening: 0
+    live_mode_executions: 0
+    provider_or_openrouter_calls: 0
+    credential_or_key_access: 0
+    non_loopback_network_attempts: 0
+    canonical_checkout_mutations: 0
+  dependency_bootstrap: A temporary junction used the already-materialized sibling dependency tree; no package manager or network materialized dependencies.
+  requested_action: Review the complete PROTO-R6 diff and fresh deterministic evidence, then reconcile this ready-for-review recommendation before integration.
+  return_delivery:
+    source_thread_id: 01a0469c-2ac1-7573-93a3-aed2f92345c7
+    state: durable-fallback
+    receipt_evidence: This stable PROTO-R6 event is appended for orchestrator reconciliation.
+~~~
+
+## 2026-08-31 — PROTO-R6 R1 provenance correction ready for rereview
+
+~~~yaml
+event:
+  event_id: evt-agent-or-not-proto-r6-r1-spec-001-correction-ready-20260831
+  task_id: PROTO-R6
+  type: ready-for-review
+  occurred_at: 2026-08-31T19:41:58.0569231-07:00
+  verdict: READY_FOR_REREVIEW
+  review_input:
+    event_id: evt-agent-or-not-proto-r6-review-r1-sol-xhigh-20260831
+    verdict: REQUEST_CHANGES
+    finding: R1-SPEC-001
+  correction:
+    - The model-output trust boundary now requires `appliedRules` to be exactly an empty array before local field overwrite and complete receipt validation.
+    - Non-empty or malformed model provenance becomes `ReceiptValidationError`, preserving the existing bounded correction path.
+    - The persisted receipt schema and later deterministic owner-approved `applyApprovedRules` projection are unchanged.
+  changed_files:
+    - src/client/eve.ts
+    - src/client/eve.test.ts
+    - src/domain/learning.test.ts
+    - EXECUTION.md
+  verification:
+    red_green:
+      - command: node scripts/verify-unit.mjs
+        initial_exit_code: 1
+        result: The schema-valid non-empty model-authored provenance case failed before the guard; malformed cases already failed closed.
+      - command: node scripts/verify-typecheck.mjs
+        intermediate_exit_code: 2
+        result: TypeScript rejected direct property access on `object`; an explicit local Record narrowing fixed this without behavior change.
+    final:
+      - command: node scripts/verify-unit.mjs
+        exit_code: 0
+        result: 7 files and 35 tests passed, including model-provenance rejection and unchanged legitimate owner-approved projection.
+      - command: node scripts/verify-typecheck.mjs
+        exit_code: 0
+        result: TypeScript passed.
+      - command: node scripts/verify-provider-free.mjs
+        exit_code: 0
+        result: Strict result.completed receipt, final-output-only envelope, cancellation and cleanup passed.
+      - command: node scripts/verify-browser.mjs
+        exit_code: 0
+        result: Two-session correction, local learning projection, final-output-only evidence and full loopback flow passed.
+      - command: node scripts/verify-openrouter-smoke.mjs
+        exit_code: 0
+        result: Provider-free preflight passed with complete cleanup and unchanged shared-dependency digest.
+      - command: node scripts/openrouter-smoke.mjs
+        exit_code: 0
+        result: No-flag provider-free preflight passed on its first correction-run attempt with complete process inspection.
+      - command: node scripts/verify-build.mjs
+        exit_code: 0
+        result: Eve and Next production builds passed.
+      - command: node scripts/verify-start-local.mjs
+        exit_code: 0
+        result: Unique loopback services and teardown passed with zero residual processes.
+      - command: node scripts/scan-secrets.mjs
+        exit_code: 0
+        result: 74 files scanned; zero findings after this append.
+      - command: git diff --check
+        exit_code: 0
+        result: No whitespace errors before this append.
+  boundaries:
+    broader_behavior_or_schema_changes: 0
+    package_manager_invocations: 0
+    dependency_installs_or_updates: 0
+    package_lock_or_manifest_changes: 0
+    live_mode_executions: 0
+    provider_or_openrouter_calls: 0
+    credential_or_key_access: 0
+    non_loopback_network_attempts: 0
+    canonical_checkout_mutations: 0
+  requested_action: Perform the R1-limited rereview of R1-SPEC-001 and fix-induced regressions only.
+  return_delivery:
+    source_thread_id: 01a0469c-2ac1-7573-93a3-aed2f92345c7
+    state: durable-fallback
+    receipt_evidence: This stable correction event is appended for orchestrator reconciliation.
+~~~

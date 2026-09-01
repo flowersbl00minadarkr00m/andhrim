@@ -7,7 +7,7 @@ This is a non-production exploratory repository. It does not complete canonical 
 ## What is implemented
 
 - A five-factor delegation assessment and live Recommendation Receipt preview.
-- Eve `0.44.0` session/stream lifecycle with all eleven framework tools explicitly disabled.
+- Eve `0.44.0` session/stream lifecycle with all eleven action-capable framework tools explicitly disabled and exactly one Eve-owned, non-executing `final_output` schema channel.
 - Same-origin, Fetch Metadata, JSON-content, and unpredictable per-launch session-nonce checks on every local mutation and Eve session route.
 - A strict application-boundary Zod receipt parser and a deterministic provider-free fixture.
 - Inspectable append-only local NDJSON for assessments, receipts, outcomes and learning events.
@@ -65,7 +65,7 @@ The exact provider-free qualification commands and results were:
 | `pnpm test` | Exit `0`; 6 files and 23 tests passed; zero guarded egress |
 | `pnpm typecheck` | Exit `0`; guarded typecheck passed |
 | `pnpm verify:licenses` | Exit `0`; 13 direct records and project MIT passed |
-| `pnpm verify:provider-free` | Exit `0`; zero-tool receipt and cancellation seam passed |
+| `pnpm verify:provider-free` | Exit `0`; historical zero-tool receipt and cancellation seam passed before the PROTO-R6 structured-output amendment |
 | `pnpm build` | Exit `0`; Eve and Next production builds passed |
 | `pnpm verify:start` | Exit `0`; loopback ports `64323`/`64324`, zero residual processes |
 | `pnpm verify:browser` | Exit `0`; full browser flow passed on loopback ports `56791`–`56793` |
@@ -101,7 +101,7 @@ The key remains server-side provider configuration and is never returned by `/ap
 pnpm test                  # strict receipt and owner-learning semantics
 pnpm typecheck             # guarded TypeScript validation
 pnpm build                 # guarded Eve + Next.js production build
-pnpm verify:provider-free  # zero-tool Eve seam, cancellation and cleanup
+pnpm verify:provider-free  # final-output-only Eve seam, cancellation and cleanup
 node scripts/verify-openrouter-smoke.mjs # provider-free one-shot smoke preflight
 node scripts/openrouter-smoke.mjs        # defaults to the same provider-free preflight
 pnpm verify:browser        # loopback production browser flow and screenshots
@@ -110,11 +110,11 @@ pnpm verify:licenses       # dependency licence evidence check
 pnpm start                 # loopback production services
 ```
 
-The provider-free verification commands install a Node egress guard and fail on non-loopback network attempts. Browser verification also blocks and records non-loopback browser requests, chooses unique loopback web/Eve ports, proves its spawned services remain live, and reconciles exact zero-tool fixture evidence. Generated product records default to `data/events.ndjson`; `data/`, `.env*`, logs, build output and browser artifacts are ignored.
+The provider-free verification commands install a Node egress guard and fail on non-loopback network attempts. Browser verification also blocks and records non-loopback browser requests, chooses unique loopback web/Eve ports, proves its spawned services remain live, and reconciles an exact one-tool envelope containing only Eve's non-executing `final_output` schema channel. Generated product records default to `data/events.ndjson`; `data/`, `.env*`, logs, build output and browser artifacts are ignored.
 
 ### Latest-safe owner OpenRouter smoke
 
-`node scripts/openrouter-smoke.mjs` with no arguments runs only the deterministic provider-free preflight. It tests the complete live opt-in contract, inherited-key fail-closed behavior through the existing provider adapter, strict report redaction/schema, the two-session ceiling, zero-tool fixture correction, built Eve + Next + browser/client validation, loopback-only binding, scratch removal, and owned process/port cleanup. It does not make a provider request.
+`node scripts/openrouter-smoke.mjs` with no arguments runs only the deterministic provider-free preflight. It tests the complete live opt-in contract, inherited-key fail-closed behavior through the existing provider adapter, strict report redaction/schema, the two-session ceiling, final-output-only fixture correction, built Eve + Next + browser/client validation, loopback-only binding, scratch removal, and owned process/port cleanup. It does not make a provider request.
 
 Only after every earlier provider-free clean-clone gate passes, the owner may place `OPENROUTER_API_KEY` in the private parent shell and replace the model placeholder in this exact one-shot command:
 
@@ -128,7 +128,7 @@ In live smoke only, Playwright substitutes a key-free `/api/runtime` bootstrap s
 
 The harness rebuilds and starts Eve and Next on fresh, distinct loopback ports; drives the real assessment UI and client-side strict receipt validator; permits exactly one correction after an invalid receipt and blocks any third session before it reaches Eve; writes product data and boundary evidence only to a disposable scratch directory; stops every owned process; proves both ports are released; and removes the scratch directory.
 
-The only retained live artifact is ignored `output/openrouter-smoke-report.json`. Its strict schema contains safe classification and cleanup facts plus only these model-boundary fields: timestamp, explicit model identifier, call index, and zero tool definitions. It cannot contain prompts, assessments, provider request/response bodies, headers, key material, raw output, or ledger content. This repository does not claim that live mode has been run.
+The only retained live artifact is ignored `output/openrouter-smoke-report.json`. Its strict schema contains safe classification and cleanup facts plus only these model-boundary fields: timestamp, explicit model identifier, call index, the `eve-final-output-only-v1` classification, the sole `final_output` name, one tool definition, and zero action-capable tool definitions. It cannot contain prompts, assessments, provider request/response bodies, headers, key material, raw output, or ledger content. This repository does not claim that live mode has been run.
 
 Never run `pnpm`, `npm`, `yarn`, `npx`, or Corepack through this worktree's shared `node_modules` junction. A package-manager command can materialize or rewrite the junction target even when the repository diff looks unchanged. Use the direct `node` commands above for this prepared smoke route; package installation belongs only in the separately authorized disposable clean-clone qualification.
 
@@ -146,6 +146,6 @@ Deactivation writes a deletion tombstone and disables the rule. It does **not** 
 
 ## Release status
 
-Qualified on Windows at exact commit `15a6b52fd80f22b60ab228acb00b36e37a93842b`: frozen ignored-scripts install, matching Chromium availability, secret scan, unit tests, typecheck, direct and transitive licence inventory, provider-free Eve/no-tools receipt and cancellation, Eve/Next builds, launcher cleanup, and the desktop/mobile browser flow. OpenRouter/provider/live calls and credential-value access were all zero.
+The earlier Windows qualification at exact commit `15a6b52fd80f22b60ab228acb00b36e37a93842b` covered the superseded zero-tool receipt path. PROTO-R6 changes the current source to Eve's non-executing `final_output` schema channel while retaining zero action-capable tools; its fresh deterministic verification belongs in the append-only execution record and does not retroactively change that historical qualification. OpenRouter/provider/live calls and credential-value access remain zero unless the owner performs the final live gate.
 
 Still gated: the latest-safe real OpenRouter owner smoke remains unexecuted and must stay last before any publication decision unless the owner explicitly re-scopes that gate. Final owner dependency/repository-diff review, optional GitHub source publication and optional demo recording also remain owner actions. Bundled or binary redistribution is not cleared. See [docs/RELEASE_CHECKLIST.md](./docs/RELEASE_CHECKLIST.md) and the append-only [EXECUTION.md](./EXECUTION.md) for exact evidence.

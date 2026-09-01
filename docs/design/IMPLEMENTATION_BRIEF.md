@@ -29,7 +29,7 @@ The images are visual references, not implementation evidence. All text, control
 
 ## Build order
 
-1. Provider-free Eve/no-tools/validated-receipt seam.
+1. Provider-free Eve/final-output-only/no-action-tools/validated-receipt seam.
 2. Schemas and deterministic semantic validators.
 3. Append-only local product events plus derived owner-approved rule projection.
 4. Assessment and receipt UI.
@@ -41,4 +41,3 @@ The images are visual references, not implementation evidence. All text, control
 ## Non-negotiable boundaries
 
 Follow `PROTOTYPE_SCOPE.md` and `LESSONS_LEARNED.md`. Do not modify `C:\Users\henry\andhrim`, access credentials, call OpenRouter, publish GitHub, select a licence, add hosted deployment or claim production/full-feature completion without explicit owner release.
-

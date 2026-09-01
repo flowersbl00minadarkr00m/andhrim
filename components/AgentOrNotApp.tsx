@@ -221,7 +221,7 @@ export function AgentOrNotApp() {
       <LearningHistory projection={projection} sessionNonce={runtimeStatus?.sessionNonce} onProjection={setProjection} onError={setError} onResumeReview={resumeLearningReview} />
 
       <footer className="app-footer" id="about">
-        <p><b>Loopback application</b> · Eve session · No tools enabled · Local ledger</p>
+        <p><b>Loopback application</b> · Eve session · Final-output schema only · Local ledger</p>
         <p>{runtimeStatus ? `${runtimeStatus.providerMode === "fixture" ? "Fixture" : "OpenRouter"} · ${runtimeStatus.modelId ?? "model not selected"} · ${runtimeStatus.configured ? "configured" : "not configured"}` : "Reading local model status…"}</p>
         <p>{runtimeStatus?.privacyDisclosure ?? "Reading the runtime privacy boundary…"}</p>
       </footer>

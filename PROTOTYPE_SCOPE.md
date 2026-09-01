@@ -15,7 +15,7 @@ This prototype is an exploratory delivery slice. It does not change or satisfy A
 - Run locally and bind only to loopback.
 - Use a direct OpenRouter BYOK model selected through local configuration.
 - Use Eve for the recommendation session and streaming lifecycle.
-- Disable every Eve model-facing execution, delegation, filesystem, shell, web, connection, schedule, sandbox, workflow-authoring, and other action capability. The recommendation model receives no callable tools.
+- Disable every Eve model-facing execution, delegation, filesystem, shell, web, connection, schedule, sandbox, workflow-authoring, and other action capability. The recommendation model receives exactly one Eve-owned, non-executing `final_output` schema channel and no action-capable tools.
 - Validate intake, recommendation, starter pack, outcome, and Learning Candidate structures with strict Zod schemas and semantic validators inspired by Pydantic AI's typed-output and bounded-validation-retry pattern.
 - Persist only local, inspectable product records: decisions, outcomes, candidate lessons, approval state, and approved rule versions.
 - Require an explicit owner approval action before a Learning Candidate can affect later recommendations.
@@ -40,7 +40,7 @@ This prototype is an exploratory delivery slice. It does not change or satisfy A
 Before expanding the UI or learning system, prove on a clean local tree:
 
 - Eve builds and starts on loopback with a deterministic provider-free model fixture.
-- The actual model request contains no callable tools after all relevant Eve defaults are explicitly disabled.
+- The actual model request contains exactly the Eve-owned, non-executing `final_output` schema channel after all action-capable Eve defaults are explicitly disabled.
 - One representative recommendation reaches a strict validated terminal receipt.
 - Cancellation and shutdown leave no child process.
 - No provider call, credential access, non-loopback egress, or persistent learning occurs during this seam.
@@ -67,6 +67,6 @@ The real OpenRouter smoke is intentionally the latest safe release checkpoint. B
 - Clean clone installs and starts on the verified Windows environment.
 - No secret or credential-shaped value is tracked.
 - Source and dependency licences are recorded and compatible with later public distribution.
-- Core schemas, semantic validation, owner approval, rule application, rejection/supersession/deletion, and no-tools boundaries have deterministic tests.
+- Core schemas, semantic validation, owner approval, rule application, rejection/supersession/deletion, and final-output-only/no-action-tools boundaries have deterministic tests.
 - Real OpenRouter smoke is performed only by the owner with a local key and records no secret or provider body.
 - Repository publication and licence choice remain separate owner actions.

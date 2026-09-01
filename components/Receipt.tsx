@@ -49,7 +49,7 @@ export function Receipt({ receipt, previewRecommendation, step, privacyDisclosur
         <div className="receipt__row">
           <dt>Evidence</dt>
           <dd>
-            <ul>{(receipt?.evidence ?? ["Your five bounded answers", "A deterministic no-tools validation boundary"]).map((item) => <li key={item}>{item}</li>)}</ul>
+            <ul>{(receipt?.evidence ?? ["Your five bounded answers", "A deterministic final-output-only validation boundary"]).map((item) => <li key={item}>{item}</li>)}</ul>
           </dd>
         </div>
         <div className="receipt__row">
@@ -103,7 +103,7 @@ export function Receipt({ receipt, previewRecommendation, step, privacyDisclosur
         </section>
       ) : null}
 
-      <footer className="receipt__note">{privacyDisclosure ?? "Reading the runtime privacy boundary…"} The model has no callable tools.</footer>
+      <footer className="receipt__note">{privacyDisclosure ?? "Reading the runtime privacy boundary…"} The model has one non-executing final-output channel and no action-capable tools.</footer>
     </article>
   );
 }

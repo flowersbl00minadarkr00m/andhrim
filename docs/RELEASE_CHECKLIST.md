@@ -2,7 +2,7 @@
 
 ## Implementer-verifiable gates
 
-- [x] Provider-free Eve build/start, strict terminal receipt and zero callable tools.
+- [x] Provider-free Eve build/start, strict `result.completed` receipt, exactly one non-executing `final_output` schema channel, and zero action-capable tools.
 - [x] Explicit cancellation and clean provider-free process shutdown.
 - [x] Strict schemas and deterministic semantic validation.
 - [x] Append-only local events and owner-approved active-rule projection.
@@ -11,7 +11,7 @@
 - [x] Cross-origin/no-CORS mutation and Eve session creation rejection with zero ledger/model-call effects at final source head.
 - [x] Runtime-aware fixture/OpenRouter privacy disclosure and five factor-specific visible 1–5 anchors at final source head.
 - [x] Persistent learning history with owner expiry/deactivation controls and retained tombstone export semantics at final source head.
-- [x] Unique-port browser Eve ownership and exact zero-tool fixture-call reconciliation at final source head.
+- [x] Unique-port browser Eve ownership and exact final-output-only fixture-call reconciliation at final source head.
 - [x] Source secret scan and direct dependency-licence evidence pass at final source head.
 - [x] MIT project licence recorded in `LICENSE` and `package.json`; third-party dependency terms remain separate.
 - [x] Dependency-free disposable-clone source audit at exact `7b3bd38aa5a2df666f954b146561e7a44ec1cbfe`: clean HEAD/tree, 68-file zero-finding secret scan, passing syntax checks, zero forbidden tracked artifacts, and only `.env.example` tracked; the licence verifier failed closed because packages were absent.
@@ -53,7 +53,7 @@ Every command exited `0`. Tests passed 6 files/23 tests; the secret scan covered
 - [ ] Only after every provider-free clean-clone qualification gate above passes, enter a local OpenRouter key and explicit model identifier at the latest safe checkpoint.
 - [x] The clean-clone qualification ran `node scripts/verify-openrouter-smoke.mjs` and `node scripts/openrouter-smoke.mjs` without live flags; both provider-free preflights passed with no provider, OpenRouter, live-mode or credential-value access.
 - [ ] With `OPENROUTER_API_KEY` already inherited privately by the parent shell, run exactly `node scripts/openrouter-smoke.mjs --live-openrouter --confirm-provider-data-transfer --provider openrouter --model "provider/model"` after replacing the placeholder with the explicit model identifier. Do not put the key on the command line. No flags means provider-free preflight only. Live Playwright substitutes a key-free `/api/runtime` bootstrap while exercising the real built Eve session/stream and client strict-validation path; this smoke does not qualify the shipped Next key-status/bootstrap behavior.
-- [ ] Inspect ignored `output/openrouter-smoke-report.json`: require `state: passed`, one strictly validated receipt, one or two exactly reconciled Eve/model calls, zero tool definitions, zero blocked-third-session attempts, zero browser non-loopback requests, scratch removal, zero residual owned processes, zero residual ports, and no prompt/assessment/provider/header/key/raw-output/ledger content.
+- [ ] Inspect ignored `output/openrouter-smoke-report.json`: require `state: passed`, one strictly validated receipt, one or two exactly reconciled Eve/model calls, `eve-final-output-only-v1`, exactly one `final_output` definition per call, zero action-capable tool definitions, zero blocked-third-session attempts, zero browser non-loopback requests, scratch removal, zero residual owned processes, zero residual ports, and no prompt/assessment/provider/header/key/raw-output/ledger content.
 - [ ] Remove the key from the shell/session and confirm secret scan remains clean.
 - [x] Select the MIT project licence and record the non-personal holder as Andhrím contributors.
 - [ ] Review final dependency evidence and repository diff.

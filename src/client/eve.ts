@@ -28,6 +28,25 @@ export async function requestEveReceipt(assessment: Assessment, runtime: LocalRu
 
 class ReceiptValidationError extends Error {}
 
+export function parseEveReceiptResult(
+  value: unknown,
+  assessmentId: Assessment["assessmentId"],
+  runtime: RecommendationReceipt["runtime"],
+): RecommendationReceipt {
+  try {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+      throw new Error("The structured result was not an object.");
+    }
+    const modelValue = value as Record<string, unknown>;
+    if (!Array.isArray(modelValue.appliedRules) || modelValue.appliedRules.length !== 0) {
+      throw new Error("The model must not supply applied-rule provenance.");
+    }
+    return parseRecommendationReceipt({ ...modelValue, assessmentId, runtime });
+  } catch (error) {
+    throw new ReceiptValidationError("The model response failed strict receipt validation.", { cause: error });
+  }
+}
+
 async function requestAttempt(
   assessment: Assessment,
   localRuntime: LocalRuntime,
@@ -60,7 +79,8 @@ async function requestAttempt(
   const reader = streamResponse.body.getReader();
   const decoder = new TextDecoder("utf-8", { fatal: true });
   let buffered = "";
-  let message: string | undefined;
+  let result: unknown;
+  let resultObserved = false;
   try {
     while (true) {
       const next = await reader.read();
@@ -72,18 +92,16 @@ async function requestAttempt(
         buffered = buffered.slice(newline + 1);
         newline = buffered.indexOf("\n");
         if (!line) continue;
-        const event = JSON.parse(line) as { type?: string; data?: { message?: string; code?: string } };
-        if (event.type === "message.completed") message = event.data?.message;
+        const event = JSON.parse(line) as { type?: string; data?: { result?: unknown; code?: string } };
+        if (event.type === "result.completed") {
+          result = event.data?.result;
+          resultObserved = true;
+        }
         if (event.type === "session.failed") throw new Error(event.data?.code ?? "The local Eve session failed.");
         if (event.type === "session.completed") {
           await reader.cancel("terminal-observed");
-          if (!message) throw new Error("The local Eve session completed without a receipt.");
-          try {
-            const value = JSON.parse(message) as Record<string, unknown>;
-            return parseRecommendationReceipt({ ...value, assessmentId: assessment.assessmentId, runtime });
-          } catch (error) {
-            throw new ReceiptValidationError("The model response failed strict receipt validation.", { cause: error });
-          }
+          if (!resultObserved) throw new Error("The local Eve session completed without a structured receipt.");
+          return parseEveReceiptResult(result, assessment.assessmentId, runtime);
         }
       }
     }

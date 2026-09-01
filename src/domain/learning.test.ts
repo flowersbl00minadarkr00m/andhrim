@@ -54,7 +54,7 @@ describe("owner-approved learning projection", () => {
     expect(applyApprovedRules(assessment, fixtureReceipt, Object.values(state.rules)).appliedRules).toEqual([]);
   });
 
-  it("applies only the explicit approved rule with provenance", () => {
+  it("keeps empty model provenance separate from explicit owner-approved local projection", () => {
     const candidate = proposeLearningCandidate(outcome, new Date("2026-08-30T05:20:00.000Z"));
     const rule = {
       ruleId: "rule-scope-clarity",
@@ -75,6 +75,7 @@ describe("owner-approved learning projection", () => {
       event("event-proposal", { type: "learning.proposed", candidate }),
       event("event-approval", { type: "learning.approved", candidateId: candidate.candidateId, rule }),
     ]);
+    expect(fixtureReceipt.appliedRules).toEqual([]);
     const adjusted = applyApprovedRules(assessment, fixtureReceipt, Object.values(state.rules));
     expect(adjusted.recommendation).toBe("human-led");
     expect(adjusted.summary).toMatch(/adjusted this receipt from ai-assisted to human-led/u);

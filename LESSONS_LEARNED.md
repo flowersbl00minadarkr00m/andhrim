@@ -13,14 +13,14 @@
 ## Runtime and evidence lessons
 
 1. Separate ordinary source revisions from scarce live provider attempts. Static fixes do not spend the OpenRouter smoke.
-2. Keep the six-hour provider-free Eve seam small: build/start, actual model request, zero callable tools, one validated receipt, cancellation and clean shutdown.
+2. Keep the six-hour provider-free Eve seam small: build/start, actual model request with only Eve's non-executing `final_output` schema channel, one validated receipt, cancellation and clean shutdown.
 3. Use Eve's public event framing. Eve converts model exceptions to public `MODEL_CALL_FAILED`; a private thrown sentinel is not a valid positive acknowledgment.
 4. Do not require an event acknowledgment before reading independently captured safe evidence. Preserve the initiating public events and bounded diagnostic until the result is classified.
 5. Do not discard returned safe events when wrapping an error. Primary cause, cancellation and cleanup remain separate fields.
 6. Avoid private/minified source anchors, generated-source string surgery and fake-oracle-only wrappers. Prefer documented Eve APIs such as explicit `disableTool()` sentinels and a normal provider/model boundary.
 7. The verifier must stay smaller than the product path. A failing diagnostic freezes evidence; it does not automatically create another recovery ticket.
 8. Low findings block only when they affect security, privacy, correctness, evidence integrity or destructive cleanup. Other Low findings are recorded for cleanup rather than consuming scarce runtime budget.
-9. Never let a model-facing tool exist merely because its executor is absent or expected not to be called. The actual provider request must contain no callable tools.
+9. Never allow an executor-less model-facing tool merely because it is expected not to be called. The sole exception is Eve's reviewed `final_output` schema channel, which the harness intercepts as the terminal structured result; the actual provider request must contain exactly that channel and no action-capable tools.
 10. Run the real OpenRouter smoke last, after provider-free behavior, UI, learning, clean clone and secret exclusion are deterministic.
 
 ## Learning-system lessons
@@ -40,4 +40,3 @@
 - The public README must distinguish implemented, tested and owner-smoke-required behavior.
 - A demo video supports installation; the written clean-clone instructions remain authoritative.
 - GitHub publication is separate from implementation and requires an explicit licence decision plus a final secret/licence/clean-tree review.
-

@@ -260,7 +260,7 @@ function failedConfigurationReport(error) {
     receiptValidated: false,
     sessionCount: 0,
     blockedSessionRequests: 0,
-    modelBoundary: { observed: false, modelCallCount: 0, toolDefinitionCount: null, calls: [] },
+    modelBoundary: { observed: false, modelCallCount: 0, toolDefinitionCount: null, toolEnvelope: null, calls: [] },
     browserNonLoopbackRequests: 0,
     liveEveEnvironmentAllowlistVerified: null,
     cleanup: {
@@ -567,7 +567,7 @@ export async function executeSmoke({
     modelBoundary = reconcileBoundaryEvidence(calls, modelId, sessionCount, receiptValidated);
   } catch (error) {
     failure = safeError(error, "evidence", "EVIDENCE_INVALID");
-    modelBoundary = { observed: false, modelCallCount: 0, toolDefinitionCount: null, calls: [] };
+    modelBoundary = { observed: false, modelCallCount: 0, toolDefinitionCount: null, toolEnvelope: null, calls: [] };
   }
   if (!cleanup.scratchRemoved
     || cleanup.residualProcessCount !== 0

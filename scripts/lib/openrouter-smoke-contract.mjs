@@ -8,6 +8,7 @@ import { z } from "zod";
 export const SMOKE_SESSION_BUDGET = 2;
 export const SMOKE_REPORT_PATH = path.join("output", "openrouter-smoke-report.json");
 export const PROCESS_INSPECTION_TIMEOUT_MS = 5_000;
+export const FINAL_OUTPUT_ENVELOPE_CLASSIFICATION = "eve-final-output-only-v1";
 
 const explicitModelIdSchema = z.string().regex(/^[a-z0-9._-]+\/[a-z0-9._:-]+$/iu).max(120);
 const runtimeModelIdSchema = z.union([explicitModelIdSchema, z.literal("agent-or-not-fixture")]);
@@ -26,7 +27,10 @@ export const smokeModelCallSchema = z.object({
   timestamp: timestampSchema,
   modelId: runtimeModelIdSchema,
   callIndex: z.number().int().min(1).max(SMOKE_SESSION_BUDGET),
-  toolDefinitionCount: z.literal(0),
+  classification: z.literal(FINAL_OUTPUT_ENVELOPE_CLASSIFICATION),
+  toolDefinitionCount: z.literal(1),
+  toolNames: z.tuple([z.literal("final_output")]),
+  actionCapableToolDefinitionCount: z.literal(0),
 }).strict();
 
 const safeErrorSchema = z.object({
@@ -42,7 +46,7 @@ const safeErrorSchema = z.object({
     "RECEIPT_NOT_OBSERVED",
     "ATTEMPT_BUDGET_EXCEEDED",
     "MODEL_BOUNDARY_NOT_OBSERVED",
-    "MODEL_TOOL_ENVELOPE_PRESENT",
+    "MODEL_TOOL_ENVELOPE_INVALID",
     "DEPENDENCY_INTEGRITY_CHANGED",
     "EVIDENCE_INVALID",
     "CLEANUP_FAILED",
@@ -65,7 +69,8 @@ export const smokeReportSchema = z.object({
   modelBoundary: z.object({
     observed: z.boolean(),
     modelCallCount: z.number().int().min(0).max(SMOKE_SESSION_BUDGET),
-    toolDefinitionCount: z.literal(0).nullable(),
+    toolDefinitionCount: z.literal(1).nullable(),
+    toolEnvelope: z.literal(FINAL_OUTPUT_ENVELOPE_CLASSIFICATION).nullable(),
     calls: z.array(smokeModelCallSchema).max(SMOKE_SESSION_BUDGET),
   }).strict(),
   browserNonLoopbackRequests: z.number().int().min(0),
@@ -85,9 +90,13 @@ export const smokeReportSchema = z.object({
   if (report.modelBoundary.observed !== (report.modelBoundary.calls.length > 0)) {
     context.addIssue({ code: "custom", path: ["modelBoundary", "observed"], message: "Observed state must match retained safe calls." });
   }
-  const toolCount = report.modelBoundary.calls.length === 0 ? null : 0;
+  const toolCount = report.modelBoundary.calls.length === 0 ? null : 1;
   if (report.modelBoundary.toolDefinitionCount !== toolCount) {
     context.addIssue({ code: "custom", path: ["modelBoundary", "toolDefinitionCount"], message: "Tool count must reconcile safe calls." });
+  }
+  const toolEnvelope = report.modelBoundary.calls.length === 0 ? null : FINAL_OUTPUT_ENVELOPE_CLASSIFICATION;
+  if (report.modelBoundary.toolEnvelope !== toolEnvelope) {
+    context.addIssue({ code: "custom", path: ["modelBoundary", "toolEnvelope"], message: "Tool classification must reconcile safe calls." });
   }
   for (const [index, call] of report.modelBoundary.calls.entries()) {
     if (call.callIndex !== index + 1 || call.modelId !== report.modelId) {
@@ -95,8 +104,11 @@ export const smokeReportSchema = z.object({
     }
   }
   if (report.state === "passed") {
-    if (!report.receiptValidated || !report.modelBoundary.observed || report.modelBoundary.toolDefinitionCount !== 0) {
-      context.addIssue({ code: "custom", path: ["state"], message: "Passing reports require a validated zero-tool model boundary." });
+    if (!report.receiptValidated
+      || !report.modelBoundary.observed
+      || report.modelBoundary.toolDefinitionCount !== 1
+      || report.modelBoundary.toolEnvelope !== FINAL_OUTPUT_ENVELOPE_CLASSIFICATION) {
+      context.addIssue({ code: "custom", path: ["state"], message: "Passing reports require a validated final-output-only model boundary." });
     }
     if (report.sessionCount < 1 || report.sessionCount !== report.modelBoundary.modelCallCount || report.blockedSessionRequests !== 0) {
       context.addIssue({ code: "custom", path: ["sessionCount"], message: "Passing reports require one or two exactly reconciled sessions with no blocked third request." });
@@ -294,8 +306,13 @@ export function reconcileBoundaryEvidence(calls, expectedModelId, sessionCount, 
     if (call.callIndex !== index + 1 || call.modelId !== expectedModelId) {
       throw new SmokeContractError("evidence", "EVIDENCE_INVALID");
     }
-    if (call.toolDefinitionCount !== 0) {
-      throw new SmokeContractError("evidence", "MODEL_TOOL_ENVELOPE_PRESENT");
+    if (call.classification !== FINAL_OUTPUT_ENVELOPE_CLASSIFICATION
+      || call.toolDefinitionCount !== 1
+      || call.actionCapableToolDefinitionCount !== 0
+      || !Array.isArray(call.toolNames)
+      || call.toolNames.length !== 1
+      || call.toolNames[0] !== "final_output") {
+      throw new SmokeContractError("evidence", "MODEL_TOOL_ENVELOPE_INVALID");
     }
   }
   if (receiptValidated && calls.length === 0) {
@@ -307,7 +324,8 @@ export function reconcileBoundaryEvidence(calls, expectedModelId, sessionCount, 
   return {
     observed: calls.length > 0,
     modelCallCount: calls.length,
-    toolDefinitionCount: calls.length === 0 ? null : 0,
+    toolDefinitionCount: calls.length === 0 ? null : 1,
+    toolEnvelope: calls.length === 0 ? null : FINAL_OUTPUT_ENVELOPE_CLASSIFICATION,
     calls,
   };
 }

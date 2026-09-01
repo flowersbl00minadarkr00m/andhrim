@@ -285,7 +285,7 @@ try {
 
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.getByRole("heading", { name: "Delegation assessment" }).waitFor();
-  assert.equal(await page.getByText("No tools enabled").count(), 1);
+  assert.equal(await page.getByText("Final-output schema only").count(), 1);
   await page.getByText(/Fixture mode: assessment processing stays on this computer/u).first().waitFor();
   await page.screenshot({ path: path.join(artifactDirectory, "assessment-desktop.png"), fullPage: true });
 
@@ -318,18 +318,24 @@ try {
   const retryEvidence = fs.readFileSync(fixtureEvidencePath, "utf8").trim().split(/\r?\n/u).map(JSON.parse);
   assert.deepEqual(retryEvidence, [
     {
-      schemaVersion: "provider-free-model-call-v1",
+      schemaVersion: "provider-free-model-call-v2",
       invocationCount: 1,
-      toolDefinitionCount: 0,
+      classification: "eve-final-output-only-v1",
+      toolDefinitionCount: 1,
+      toolNames: ["final_output"],
+      actionCapableToolDefinitionCount: 0,
       modelId: "agent-or-not-fixture",
       fixtureScenario: "invalid-first-receipt",
-      outputKind: "invalid",
+      outputKind: "semantically-invalid",
       correctionRequested: false,
     },
     {
-      schemaVersion: "provider-free-model-call-v1",
+      schemaVersion: "provider-free-model-call-v2",
       invocationCount: 2,
-      toolDefinitionCount: 0,
+      classification: "eve-final-output-only-v1",
+      toolDefinitionCount: 1,
+      toolNames: ["final_output"],
+      actionCapableToolDefinitionCount: 0,
       modelId: "agent-or-not-fixture",
       fixtureScenario: "invalid-first-receipt",
       outputKind: "valid",
@@ -485,10 +491,13 @@ assert.deepEqual(ledger.map((event) => event.type), [
 const fixtureEvidence = fs.readFileSync(fixtureEvidencePath, "utf8").trim().split(/\r?\n/u).map(JSON.parse);
 assert.equal(fixtureEvidence.length, 3, "The browser flow must reconcile the two-session validation attempt plus one later explicit request.");
 assert.ok(fixtureEvidence.every((call, index) => call.invocationCount === index + 1
-  && call.toolDefinitionCount === 0
+  && call.classification === "eve-final-output-only-v1"
+  && call.toolDefinitionCount === 1
+  && JSON.stringify(call.toolNames) === JSON.stringify(["final_output"])
+  && call.actionCapableToolDefinitionCount === 0
   && call.modelId === "agent-or-not-fixture"));
 assert.deepEqual(fixtureEvidence.map((call) => [call.outputKind, call.correctionRequested]), [
-  ["invalid", false],
+  ["semantically-invalid", false],
   ["valid", true],
   ["valid", false],
 ]);

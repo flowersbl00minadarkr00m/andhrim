@@ -153,10 +153,8 @@ async function waitForModelCallCount(expectedCount, timeoutMs = 10_000) {
 
 function receiptFromEvents(events) {
   const resultEvent = events.find((event) => event.type === "result.completed");
-  const result = resultEvent?.data?.result ?? resultEvent?.data?.value ?? resultEvent?.data;
-  if (result && typeof result === "object") return result;
-  const message = events.find((event) => event.type === "message.completed")?.data?.message;
-  if (typeof message !== "string") {
+  const result = resultEvent?.data?.result;
+  if (!result || typeof result !== "object" || Array.isArray(result)) {
     const projection = events.map((event) => ({
       type: event.type,
       dataKeys: event.data && typeof event.data === "object" ? Object.keys(event.data) : [],
@@ -164,9 +162,9 @@ function receiptFromEvents(events) {
       message: event.type === "session.failed" ? event.data?.message : undefined,
       details: event.type === "session.failed" ? event.data?.details : undefined,
     }));
-    throw new Error(`No receipt event was emitted: ${JSON.stringify(projection)}`);
+    throw new Error(`No structured receipt result was emitted: ${JSON.stringify(projection)}`);
   }
-  return JSON.parse(message);
+  return result;
 }
 
 function assertCapabilityEnvelope(info) {
@@ -196,6 +194,21 @@ function assertCapabilityEnvelope(info) {
     slug: "connection",
   }]);
   assert.ok(info?.subagents == null || info.subagents.total === 0);
+}
+
+function expectedFinalOutputEnvelope(callIndex, fixtureScenario, outputKind, correctionRequested) {
+  return {
+    schemaVersion: "provider-free-model-call-v2",
+    invocationCount: callIndex,
+    classification: "eve-final-output-only-v1",
+    toolDefinitionCount: 1,
+    toolNames: ["final_output"],
+    actionCapableToolDefinitionCount: 0,
+    modelId: "agent-or-not-fixture",
+    fixtureScenario,
+    outputKind,
+    correctionRequested,
+  };
 }
 
 function assertEgressMetrics() {
@@ -266,15 +279,7 @@ try {
   const receipt = parseRecommendationReceipt(receiptFromEvents(events));
   assert.equal(events.filter((event) => event.type === "session.completed").length, 1);
   const modelCall = readModelCalls()[0];
-  assert.deepEqual(modelCall, {
-    schemaVersion: "provider-free-model-call-v1",
-    invocationCount: 1,
-    toolDefinitionCount: 0,
-    modelId: "agent-or-not-fixture",
-    fixtureScenario: "valid",
-    outputKind: "valid",
-    correctionRequested: false,
-  });
+  assert.deepEqual(modelCall, expectedFinalOutputEnvelope(1, "valid", "valid", false));
 
   const cancelCreateResponse = await fetch(`${server.origin}/eve/v1/session`, {
     method: "POST",
@@ -307,15 +312,7 @@ try {
   assert.equal(cancelEvents.filter((event) => event.type === "session.waiting").length, 1);
   assert.equal(cancelEvents.filter((event) => event.type === "session.failed").length, 0);
   const cancellationModelCall = readModelCalls()[1];
-  assert.deepEqual(cancellationModelCall, {
-    schemaVersion: "provider-free-model-call-v1",
-    invocationCount: 2,
-    toolDefinitionCount: 0,
-    modelId: "agent-or-not-fixture",
-    fixtureScenario: "valid",
-    outputKind: "valid",
-    correctionRequested: false,
-  });
+  assert.deepEqual(cancellationModelCall, expectedFinalOutputEnvelope(2, "valid", "valid", false));
   const stoppedProcessIds = await stopServer(server.child);
   server = undefined;
   const egress = assertEgressMetrics();
@@ -331,6 +328,7 @@ try {
     modelCall,
     cancellationModelCall,
     cancellation: "turn.cancelled -> session.waiting",
+    structuredResultEvent: "result.completed",
     terminalEvent: "session.completed",
     guardedProcesses: egress.length,
     nonLoopbackAttempts: 0,
