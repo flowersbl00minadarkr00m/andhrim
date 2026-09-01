@@ -75,7 +75,7 @@ function assertInvocationAndReportContracts() {
   expectContractCode(() => reconcileBoundaryEvidence([{ ...calls[0], toolNames: ["web_search"] }], "provider/model", 1, false), "MODEL_TOOL_ENVELOPE_INVALID");
 
   const validReport = {
-    schemaVersion: "openrouter-owner-smoke-report-v1",
+    schemaVersion: "openrouter-owner-smoke-report-v2",
     state: "passed",
     timestamp: "2026-08-30T10:00:02.000Z",
     modelId: "provider/model",
@@ -137,6 +137,9 @@ function assertInvocationAndReportContracts() {
   const contractSource = fs.readFileSync(path.join(root, "scripts", "lib", "openrouter-smoke-contract.mjs"), "utf8");
   assert.match(contractSource, /spawnSync\("powershell"[\s\S]*?timeout: timeoutMs/u);
   assert.match(contractSource, /inspectionTimedOut/u);
+  assert.match(contractSource, /openrouter-owner-smoke-report-v2/u);
+  assert.match(contractSource, /Get-CimInstance -ClassName Win32_Process -Property ProcessId,ParentProcessId/u);
+  assert.match(harnessSource, /if \(child\.exitCode !== null \|\| child\.signalCode !== null\)/u);
 }
 
 function assertEarliestFailureSurvivesCleanupFalsifier() {
@@ -145,7 +148,7 @@ function assertEarliestFailureSurvivesCleanupFalsifier() {
   const preservedFailure = preserveEarliestSafeFailure(primaryFailure, cleanupFailure);
   assert.deepEqual(preservedFailure, primaryFailure);
   const report = {
-    schemaVersion: "openrouter-owner-smoke-report-v1",
+    schemaVersion: "openrouter-owner-smoke-report-v2",
     state: "failed",
     timestamp: "2026-08-30T10:00:02.000Z",
     modelId: "provider/model",

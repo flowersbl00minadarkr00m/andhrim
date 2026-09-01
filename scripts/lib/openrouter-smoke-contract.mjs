@@ -56,7 +56,7 @@ const safeErrorSchema = z.object({
 }).strict();
 
 export const smokeReportSchema = z.object({
-  schemaVersion: z.literal("openrouter-owner-smoke-report-v1"),
+  schemaVersion: z.literal("openrouter-owner-smoke-report-v2"),
   state: z.enum(["passed", "failed"]),
   timestamp: timestampSchema,
   modelId: runtimeModelIdSchema.nullable(),
@@ -397,7 +397,7 @@ export async function settleOperationWithin(operation, timeoutMs) {
 function descendantProcessIds(rootPids, timeoutMs = PROCESS_INSPECTION_TIMEOUT_MS) {
   if (process.platform !== "win32" || rootPids.length === 0) return [];
   const roots = rootPids.filter(Number.isInteger).join(",");
-  const command = `$all=Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId; $frontier=@(${roots}); $seen=@(); while($frontier.Count -gt 0){$next=@(); foreach($pidValue in $frontier){foreach($child in $all|Where-Object ParentProcessId -eq $pidValue){if($seen -notcontains $child.ProcessId){$seen += $child.ProcessId; $next += $child.ProcessId}}}; $frontier=$next}; $seen -join ','`;
+  const command = `$all=Get-CimInstance -ClassName Win32_Process -Property ProcessId,ParentProcessId | Select-Object ProcessId,ParentProcessId; $frontier=@(${roots}); $seen=@(); while($frontier.Count -gt 0){$next=@(); foreach($pidValue in $frontier){foreach($child in $all|Where-Object ParentProcessId -eq $pidValue){if($seen -notcontains $child.ProcessId){$seen += $child.ProcessId; $next += $child.ProcessId}}}; $frontier=$next}; $seen -join ','`;
   const result = spawnSync("powershell", ["-NoProfile", "-Command", command], {
     encoding: "utf8",
     env: providerFreeEnvironment(),

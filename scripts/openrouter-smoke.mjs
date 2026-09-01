@@ -68,6 +68,9 @@ function waitForChildExit(child, timeoutMs) {
     const timer = setTimeout(() => finish({ code: null, timedOut: true }), timeoutMs);
     child.once("error", () => finish({ code: null, timedOut: false }));
     child.once("exit", (code) => finish({ code, timedOut: false }));
+    if (child.exitCode !== null || child.signalCode !== null) {
+      finish({ code: child.exitCode, timedOut: false });
+    }
   });
 }
 
@@ -256,7 +259,7 @@ export function spawnAllowlistedLiveEve(config, parentEnvironmentForTest) {
 
 function failedConfigurationReport(error) {
   return {
-    schemaVersion: "openrouter-owner-smoke-report-v1",
+    schemaVersion: "openrouter-owner-smoke-report-v2",
     state: "failed",
     timestamp: new Date().toISOString(),
     modelId: null,
@@ -587,7 +590,7 @@ export async function executeSmoke({
   }
 
   const report = {
-    schemaVersion: "openrouter-owner-smoke-report-v1",
+    schemaVersion: "openrouter-owner-smoke-report-v2",
     state: receiptValidated && failure === null ? "passed" : "failed",
     timestamp: new Date().toISOString(),
     modelId,
