@@ -27,6 +27,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const guardPath = path.join(root, "scripts", "provider-free-egress-guard.cjs");
 export const BROWSER_CLOSE_TIMEOUT_MS = 5_000;
 
+export function preserveEarliestSafeFailure(earlierFailure, laterFailure) {
+  return earlierFailure ?? laterFailure;
+}
+
 function safeError(error, fallbackClass = "internal", fallbackCode = "INTERNAL_ERROR") {
   if (error instanceof SmokeContractError) return { class: error.errorClass, code: error.code };
   return { class: fallbackClass, code: fallbackCode };
@@ -268,6 +272,7 @@ function failedConfigurationReport(error) {
       residualProcessCount: 0,
       residualPortCount: 0,
       processInspectionComplete: true,
+      processTreeProofComplete: true,
       sharedDependencyIntegrityVerified: true,
     },
     error: safeError(error, "configuration", "LIVE_OPT_IN_INCOMPLETE"),
@@ -313,6 +318,7 @@ export async function executeSmoke({
     residualProcessCount: 0,
     residualPortCount: 0,
     processInspectionComplete: true,
+    processTreeProofComplete: true,
     sharedDependencyIntegrityVerified: true,
   };
 
@@ -511,16 +517,18 @@ export async function executeSmoke({
     failure = safeError(error);
   } finally {
     const browserCloseResult = await closeBrowserResourcesBounded(browser, browserServer);
-    if (!browserCloseResult.complete) failure ??= { class: "cleanup", code: "CLEANUP_FAILED" };
+    if (!browserCloseResult.complete) failure = preserveEarliestSafeFailure(failure, { class: "cleanup", code: "CLEANUP_FAILED" });
     try {
       const result = await terminateOwnedProcesses(children);
       cleanup.residualProcessCount = result.residualProcessIds.length;
       cleanup.processInspectionComplete = result.inspectionComplete;
-      if (!result.processTreeProofComplete) failure = { class: "cleanup", code: "CLEANUP_FAILED" };
+      cleanup.processTreeProofComplete = result.processTreeProofComplete;
+      if (!result.processTreeProofComplete) failure = preserveEarliestSafeFailure(failure, { class: "cleanup", code: "CLEANUP_FAILED" });
     } catch {
-      failure = { class: "cleanup", code: "CLEANUP_FAILED" };
+      failure = preserveEarliestSafeFailure(failure, { class: "cleanup", code: "CLEANUP_FAILED" });
       cleanup.residualProcessCount = 1;
       cleanup.processInspectionComplete = false;
+      cleanup.processTreeProofComplete = false;
     }
     try {
       calls = readSmokeModelCalls(evidencePath);
@@ -546,19 +554,19 @@ export async function executeSmoke({
         cleanup.sharedDependencyIntegrityVerified = true;
       } catch {
         cleanup.sharedDependencyIntegrityVerified = false;
-        failure = { class: "cleanup", code: "DEPENDENCY_INTEGRITY_CHANGED" };
+        failure = preserveEarliestSafeFailure(failure, { class: "cleanup", code: "DEPENDENCY_INTEGRITY_CHANGED" });
       }
     }
     try {
       fs.rmSync(scratch, { recursive: true, force: true });
       cleanup.scratchRemoved = !fs.existsSync(scratch);
     } catch {
-      failure = { class: "cleanup", code: "CLEANUP_FAILED" };
+      failure = preserveEarliestSafeFailure(failure, { class: "cleanup", code: "CLEANUP_FAILED" });
     }
     if (cleanupPorts.length > 0) {
       const residualPorts = await residualLoopbackPorts(cleanupPorts);
       cleanup.residualPortCount = residualPorts.length;
-      if (residualPorts.length > 0) failure = { class: "cleanup", code: "CLEANUP_FAILED" };
+      if (residualPorts.length > 0) failure = preserveEarliestSafeFailure(failure, { class: "cleanup", code: "CLEANUP_FAILED" });
     }
   }
 
@@ -566,15 +574,16 @@ export async function executeSmoke({
   try {
     modelBoundary = reconcileBoundaryEvidence(calls, modelId, sessionCount, receiptValidated);
   } catch (error) {
-    failure = safeError(error, "evidence", "EVIDENCE_INVALID");
+    failure = preserveEarliestSafeFailure(failure, safeError(error, "evidence", "EVIDENCE_INVALID"));
     modelBoundary = { observed: false, modelCallCount: 0, toolDefinitionCount: null, toolEnvelope: null, calls: [] };
   }
   if (!cleanup.scratchRemoved
     || cleanup.residualProcessCount !== 0
     || cleanup.residualPortCount !== 0
     || !cleanup.processInspectionComplete
+    || !cleanup.processTreeProofComplete
     || !cleanup.sharedDependencyIntegrityVerified) {
-    failure ??= { class: "cleanup", code: "CLEANUP_FAILED" };
+    failure = preserveEarliestSafeFailure(failure, { class: "cleanup", code: "CLEANUP_FAILED" });
   }
 
   const report = {

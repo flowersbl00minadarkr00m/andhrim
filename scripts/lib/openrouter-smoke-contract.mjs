@@ -7,7 +7,8 @@ import { z } from "zod";
 
 export const SMOKE_SESSION_BUDGET = 2;
 export const SMOKE_REPORT_PATH = path.join("output", "openrouter-smoke-report.json");
-export const PROCESS_INSPECTION_TIMEOUT_MS = 5_000;
+export const PROCESS_INSPECTION_TIMEOUT_MS = 15_000;
+export const TASKKILL_TIMEOUT_MS = 5_000;
 export const FINAL_OUTPUT_ENVELOPE_CLASSIFICATION = "eve-final-output-only-v1";
 
 const explicitModelIdSchema = z.string().regex(/^[a-z0-9._-]+\/[a-z0-9._:-]+$/iu).max(120);
@@ -80,6 +81,7 @@ export const smokeReportSchema = z.object({
     residualProcessCount: z.number().int().min(0),
     residualPortCount: z.number().int().min(0),
     processInspectionComplete: z.boolean(),
+    processTreeProofComplete: z.boolean(),
     sharedDependencyIntegrityVerified: z.boolean(),
   }).strict(),
   error: safeErrorSchema.nullable(),
@@ -118,6 +120,7 @@ export const smokeReportSchema = z.object({
       || report.cleanup.residualProcessCount !== 0
       || report.cleanup.residualPortCount !== 0
       || !report.cleanup.processInspectionComplete
+      || !report.cleanup.processTreeProofComplete
       || !report.cleanup.sharedDependencyIntegrityVerified
       || report.error !== null) {
       context.addIssue({ code: "custom", path: ["state"], message: "Passing reports require loopback-only execution and complete cleanup." });
@@ -394,7 +397,7 @@ export async function settleOperationWithin(operation, timeoutMs) {
 function descendantProcessIds(rootPids, timeoutMs = PROCESS_INSPECTION_TIMEOUT_MS) {
   if (process.platform !== "win32" || rootPids.length === 0) return [];
   const roots = rootPids.filter(Number.isInteger).join(",");
-  const command = `$all=Get-CimInstance Win32_Process; $frontier=@(${roots}); $seen=@(); while($frontier.Count -gt 0){$next=@(); foreach($pidValue in $frontier){foreach($child in $all|Where-Object ParentProcessId -eq $pidValue){if($seen -notcontains $child.ProcessId){$seen += $child.ProcessId; $next += $child.ProcessId}}}; $frontier=$next}; $seen -join ','`;
+  const command = `$all=Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId; $frontier=@(${roots}); $seen=@(); while($frontier.Count -gt 0){$next=@(); foreach($pidValue in $frontier){foreach($child in $all|Where-Object ParentProcessId -eq $pidValue){if($seen -notcontains $child.ProcessId){$seen += $child.ProcessId; $next += $child.ProcessId}}}; $frontier=$next}; $seen -join ','`;
   const result = spawnSync("powershell", ["-NoProfile", "-Command", command], {
     encoding: "utf8",
     env: providerFreeEnvironment(),
@@ -416,7 +419,7 @@ function forceKillProcessTree(pid) {
     spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], {
       env: providerFreeEnvironment(),
       stdio: "ignore",
-      timeout: PROCESS_INSPECTION_TIMEOUT_MS,
+      timeout: TASKKILL_TIMEOUT_MS,
       killSignal: "SIGKILL",
       windowsHide: true,
     });
@@ -430,6 +433,7 @@ export async function terminateOwnedProcesses(children, options = {}) {
   const inspectDescendants = options.inspectDescendants ?? descendantProcessIds;
   const graceMs = options.graceMs ?? 8_000;
   const inspectionTimeoutMs = options.inspectionTimeoutMs ?? PROCESS_INSPECTION_TIMEOUT_MS;
+  const isProcessAlive = options.isProcessAlive ?? processIsAlive;
   const tracked = new Set(roots);
   let inspectionComplete = true;
   let inspectionTimedOut = false;
@@ -475,14 +479,14 @@ export async function terminateOwnedProcesses(children, options = {}) {
     });
   }
   await inspect();
-  const residualBeforeForce = [...tracked].filter(processIsAlive);
+  const residualBeforeForce = [...tracked].filter(isProcessAlive);
   for (const pid of residualBeforeForce) forceKillProcessTree(pid);
   await new Promise((resolve) => setTimeout(resolve, 500));
   await inspect();
-  const lateResiduals = [...tracked].filter(processIsAlive);
+  const lateResiduals = [...tracked].filter(isProcessAlive);
   for (const pid of lateResiduals) forceKillProcessTree(pid);
   if (lateResiduals.length > 0) await new Promise((resolve) => setTimeout(resolve, 500));
-  const residualProcessIds = [...tracked].filter(processIsAlive);
+  const residualProcessIds = [...tracked].filter(isProcessAlive);
   return {
     trackedProcessCount: tracked.size,
     rootProcessCount: roots.length,

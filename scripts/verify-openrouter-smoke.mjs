@@ -17,6 +17,7 @@ import {
 import {
   closeBrowserResourcesBounded,
   executeSmoke,
+  preserveEarliestSafeFailure,
   spawnAllowlistedLiveEve,
 } from "./openrouter-smoke.mjs";
 
@@ -96,6 +97,7 @@ function assertInvocationAndReportContracts() {
       residualProcessCount: 0,
       residualPortCount: 0,
       processInspectionComplete: true,
+      processTreeProofComplete: true,
       sharedDependencyIntegrityVerified: true,
     },
     error: null,
@@ -135,6 +137,37 @@ function assertInvocationAndReportContracts() {
   const contractSource = fs.readFileSync(path.join(root, "scripts", "lib", "openrouter-smoke-contract.mjs"), "utf8");
   assert.match(contractSource, /spawnSync\("powershell"[\s\S]*?timeout: timeoutMs/u);
   assert.match(contractSource, /inspectionTimedOut/u);
+}
+
+function assertEarliestFailureSurvivesCleanupFalsifier() {
+  const primaryFailure = { class: "service", code: "SERVICE_START_FAILED" };
+  const cleanupFailure = { class: "cleanup", code: "CLEANUP_FAILED" };
+  const preservedFailure = preserveEarliestSafeFailure(primaryFailure, cleanupFailure);
+  assert.deepEqual(preservedFailure, primaryFailure);
+  const report = {
+    schemaVersion: "openrouter-owner-smoke-report-v1",
+    state: "failed",
+    timestamp: "2026-08-30T10:00:02.000Z",
+    modelId: "provider/model",
+    loopbackPorts: { web: 31_001, eve: 31_002 },
+    receiptValidated: false,
+    sessionCount: 0,
+    blockedSessionRequests: 0,
+    modelBoundary: { observed: false, modelCallCount: 0, toolDefinitionCount: null, toolEnvelope: null, calls: [] },
+    browserNonLoopbackRequests: 0,
+    liveEveEnvironmentAllowlistVerified: true,
+    cleanup: {
+      scratchRemoved: true,
+      residualProcessCount: 0,
+      residualPortCount: 0,
+      processInspectionComplete: false,
+      processTreeProofComplete: false,
+      sharedDependencyIntegrityVerified: true,
+    },
+    error: preservedFailure,
+  };
+  assert.equal(smokeReportSchema.parse(report).state, "failed");
+  assert.equal(report.cleanup.processInspectionComplete, false);
 }
 
 async function waitForExit(child, timeoutMs = 15_000) {
@@ -285,16 +318,36 @@ async function assertCleanupFalsifiers() {
       killSignals.push(signal);
       return signalRoot(signal);
     };
+    let inspectionPasses = 0;
     const incompleteCleanup = await terminateOwnedProcesses([inspectionFailureRoot], {
       graceMs: 500,
       inspectionTimeoutMs: 25,
-      inspectDescendants: () => new Promise(() => {}),
+      inspectDescendants: () => {
+        inspectionPasses += 1;
+        return inspectionPasses === 1 ? new Promise(() => {}) : [];
+      },
     });
+    assert.equal(inspectionPasses, 3);
     assert.ok(killSignals.includes("SIGTERM"));
     assert.equal(incompleteCleanup.inspectionComplete, false);
     assert.equal(incompleteCleanup.inspectionTimedOut, true);
     assert.equal(incompleteCleanup.processTreeProofComplete, false);
     assert.deepEqual(incompleteCleanup.residualProcessIds, []);
+
+    const residualProofRoot = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
+      env: providerFreeEnvironment(),
+      stdio: "ignore",
+      windowsHide: true,
+    });
+    spawnedRoots.push(residualProofRoot);
+    const residualCleanup = await terminateOwnedProcesses([residualProofRoot], {
+      graceMs: 500,
+      inspectDescendants: () => [],
+      isProcessAlive: () => true,
+    });
+    assert.equal(residualCleanup.inspectionComplete, true);
+    assert.equal(residualCleanup.processTreeProofComplete, false);
+    assert.deepEqual(residualCleanup.residualProcessIds, [residualProofRoot.pid]);
   } finally {
     await terminateOwnedProcesses(spawnedRoots, {
       graceMs: 500,
@@ -306,6 +359,7 @@ async function assertCleanupFalsifiers() {
 
 async function runFixtureAssertions(metricsDirectory) {
   assertInvocationAndReportContracts();
+  assertEarliestFailureSurvivesCleanupFalsifier();
   await assertLiveEnvironmentAllowlist();
   assertDependencyIntegrityFalsifiers();
   await assertBoundedBrowserCloseFalsifier();
@@ -340,6 +394,7 @@ async function runFixtureAssertions(metricsDirectory) {
     residualProcessCount: 0,
     residualPortCount: 0,
     processInspectionComplete: true,
+    processTreeProofComplete: true,
     sharedDependencyIntegrityVerified: true,
   });
   assert.equal(fixture.report.liveEveEnvironmentAllowlistVerified, null);
