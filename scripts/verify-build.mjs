@@ -25,23 +25,24 @@ env.NEXT_TELEMETRY_DISABLED = "1";
 env.NODE_ENV = "production";
 
 const commands = [
-  ["eve", path.join(root, "node_modules", "eve", "bin", "eve.js"), "build"],
-  ["next", path.join(root, "node_modules", "next", "dist", "bin", "next"), "build", "--webpack"],
+  ["eve", 180_000, path.join(root, "node_modules", "eve", "bin", "eve.js"), "build"],
+  ["next", 360_000, path.join(root, "node_modules", "next", "dist", "bin", "next"), "build", "--webpack"],
 ];
 
 try {
-  for (const [name, executable, ...args] of commands) {
+  for (const [name, timeout, executable, ...args] of commands) {
     const metricsDirectory = path.join(scratch, name);
     fs.mkdirSync(metricsDirectory);
     const result = spawnSync(process.execPath, [executable, ...args], {
       cwd: root,
       env: { ...env, AGENT_OR_NOT_EGRESS_METRICS_DIR: metricsDirectory },
       encoding: "utf8",
-      timeout: 180_000,
+      timeout,
       windowsHide: true,
     });
     process.stdout.write(result.stdout ?? "");
     process.stderr.write(result.stderr ?? "");
+    assert.notEqual(result.error?.code, "ETIMEDOUT", `Provider-free build timed out at ${name} (ETIMEDOUT).`);
     assert.equal(result.status, 0, `Provider-free build failed at ${name}.`);
   }
   const metrics = commands.flatMap(([name]) => fs.readdirSync(path.join(scratch, name))

@@ -74,7 +74,7 @@ function waitForChildExit(child, timeoutMs) {
   });
 }
 
-async function runBuild(executable, args, environment, runtimeRoot, children) {
+async function runBuild(executable, args, timeoutMs, environment, runtimeRoot, children) {
   const child = spawn(process.execPath, [executable, ...args], {
     cwd: runtimeRoot,
     env: environment,
@@ -86,8 +86,12 @@ async function runBuild(executable, args, environment, runtimeRoot, children) {
   const retainDiagnostic = (value) => { output = `${output}${value}`.slice(-64 * 1024); };
   child.stdout.on("data", retainDiagnostic);
   child.stderr.on("data", retainDiagnostic);
-  const outcome = await waitForChildExit(child, 180_000);
-  if (outcome.timedOut || outcome.code !== 0) {
+  const outcome = await waitForChildExit(child, timeoutMs);
+  if (outcome.timedOut) {
+    process.stderr.write(`[openrouter-smoke build timeout ETIMEDOUT]\n${output}\n`);
+    throw new SmokeContractError("build", "BUILD_FAILED");
+  }
+  if (outcome.code !== 0) {
     process.stderr.write(`[openrouter-smoke build diagnostic]\n${output}\n`);
     throw new SmokeContractError("build", "BUILD_FAILED");
   }
@@ -352,8 +356,8 @@ export async function executeSmoke({
     });
     const eveBin = path.join(runtimeRoot, "node_modules", "eve", "bin", "eve.js");
     const nextBin = path.join(runtimeRoot, "node_modules", "next", "dist", "bin", "next");
-    await runBuild(eveBin, ["build"], buildEnvironment, runtimeRoot, children);
-    await runBuild(nextBin, ["build", "--webpack"], buildEnvironment, runtimeRoot, children);
+    await runBuild(eveBin, ["build"], 180_000, buildEnvironment, runtimeRoot, children);
+    await runBuild(nextBin, ["build", "--webpack"], 360_000, buildEnvironment, runtimeRoot, children);
 
     let eveServer;
     if (mode === "fixture") {

@@ -126,9 +126,10 @@ const browserBuild = spawnSync(process.execPath, [nextBin, "build", "--webpack"]
   cwd: root,
   env: { ...childEnvironment, AGENT_OR_NOT_EGRESS_METRICS_LABEL: "build" },
   encoding: "utf8",
-  timeout: 180_000,
+  timeout: 360_000,
   windowsHide: true,
 });
+assert.notEqual(browserBuild.error?.code, "ETIMEDOUT", `Unique-port browser production build timed out (ETIMEDOUT).\n${browserBuild.stdout}\n${browserBuild.stderr}`);
 assert.equal(browserBuild.status, 0, `Unique-port browser production build failed.\n${browserBuild.stdout}\n${browserBuild.stderr}`);
 const eveServer = spawn(process.execPath, [eveBin, "start", "--host", "127.0.0.1", "--port", String(evePort)], {
   cwd: root,

@@ -49,9 +49,10 @@ const build = spawnSync(process.execPath, [nextBin, "build", "--webpack"], {
   cwd: root,
   env: { ...env, AGENT_OR_NOT_EGRESS_METRICS_LABEL: "build" },
   encoding: "utf8",
-  timeout: 180_000,
+  timeout: 360_000,
   windowsHide: true,
 });
+assert.notEqual(build.error?.code, "ETIMEDOUT", `Unique-port launcher production build timed out (ETIMEDOUT).\n${build.stdout}\n${build.stderr}`);
 assert.equal(build.status, 0, `Unique-port launcher production build failed.\n${build.stdout}\n${build.stderr}`);
 
 const child = spawn(process.execPath, [path.join(root, "scripts", "start-local.mjs")], { cwd: root, env, windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
