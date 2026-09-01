@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { RecommendationReceipt } from "@/src/domain/recommendation";
+import type { CapabilityTrace } from "@/src/domain/capabilities";
 
 const recommendationLabels: Record<RecommendationReceipt["recommendation"], string> = {
   "human-led": "Human-led",
@@ -13,13 +14,14 @@ const recommendationLabels: Record<RecommendationReceipt["recommendation"], stri
 
 type Props = {
   receipt?: RecommendationReceipt;
+  capabilityTrace?: CapabilityTrace;
   previewRecommendation: RecommendationReceipt["recommendation"];
   step: number;
   privacyDisclosure?: string;
   onStarterPackSave?: (receipt: RecommendationReceipt) => Promise<void>;
 };
 
-export function Receipt({ receipt, previewRecommendation, step, privacyDisclosure, onStarterPackSave }: Props) {
+export function Receipt({ receipt, capabilityTrace, previewRecommendation, step, privacyDisclosure, onStarterPackSave }: Props) {
   const recommendation = receipt?.recommendation ?? previewRecommendation;
   const [editing, setEditing] = useState(false);
   const [starterPack, setStarterPack] = useState(receipt?.starterPack ?? []);
@@ -49,7 +51,7 @@ export function Receipt({ receipt, previewRecommendation, step, privacyDisclosur
         <div className="receipt__row">
           <dt>Evidence</dt>
           <dd>
-            <ul>{(receipt?.evidence ?? ["Your five bounded answers", "A deterministic final-output-only validation boundary"]).map((item) => <li key={item}>{item}</li>)}</ul>
+            <ul>{(receipt?.evidence ?? ["Your five bounded answers", "A bounded Eve skill, authored-tool, and loopback MCP evidence path"]).map((item) => <li key={item}>{item}</li>)}</ul>
           </dd>
         </div>
         <div className="receipt__row">
@@ -103,7 +105,38 @@ export function Receipt({ receipt, previewRecommendation, step, privacyDisclosur
         </section>
       ) : null}
 
-      <footer className="receipt__note">{privacyDisclosure ?? "Reading the runtime privacy boundary…"} The model has one non-executing final-output channel and no action-capable tools.</footer>
+      {receipt ? (
+        <section className="capability-provenance" aria-labelledby="capability-provenance-heading">
+          <div className="section-title">
+            <h3 id="capability-provenance-heading">Capability provenance</h3>
+            <span>{capabilityTrace ? "Observed from Eve events" : "Legacy receipt"}</span>
+          </div>
+          {capabilityTrace ? (
+            <ol>
+              {capabilityTrace.steps.map((capability) => (
+                <li key={capability.kind}>
+                  <p><b>{capability.name}</b> <span>{capability.eveCapability}</span></p>
+                  <p>{capability.outputSummary}</p>
+                  <dl>
+                    <div><dt>Boundary</dt><dd>{capability.executionBoundary}</dd></div>
+                    <div><dt>Data crossed</dt><dd>{"answers" in capability
+                      ? capability.inputFields.map((field) => `${field}=${capability.answers[field]}`).join(", ")
+                      : capability.inputFields.join(", ")}</dd></div>
+                    {capability.kind === "connection-discovery" ? <div><dt>Discovered</dt><dd>{capability.discoveredTools.join(", ")}</dd></div> : null}
+                    {capability.kind === "authored-tool" ? <div><dt>Result</dt><dd>{capability.suggestedPosture}; read-only</dd></div> : null}
+                    {capability.kind === "mcp-tool" ? <>
+                      <div><dt>Matched rules</dt><dd>{capability.matchedRuleIds.join(", ") || "None"}</dd></div>
+                      <div><dt>Privacy</dt><dd>Raw outcome notes crossed: no. Historical outcomes retrieved: no.</dd></div>
+                    </> : null}
+                  </dl>
+                </li>
+              ))}
+            </ol>
+          ) : <p>This receipt predates capability tracing; no execution claim is inferred.</p>}
+        </section>
+      ) : null}
+
+      <footer className="receipt__note">{privacyDisclosure ?? "Reading the runtime privacy boundary…"} Eve exposes one load-on-demand instruction skill, one local read-only authored tool, one allowlisted loopback MCP read, and the final-output channel.</footer>
     </article>
   );
 }

@@ -1,5 +1,9 @@
 # Dependencies and build output
 node_modules/
+.venv/
+mcp_server/.venv/
+__pycache__/
+.pytest_cache/
 .next/
 .output/
 .eve/

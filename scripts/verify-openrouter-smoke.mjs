@@ -28,26 +28,28 @@ function expectContractCode(operation, code) {
 }
 
 function sampleCalls() {
-  return [
-    {
-      timestamp: "2026-08-30T10:00:00.000Z",
+  return Array.from({ length: 6 }, (_, index) => {
+    const stage = ["prepare", "evidence", "final"][index % 3];
+    const discovered = stage !== "prepare";
+    const toolNames = ["connection_search", "derive_delegation_evidence", "final_output", "load_skill"];
+    if (discovered) toolNames.push("governed-memory__lookup_approved_guidance");
+    toolNames.sort();
+    return {
+      timestamp: `2026-08-30T10:00:0${index}.000Z`,
       modelId: "provider/model",
-      callIndex: 1,
-      classification: "eve-final-output-only-v1",
-      toolDefinitionCount: 1,
-      toolNames: ["final_output"],
-      actionCapableToolDefinitionCount: 0,
-    },
-    {
-      timestamp: "2026-08-30T10:00:01.000Z",
-      modelId: "provider/model",
-      callIndex: 2,
-      classification: "eve-final-output-only-v1",
-      toolDefinitionCount: 1,
-      toolNames: ["final_output"],
-      actionCapableToolDefinitionCount: 0,
-    },
-  ];
+      callIndex: index + 1,
+      stage,
+      classification: "eve-bounded-guidance-harness-v1",
+      toolDefinitionCount: discovered ? 5 : 4,
+      toolNames,
+      instructionToolDefinitionCount: 1,
+      discoveryToolDefinitionCount: 1,
+      localReadOnlyToolDefinitionCount: 1,
+      mcpReadOnlyToolDefinitionCount: discovered ? 1 : 0,
+      finalOutputToolDefinitionCount: 1,
+      actionCapableToolDefinitionCount: discovered ? 2 : 1,
+    };
+  });
 }
 
 function assertInvocationAndReportContracts() {
@@ -68,10 +70,10 @@ function assertInvocationAndReportContracts() {
   ]), { kind: "live", modelId: "provider/model" });
 
   const calls = sampleCalls();
-  assert.equal(reconcileBoundaryEvidence(calls.slice(0, 1), "provider/model", 1, true).modelCallCount, 1);
-  assert.equal(reconcileBoundaryEvidence(calls, "provider/model", 2, true).modelCallCount, 2);
+  assert.equal(reconcileBoundaryEvidence(calls.slice(0, 3), "provider/model", 1, true).modelCallCount, 3);
+  assert.equal(reconcileBoundaryEvidence(calls, "provider/model", 2, true).modelCallCount, 6);
   expectContractCode(() => reconcileBoundaryEvidence([], "provider/model", 1, true), "MODEL_BOUNDARY_NOT_OBSERVED");
-  expectContractCode(() => reconcileBoundaryEvidence([...calls, { ...calls[1], callIndex: 3 }], "provider/model", 2, false), "ATTEMPT_BUDGET_EXCEEDED");
+  expectContractCode(() => reconcileBoundaryEvidence([...calls, { ...calls[0], callIndex: 7 }], "provider/model", 2, false), "ATTEMPT_BUDGET_EXCEEDED");
   expectContractCode(() => reconcileBoundaryEvidence([{ ...calls[0], toolNames: ["web_search"] }], "provider/model", 1, false), "MODEL_TOOL_ENVELOPE_INVALID");
 
   const validReport = {
@@ -79,16 +81,16 @@ function assertInvocationAndReportContracts() {
     state: "passed",
     timestamp: "2026-08-30T10:00:02.000Z",
     modelId: "provider/model",
-    loopbackPorts: { web: 31_001, eve: 31_002 },
+    loopbackPorts: { web: 31_001, eve: 31_002, mcp: 31_003 },
     receiptValidated: true,
     sessionCount: 1,
     blockedSessionRequests: 0,
     modelBoundary: {
       observed: true,
-      modelCallCount: 1,
-      toolDefinitionCount: 1,
-      toolEnvelope: "eve-final-output-only-v1",
-      calls: calls.slice(0, 1),
+      modelCallCount: 3,
+      toolDefinitionCount: 5,
+      toolEnvelope: "eve-bounded-guidance-harness-v1",
+      calls: calls.slice(0, 3),
     },
     browserNonLoopbackRequests: 0,
     liveEveEnvironmentAllowlistVerified: true,
@@ -152,7 +154,7 @@ function assertEarliestFailureSurvivesCleanupFalsifier() {
     state: "failed",
     timestamp: "2026-08-30T10:00:02.000Z",
     modelId: "provider/model",
-    loopbackPorts: { web: 31_001, eve: 31_002 },
+    loopbackPorts: { web: 31_001, eve: 31_002, mcp: 31_003 },
     receiptValidated: false,
     sessionCount: 0,
     blockedSessionRequests: 0,
@@ -198,6 +200,7 @@ async function assertLiveEnvironmentAllowlist() {
     const childEvidencePath = path.join(scratch, "child-names.json");
     const runtimeEnvironment = {
       AGENT_OR_NOT_DATA_DIR: path.join(scratch, "data"),
+      AGENT_OR_NOT_MEMORY_MCP_URL: "http://127.0.0.1:32102/mcp",
       AGENT_OR_NOT_PROVIDER_MODE: "openrouter",
       AGENT_OR_NOT_SESSION_NONCE: "fixture-session-nonce",
       AGENT_OR_NOT_SMOKE_EVIDENCE_PATH: path.join(scratch, "evidence.ndjson"),
@@ -389,8 +392,11 @@ async function runFixtureAssertions(metricsDirectory) {
   assert.equal(fixture.report.receiptValidated, true);
   assert.equal(fixture.report.sessionCount, 2);
   assert.equal(fixture.report.blockedSessionRequests, 0);
-  assert.equal(fixture.report.modelBoundary.modelCallCount, 2);
-  assert.deepEqual(fixture.report.modelBoundary.calls.map((call) => [call.callIndex, call.toolDefinitionCount]), [[1, 1], [2, 1]]);
+  assert.equal(fixture.report.modelBoundary.modelCallCount, 6);
+  assert.deepEqual(fixture.report.modelBoundary.calls.map((call) => [call.callIndex, call.stage, call.toolDefinitionCount]), [
+    [1, "prepare", 4], [2, "evidence", 5], [3, "final", 5],
+    [4, "prepare", 4], [5, "evidence", 5], [6, "final", 5],
+  ]);
   assert.equal(fixture.report.browserNonLoopbackRequests, 0);
   assert.deepEqual(fixture.report.cleanup, {
     scratchRemoved: true,

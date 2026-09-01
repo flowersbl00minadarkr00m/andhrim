@@ -29,7 +29,7 @@ The images are visual references, not implementation evidence. All text, control
 
 ## Build order
 
-1. Provider-free Eve/final-output-only/no-action-tools/validated-receipt seam.
+1. Provider-free Eve bounded skill/authored-tool/loopback-MCP/final-output/validated-receipt seam.
 2. Schemas and deterministic semantic validators.
 3. Append-only local product events plus derived owner-approved rule projection.
 4. Assessment and receipt UI.

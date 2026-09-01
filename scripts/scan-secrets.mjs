@@ -14,9 +14,12 @@ const patterns = [
   { name: "assigned provider credential", value: /(?:OPENROUTER_API_KEY|API_KEY|TOKEN|SECRET)\s*=\s*["']?[^\s"'#]{12,}/giu },
 ];
 const findings = [];
+let filesScanned = 0;
 for (const relative of files) {
   const absolute = path.join(root, relative);
+  if (!fs.existsSync(absolute)) continue;
   if (!fs.statSync(absolute).isFile()) continue;
+  filesScanned += 1;
   const bytes = fs.readFileSync(absolute);
   if (bytes.includes(0)) continue;
   const content = bytes.toString("utf8");
@@ -27,4 +30,4 @@ for (const relative of files) {
 }
 assert.deepEqual(findings, [], `Credential-shaped source found: ${JSON.stringify(findings)}`);
 assert.ok(!files.some((file) => /^\.env(?:\.|$)/u.test(file) && file !== ".env.example"), "A non-example environment file is trackable.");
-process.stdout.write(`${JSON.stringify({ schemaVersion: "source-secret-scan-v1", state: "passed", filesScanned: files.length, findings: 0 })}\n`);
+process.stdout.write(`${JSON.stringify({ schemaVersion: "source-secret-scan-v1", state: "passed", filesScanned, findings: 0 })}\n`);

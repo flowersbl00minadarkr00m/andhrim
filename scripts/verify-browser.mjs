@@ -96,8 +96,9 @@ async function waitForAppliedLearningReceipt(page, baseUrl, {
 const port = await reserveLoopbackPort();
 const evePort = await reserveLoopbackPort();
 assert.notEqual(evePort, port, "Browser and Eve verification ports must be unique.");
+const mcpPort = await reserveLoopbackPort();
 const attackerPort = await reserveLoopbackPort();
-assert.equal(new Set([port, evePort, attackerPort]).size, 3, "Every browser verification listener must use a unique port.");
+assert.equal(new Set([port, evePort, mcpPort, attackerPort]).size, 4, "Every browser verification listener must use a unique port.");
 
 const safeNames = [
   "ALLUSERSPROFILE", "APPDATA", "ComSpec", "CommonProgramFiles", "CommonProgramFiles(x86)",
@@ -119,9 +120,20 @@ childEnvironment.AGENT_OR_NOT_SESSION_NONCE = sessionNonce;
 childEnvironment.NEXT_TELEMETRY_DISABLED = "1";
 childEnvironment.NODE_ENV = "production";
 childEnvironment.EVE_NEXT_PRODUCTION_PORT = String(evePort);
+childEnvironment.AGENT_OR_NOT_MEMORY_MCP_URL = `http://127.0.0.1:${mcpPort}/mcp`;
 
 const nextBin = path.join(root, "node_modules", "next", "dist", "bin", "next");
 const eveBin = path.join(root, "node_modules", "eve", "bin", "eve.js");
+const mcpPython = path.join(root, "mcp_server", ".venv", "Scripts", "python.exe");
+assert.ok(fs.existsSync(mcpPython), "Run `uv sync --project mcp_server --frozen` before browser verification.");
+const eveBuild = spawnSync(process.execPath, [eveBin, "build"], {
+  cwd: root,
+  env: { ...childEnvironment, AGENT_OR_NOT_EGRESS_METRICS_LABEL: "build" },
+  encoding: "utf8",
+  timeout: 180_000,
+  windowsHide: true,
+});
+assert.equal(eveBuild.status, 0, `Browser Eve build failed.\n${eveBuild.stdout}\n${eveBuild.stderr}`);
 const browserBuild = spawnSync(process.execPath, [nextBin, "build", "--webpack"], {
   cwd: root,
   env: { ...childEnvironment, AGENT_OR_NOT_EGRESS_METRICS_LABEL: "build" },
@@ -131,6 +143,14 @@ const browserBuild = spawnSync(process.execPath, [nextBin, "build", "--webpack"]
 });
 assert.notEqual(browserBuild.error?.code, "ETIMEDOUT", `Unique-port browser production build timed out (ETIMEDOUT).\n${browserBuild.stdout}\n${browserBuild.stderr}`);
 assert.equal(browserBuild.status, 0, `Unique-port browser production build failed.\n${browserBuild.stdout}\n${browserBuild.stderr}`);
+const mcpEnvironment = { ...childEnvironment, PYTHONDONTWRITEBYTECODE: "1", PYTHONNOUSERSITE: "1" };
+delete mcpEnvironment.NODE_OPTIONS;
+const mcpServer = spawn(mcpPython, [path.join(root, "mcp_server", "server.py"), "--host", "127.0.0.1", "--port", String(mcpPort)], {
+  cwd: root,
+  env: mcpEnvironment,
+  windowsHide: true,
+  stdio: ["ignore", "pipe", "pipe"],
+});
 const eveServer = spawn(process.execPath, [eveBin, "start", "--host", "127.0.0.1", "--port", String(evePort)], {
   cwd: root,
   env: childEnvironment,
@@ -156,6 +176,8 @@ eveServer.stdout.on("data", (chunk) => { serverLog += chunk.toString(); });
 eveServer.stderr.on("data", (chunk) => { serverLog += chunk.toString(); });
 server.stdout.on("data", (chunk) => { serverLog += chunk.toString(); });
 server.stderr.on("data", (chunk) => { serverLog += chunk.toString(); });
+mcpServer.stdout.on("data", (chunk) => { serverLog += chunk.toString(); });
+mcpServer.stderr.on("data", (chunk) => { serverLog += chunk.toString(); });
 
 let browser;
 const browserBlocked = [];
@@ -167,6 +189,15 @@ let learningTransitionEvidence;
 try {
   const baseUrl = `http://127.0.0.1:${port}`;
   const deadline = Date.now() + 45_000;
+  while (true) {
+    try {
+      const response = await fetch(`http://127.0.0.1:${mcpPort}/mcp`);
+      if ([200, 400, 405, 406].includes(response.status)) break;
+    } catch {}
+    if (mcpServer.exitCode !== null) throw new Error(`Local MCP server stopped early.\n${serverLog}`);
+    if (Date.now() > deadline) throw new Error(`Local MCP server did not become ready.\n${serverLog}`);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
   while (true) {
     try {
       const response = await fetch(`http://127.0.0.1:${evePort}/eve/v1/health`);
@@ -286,7 +317,7 @@ try {
 
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.getByRole("heading", { name: "Delegation assessment" }).waitFor();
-  assert.equal(await page.getByText("Final-output schema only").count(), 1);
+  assert.equal(await page.getByText(/Eve bounded guidance harness/u).count(), 1);
   await page.getByText(/Fixture mode: assessment processing stays on this computer/u).first().waitFor();
   await page.screenshot({ path: path.join(artifactDirectory, "assessment-desktop.png"), fullPage: true });
 
@@ -316,35 +347,18 @@ try {
     throw new Error(`Receipt did not complete. Page: ${await page.locator("body").innerText()}\nBrowser errors: ${browserErrors.join(" | ")}\nServer: ${serverLog}`, { cause: error });
   }
   await page.getByRole("heading", { name: "Turn an outcome into reviewable learning." }).waitFor();
+  await page.getByRole("heading", { name: "Capability provenance" }).waitFor();
+  await page.getByText("delegation-guidance", { exact: true }).waitFor();
+  await page.getByText("governed-memory__lookup_approved_guidance", { exact: true }).first().waitFor();
+  await page.getByText(/Raw outcome notes crossed: no/u).waitFor();
   const retryEvidence = fs.readFileSync(fixtureEvidencePath, "utf8").trim().split(/\r?\n/u).map(JSON.parse);
-  assert.deepEqual(retryEvidence, [
-    {
-      schemaVersion: "provider-free-model-call-v2",
-      invocationCount: 1,
-      classification: "eve-final-output-only-v1",
-      toolDefinitionCount: 1,
-      toolNames: ["final_output"],
-      actionCapableToolDefinitionCount: 0,
-      modelId: "agent-or-not-fixture",
-      fixtureScenario: "invalid-first-receipt",
-      outputKind: "semantically-invalid",
-      correctionRequested: false,
-    },
-    {
-      schemaVersion: "provider-free-model-call-v2",
-      invocationCount: 2,
-      classification: "eve-final-output-only-v1",
-      toolDefinitionCount: 1,
-      toolNames: ["final_output"],
-      actionCapableToolDefinitionCount: 0,
-      modelId: "agent-or-not-fixture",
-      fixtureScenario: "invalid-first-receipt",
-      outputKind: "valid",
-      correctionRequested: true,
-    },
-  ], "requestEveReceipt must open one corrected second session and accept its strict receipt.");
+  assert.equal(retryEvidence.length, 6, "requestEveReceipt must use three bounded model steps in each of two validation sessions.");
+  assert.deepEqual(retryEvidence.map((call) => call.stage), ["prepare", "evidence", "final", "prepare", "evidence", "final"]);
+  assert.deepEqual(retryEvidence.map((call) => call.outputKind), ["tool-calls", "tool-calls", "semantically-invalid", "tool-calls", "tool-calls", "valid"]);
+  assert.deepEqual(retryEvidence.map((call) => call.correctionRequested), [false, false, false, true, true, true]);
+  assert.ok(retryEvidence.every((call) => call.classification === "eve-bounded-guidance-harness-v1"));
   await new Promise((resolve) => setTimeout(resolve, 250));
-  assert.equal(fs.readFileSync(fixtureEvidencePath, "utf8").trim().split(/\r?\n/u).length, 2, "requestEveReceipt opened an unexpected third session.");
+  assert.equal(fs.readFileSync(fixtureEvidencePath, "utf8").trim().split(/\r?\n/u).length, 6, "requestEveReceipt opened an unexpected third session.");
   await page.screenshot({ path: path.join(artifactDirectory, "outcome-desktop.png"), fullPage: true });
 
   await page.getByRole("button", { name: "Edit locally" }).click();
@@ -472,10 +486,12 @@ try {
   await new Promise((resolve) => attackerServer.close(resolve));
   if (server.exitCode === null) server.kill("SIGTERM");
   if (eveServer.exitCode === null) eveServer.kill("SIGTERM");
+  if (mcpServer.exitCode === null) mcpServer.kill("SIGTERM");
   await Promise.race([
     Promise.all([
       server.exitCode === null ? new Promise((resolve) => server.once("exit", resolve)) : Promise.resolve(),
       eveServer.exitCode === null ? new Promise((resolve) => eveServer.once("exit", resolve)) : Promise.resolve(),
+      mcpServer.exitCode === null ? new Promise((resolve) => mcpServer.once("exit", resolve)) : Promise.resolve(),
     ]),
     new Promise((resolve) => setTimeout(resolve, 5_000)),
   ]);
@@ -490,17 +506,16 @@ assert.deepEqual(ledger.map((event) => event.type), [
   "recommendation.recorded", "recommendation.edited", "outcome.recorded", "learning.proposed", "learning.edited", "learning.approved", "recommendation.recorded", "learning.expired", "learning.deleted",
 ]);
 const fixtureEvidence = fs.readFileSync(fixtureEvidencePath, "utf8").trim().split(/\r?\n/u).map(JSON.parse);
-assert.equal(fixtureEvidence.length, 3, "The browser flow must reconcile the two-session validation attempt plus one later explicit request.");
+assert.equal(fixtureEvidence.length, 9, "The browser flow must reconcile two three-step validation sessions plus one later three-step request.");
 assert.ok(fixtureEvidence.every((call, index) => call.invocationCount === index + 1
-  && call.classification === "eve-final-output-only-v1"
-  && call.toolDefinitionCount === 1
-  && JSON.stringify(call.toolNames) === JSON.stringify(["final_output"])
-  && call.actionCapableToolDefinitionCount === 0
+  && call.classification === "eve-bounded-guidance-harness-v1"
+  && call.toolDefinitionCount === (call.stage === "prepare" ? 4 : 5)
+  && call.actionCapableToolDefinitionCount === (call.stage === "prepare" ? 1 : 2)
   && call.modelId === "agent-or-not-fixture"));
 assert.deepEqual(fixtureEvidence.map((call) => [call.outputKind, call.correctionRequested]), [
-  ["semantically-invalid", false],
-  ["valid", true],
-  ["valid", false],
+  ["tool-calls", false], ["tool-calls", false], ["semantically-invalid", false],
+  ["tool-calls", true], ["tool-calls", true], ["valid", true],
+  ["tool-calls", false], ["tool-calls", false], ["valid", false],
 ]);
 process.stdout.write(`${JSON.stringify({
   schemaVersion: "provider-free-browser-verification-v1",
@@ -508,7 +523,7 @@ process.stdout.write(`${JSON.stringify({
   guardedProcesses: metrics.length,
   nonLoopbackAttempts: 0,
   browserNonLoopbackRequests: browserBlocked.length,
-  uniquePorts: { web: port, eve: evePort, attacker: attackerPort },
+  uniquePorts: { web: port, eve: evePort, mcp: mcpPort, attacker: attackerPort },
   spawnedProcessesLiveAtReadiness: true,
   uniquePortProductionBuild: "passed",
   rejectedDriveBy: {

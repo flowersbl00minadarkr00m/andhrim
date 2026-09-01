@@ -11,6 +11,7 @@ import {
   validateReceiptStarterPackRevision,
 } from "@/src/domain/learning";
 import { recommendationReceiptSchema } from "@/src/domain/recommendation";
+import { capabilityTraceSchema } from "@/src/domain/capabilities";
 import {
   appendProductEvent,
   appendProductEvents,
@@ -24,7 +25,7 @@ import {
 export const runtime = "nodejs";
 
 const actionSchema = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("record-recommendation"), assessment: assessmentSchema, receipt: recommendationReceiptSchema }).strict(),
+  z.object({ action: z.literal("record-recommendation"), assessment: assessmentSchema, receipt: recommendationReceiptSchema, capabilityTrace: capabilityTraceSchema }).strict(),
   z.object({ action: z.literal("edit-receipt"), receipt: recommendationReceiptSchema }).strict(),
   z.object({ action: z.literal("record-outcome"), outcome: outcomeSchema }).strict(),
   z.object({ action: z.literal("edit-learning"), candidate: learningCandidateSchema }).strict(),
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
         if (action.receipt.assessmentId !== action.assessment.assessmentId) throw new Error("Receipt and assessment identities do not match.");
         if (current.receipts[action.receipt.receiptId]) throw new Error("Receipt is already recorded.");
         const receipt = applyApprovedRules(action.assessment, action.receipt, Object.values(current.rules));
-        projection = appendProductEvent({ ...eventBase(), type: "recommendation.recorded", assessment: action.assessment, receipt });
+        projection = appendProductEvent({ ...eventBase(), type: "recommendation.recorded", assessment: action.assessment, receipt, capabilityTrace: action.capabilityTrace });
         break;
       }
       case "edit-receipt": {

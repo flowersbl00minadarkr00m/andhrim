@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import net from "node:net";
 import { fileURLToPath } from "node:url";
 import {
   parseRecommendationReceipt,
@@ -16,7 +17,25 @@ const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "agent-or-not-provider-fre
 const evidencePath = path.join(scratch, "model-call.json");
 const metricsDirectory = path.join(scratch, "egress");
 const sessionNonce = randomBytes(32).toString("base64url");
+const mcpPython = path.join(root, "mcp_server", ".venv", "Scripts", "python.exe");
 fs.mkdirSync(metricsDirectory);
+assert.ok(fs.existsSync(mcpPython), "Run `uv sync --project mcp_server --frozen` before provider-free verification.");
+
+function reserveLoopbackPort() {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+      if (!address || typeof address === "string") return reject(new Error("Could not reserve a loopback port."));
+      server.close((error) => error ? reject(error) : resolve(address.port));
+    });
+  });
+}
+
+const mcpPort = await reserveLoopbackPort();
+const mcpUrl = `http://127.0.0.1:${mcpPort}/mcp`;
+const assessmentAnswers = { outcomeStakes: 3, repeatability: 4, specificationClarity: 4, verificationCost: 2, contextSensitivity: 3 };
 
 const allowedEnvironmentNames = [
   "ALLUSERSPROFILE", "APPDATA", "ComSpec", "CommonProgramFiles", "CommonProgramFiles(x86)",
@@ -37,8 +56,35 @@ function safeEnvironment(label) {
   environment.AGENT_OR_NOT_EGRESS_METRICS_LABEL = label;
   environment.AGENT_OR_NOT_FIXTURE_EVIDENCE_PATH = evidencePath;
   environment.AGENT_OR_NOT_SESSION_NONCE = sessionNonce;
+  environment.AGENT_OR_NOT_DATA_DIR = scratch;
+  environment.AGENT_OR_NOT_MEMORY_MCP_URL = mcpUrl;
   environment.NODE_ENV = "production";
   return environment;
+}
+
+async function startMcpServer() {
+  const environment = safeEnvironment("mcp");
+  delete environment.NODE_OPTIONS;
+  const child = spawn(mcpPython, [path.join(root, "mcp_server", "server.py"), "--host", "127.0.0.1", "--port", String(mcpPort)], {
+    cwd: root,
+    env: { ...environment, PYTHONDONTWRITEBYTECODE: "1", PYTHONNOUSERSITE: "1" },
+    stdio: ["ignore", "pipe", "pipe"],
+    windowsHide: true,
+  });
+  let output = "";
+  child.stdout.on("data", (chunk) => { output = `${output}${chunk}`.slice(-64 * 1024); });
+  child.stderr.on("data", (chunk) => { output = `${output}${chunk}`.slice(-64 * 1024); });
+  const deadline = performance.now() + 30_000;
+  while (performance.now() < deadline) {
+    if (child.exitCode !== null) throw new Error(`MCP server exited before readiness (${child.exitCode}).\n${output}`);
+    try {
+      const response = await fetch(mcpUrl, { method: "GET", redirect: "error" });
+      if ([200, 400, 405, 406].includes(response.status)) return { child, output: () => output };
+    } catch {}
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  child.kill();
+  throw new Error(`MCP server readiness timed out.\n${output}`);
 }
 
 function runBuild() {
@@ -169,15 +215,12 @@ function receiptFromEvents(events) {
 
 function assertCapabilityEnvelope(info) {
   const expectedDisabled = [
-    "agent", "ask_question", "bash", "load_skill", "read_file", "task_cancel",
+    "agent", "ask_question", "bash", "read_file", "task_cancel",
     "task_update", "todo", "web_fetch", "web_search", "write_file",
   ];
   const names = (info?.tools?.disabledFramework ?? []).map((value) => typeof value === "string" ? value : value.slug ?? value.name).sort();
   assert.deepEqual(names, expectedDisabled);
   const emptyCollections = {
-    authoredTools: info?.tools?.authored,
-    availableTools: info?.tools?.available,
-    connections: info?.connections,
     schedules: info?.schedules,
     hooks: info?.hooks,
   };
@@ -185,6 +228,9 @@ function assertCapabilityEnvelope(info) {
     assert.ok(Array.isArray(collection));
     assert.equal(collection.length, 0, `${label} was not empty: ${JSON.stringify(collection)}`);
   }
+  assert.ok(JSON.stringify(info?.tools?.authored).includes("derive_delegation_evidence"), `Missing authored evidence tool: ${JSON.stringify(info?.tools?.authored)}`);
+  assert.ok(JSON.stringify(info?.tools?.available).includes("load_skill"), `Missing load_skill: ${JSON.stringify(info?.tools?.available)}`);
+  assert.ok(JSON.stringify(info?.connections).includes("governed-memory"), `Missing governed-memory connection: ${JSON.stringify(info?.connections)}`);
   assert.deepEqual(info?.tools?.dynamic, [{
     logicalPath: "eve:framework/connection-search-dynamic",
     sourceId: "eve:connection-search-dynamic",
@@ -196,14 +242,24 @@ function assertCapabilityEnvelope(info) {
   assert.ok(info?.subagents == null || info.subagents.total === 0);
 }
 
-function expectedFinalOutputEnvelope(callIndex, fixtureScenario, outputKind, correctionRequested) {
+function expectedHarnessEnvelope(callIndex, stage, fixtureScenario, outputKind, correctionRequested) {
+  const discovered = stage === "evidence" || stage === "final";
+  const toolNames = ["connection_search", "derive_delegation_evidence", "final_output", "load_skill"];
+  if (discovered) toolNames.push("governed-memory__lookup_approved_guidance");
+  toolNames.sort();
   return {
-    schemaVersion: "provider-free-model-call-v2",
+    schemaVersion: "provider-free-model-call-v3",
     invocationCount: callIndex,
-    classification: "eve-final-output-only-v1",
-    toolDefinitionCount: 1,
-    toolNames: ["final_output"],
-    actionCapableToolDefinitionCount: 0,
+    stage,
+    classification: "eve-bounded-guidance-harness-v1",
+    toolDefinitionCount: discovered ? 5 : 4,
+    toolNames,
+    instructionToolDefinitionCount: 1,
+    discoveryToolDefinitionCount: 1,
+    localReadOnlyToolDefinitionCount: 1,
+    mcpReadOnlyToolDefinitionCount: discovered ? 1 : 0,
+    finalOutputToolDefinitionCount: 1,
+    actionCapableToolDefinitionCount: discovered ? 2 : 1,
     modelId: "agent-or-not-fixture",
     fixtureScenario,
     outputKind,
@@ -231,8 +287,10 @@ function sessionHeaders(origin, json = false) {
 }
 
 let server;
+let mcpServer;
 try {
   const buildOutput = runBuild();
+  mcpServer = await startMcpServer();
   server = await startServer();
   assert.equal(server.child.exitCode, null, "The spawned Eve process was not live at readiness.");
   const rejectedDriveBy = await fetch(`${server.origin}/eve/v1/session`, {
@@ -261,7 +319,7 @@ try {
     headers: sessionHeaders(server.origin, true),
     redirect: "error",
     body: JSON.stringify({
-      message: "Return one provider-free Recommendation Receipt for a well-specified, reviewable drafting task.",
+      message: `Load the delegation-guidance skill, use the bounded read-only evidence and governed-memory capabilities exactly once, then return one Recommendation Receipt. Runtime metadata must be ${JSON.stringify({ providerMode: "fixture", modelId: "agent-or-not-fixture" })}. The application will assign receipt and assessment identifiers after validation.\nASSESSMENT_JSON:${JSON.stringify({ answers: assessmentAnswers })}`,
       mode: "task",
     }),
   });
@@ -277,9 +335,21 @@ try {
   assert.equal(streamResponse.status, 200);
   const events = await readEventsUntil(streamResponse.body, new Set(["session.completed", "session.failed"]));
   const receipt = parseRecommendationReceipt(receiptFromEvents(events));
+  const actionNames = events.flatMap((event) => event.type === "actions.requested"
+    ? event.data.actions.map((action) => action.kind === "load-skill" ? "load_skill" : action.toolName)
+    : []);
+  assert.deepEqual(actionNames, ["load_skill", "connection_search", "derive_delegation_evidence", "governed-memory__lookup_approved_guidance"]);
+  assert.equal(events.filter((event) => event.type === "action.result" && event.data.status === "completed").length, 4);
+  const actionLifecycle = events.filter((event) => event.type === "actions.requested" || event.type === "action.result").map((event) => event.type === "actions.requested"
+    ? { type: event.type, actions: event.data.actions.map((action) => ({ callId: action.callId, kind: action.kind, toolName: action.toolName, inputKeys: Object.keys(action.input ?? {}) })) }
+    : { type: event.type, status: event.data.status, callId: event.data.result.callId, kind: event.data.result.kind, name: event.data.result.name, toolName: event.data.result.toolName });
   assert.equal(events.filter((event) => event.type === "session.completed").length, 1);
-  const modelCall = readModelCalls()[0];
-  assert.deepEqual(modelCall, expectedFinalOutputEnvelope(1, "valid", "valid", false));
+  const modelCalls = readModelCalls().slice(0, 3);
+  assert.deepEqual(modelCalls, [
+    expectedHarnessEnvelope(1, "prepare", "valid", "tool-calls", false),
+    expectedHarnessEnvelope(2, "evidence", "valid", "tool-calls", false),
+    expectedHarnessEnvelope(3, "final", "valid", "valid", false),
+  ]);
 
   const cancelCreateResponse = await fetch(`${server.origin}/eve/v1/session`, {
     method: "POST",
@@ -297,7 +367,7 @@ try {
   });
   assert.equal(cancelStreamResponse.status, 200);
   const cancelEventsPromise = readEventsUntil(cancelStreamResponse.body, new Set(["session.waiting", "session.failed"]));
-  await waitForModelCallCount(2);
+  await waitForModelCallCount(4);
   const cancelResponse = await fetch(`${server.origin}/eve/v1/session/${encodeURIComponent(cancelSessionId)}/cancel`, {
     method: "POST",
     headers: sessionHeaders(server.origin, true),
@@ -311,10 +381,12 @@ try {
   assert.equal(cancelEvents.filter((event) => event.type === "turn.cancelled").length, 1);
   assert.equal(cancelEvents.filter((event) => event.type === "session.waiting").length, 1);
   assert.equal(cancelEvents.filter((event) => event.type === "session.failed").length, 0);
-  const cancellationModelCall = readModelCalls()[1];
-  assert.deepEqual(cancellationModelCall, expectedFinalOutputEnvelope(2, "valid", "valid", false));
+  const cancellationModelCall = readModelCalls()[3];
+  assert.deepEqual(cancellationModelCall, expectedHarnessEnvelope(4, "cancel-probe", "valid", "cancelled", false));
   const stoppedProcessIds = await stopServer(server.child);
   server = undefined;
+  const stoppedMcpProcessIds = await stopServer(mcpServer.child);
+  mcpServer = undefined;
   const egress = assertEgressMetrics();
   process.stdout.write(`${JSON.stringify({
     schemaVersion: "provider-free-eve-verification-v1",
@@ -324,8 +396,10 @@ try {
     rejectedDriveByStatus: rejectedDriveBy.status,
     rejectedDriveByModelCalls: 0,
     recommendation: receipt.recommendation,
+    capabilityActionNames: actionNames,
+    actionLifecycle,
     receiptId: receipt.receiptId,
-    modelCall,
+    modelCalls,
     cancellationModelCall,
     cancellation: "turn.cancelled -> session.waiting",
     structuredResultEvent: "result.completed",
@@ -333,9 +407,11 @@ try {
     guardedProcesses: egress.length,
     nonLoopbackAttempts: 0,
     stoppedProcessIds,
+    stoppedMcpProcessIds,
     buildOutput: buildOutput.split(/\r?\n/u).slice(-3),
   })}\n`);
 } finally {
   if (server?.child && server.child.exitCode === null) server.child.kill();
+  if (mcpServer?.child && mcpServer.child.exitCode === null) mcpServer.child.kill();
   fs.rmSync(scratch, { recursive: true, force: true });
 }

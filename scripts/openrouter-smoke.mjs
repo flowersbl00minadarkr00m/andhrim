@@ -25,7 +25,7 @@ import {
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const guardPath = path.join(root, "scripts", "provider-free-egress-guard.cjs");
-export const BROWSER_CLOSE_TIMEOUT_MS = 5_000;
+export const BROWSER_CLOSE_TIMEOUT_MS = 15_000;
 
 export function preserveEarliestSafeFailure(earlierFailure, laterFailure) {
   return earlierFailure ?? laterFailure;
@@ -105,6 +105,7 @@ function createScratchWorkspace(scratch) {
     filter(source) {
       const relative = path.relative(root, source);
       if (!relative) return true;
+      if (relative === path.join("mcp_server", ".venv") || relative.startsWith(`${path.join("mcp_server", ".venv")}${path.sep}`)) return false;
       const first = relative.split(path.sep)[0];
       if (excludedRoots.has(first)) return false;
       return first === ".env.example" || !first.startsWith(".env");
@@ -114,7 +115,7 @@ function createScratchWorkspace(scratch) {
   const dependencySource = fs.realpathSync(path.join(root, "node_modules"));
   const dependencyOverlay = path.join(runtimeRoot, "node_modules");
   const privateDependencyCaches = new Set([".cache", ".nitro", ".vite"]);
-  const sharedDependencyRoots = [];
+  const sharedDependencyRoots = [{ label: ".pnpm", target: path.join(dependencySource, ".pnpm") }];
   fs.mkdirSync(dependencyOverlay);
   for (const entry of fs.readdirSync(dependencySource, { withFileTypes: true })) {
     if (privateDependencyCaches.has(entry.name)) continue;
@@ -128,13 +129,12 @@ function createScratchWorkspace(scratch) {
         if (!fs.statSync(scopedSource).isDirectory()) continue;
         const target = fs.realpathSync(scopedSource);
         fs.symlinkSync(target, path.join(destination, scopedEntry.name), "junction");
-        sharedDependencyRoots.push({ label: `${entry.name}/${scopedEntry.name}`, target });
       }
       continue;
     }
     const target = fs.realpathSync(source);
     fs.symlinkSync(target, destination, "junction");
-    sharedDependencyRoots.push({ label: entry.name, target });
+    if (entry.name === ".bin") sharedDependencyRoots.push({ label: ".bin", target });
   }
   for (const name of privateDependencyCaches) fs.mkdirSync(path.join(dependencyOverlay, name));
   return { runtimeRoot, sharedDependencyRoots };
@@ -332,9 +332,10 @@ export async function executeSmoke({
   try {
     const webPort = await reserveLoopbackPort();
     const evePort = await reserveLoopbackPort();
-    if (webPort === evePort) throw new SmokeContractError("service", "SERVICE_START_FAILED");
-    ports = { web: webPort, eve: evePort };
-    cleanupPorts.push(webPort, evePort);
+    const mcpPort = await reserveLoopbackPort();
+    if (new Set([webPort, evePort, mcpPort]).size !== 3) throw new SmokeContractError("service", "SERVICE_START_FAILED");
+    ports = { web: webPort, eve: evePort, mcp: mcpPort };
+    cleanupPorts.push(webPort, evePort, mcpPort);
     cleanup.sharedDependencyIntegrityVerified = false;
     const workspace = createScratchWorkspace(scratch);
     const { runtimeRoot } = workspace;
@@ -344,6 +345,7 @@ export async function executeSmoke({
     const commonEnvironment = {
       AGENT_OR_NOT_DATA_DIR: dataDirectory,
       AGENT_OR_NOT_SESSION_NONCE: sessionNonce,
+      AGENT_OR_NOT_MEMORY_MCP_URL: `http://127.0.0.1:${mcpPort}/mcp`,
       EVE_NEXT_PRODUCTION_PORT: String(evePort),
       NEXT_TELEMETRY_DISABLED: "1",
       NODE_ENV: "production",
@@ -358,6 +360,20 @@ export async function executeSmoke({
     const nextBin = path.join(runtimeRoot, "node_modules", "next", "dist", "bin", "next");
     await runBuild(eveBin, ["build"], 180_000, buildEnvironment, runtimeRoot, children);
     await runBuild(nextBin, ["build", "--webpack"], 360_000, buildEnvironment, runtimeRoot, children);
+
+    const mcpPython = path.join(root, "mcp_server", ".venv", "Scripts", "python.exe");
+    if (!fs.existsSync(mcpPython)) throw new SmokeContractError("service", "SERVICE_START_FAILED");
+    const mcpServer = captureStartupDiagnostic(spawn(mcpPython, [path.join(runtimeRoot, "mcp_server", "server.py"), "--host", "127.0.0.1", "--port", String(mcpPort)], {
+      cwd: runtimeRoot,
+      env: providerFreeEnvironment({
+        AGENT_OR_NOT_DATA_DIR: dataDirectory,
+        PYTHONDONTWRITEBYTECODE: "1",
+        PYTHONNOUSERSITE: "1",
+      }),
+      stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
+    }), "mcp");
+    children.push(mcpServer);
 
     let eveServer;
     if (mode === "fixture") {
@@ -384,6 +400,7 @@ export async function executeSmoke({
         childStdio: "ignore",
         runtimeEnvironment: {
           AGENT_OR_NOT_DATA_DIR: dataDirectory,
+          AGENT_OR_NOT_MEMORY_MCP_URL: `http://127.0.0.1:${mcpPort}/mcp`,
           AGENT_OR_NOT_PROVIDER_MODE: "openrouter",
           AGENT_OR_NOT_SESSION_NONCE: sessionNonce,
           AGENT_OR_NOT_SMOKE_EVIDENCE_PATH: evidencePath,
@@ -408,7 +425,9 @@ export async function executeSmoke({
       windowsHide: true,
     }), "next");
     children.push(eveServer, nextServer);
-    const serviceChildren = [eveServer, nextServer];
+    const serviceChildren = [mcpServer, eveServer, nextServer];
+    await waitForLoopback(`http://127.0.0.1:${mcpPort}/mcp`, serviceChildren);
+    stopStartupDiagnostic(mcpServer);
     await waitForLoopback(`http://127.0.0.1:${evePort}/eve/v1/health`, serviceChildren);
     stopStartupDiagnostic(eveServer);
     await waitForLoopback(`http://127.0.0.1:${webPort}`, serviceChildren);

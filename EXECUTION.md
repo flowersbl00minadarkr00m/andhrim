@@ -611,6 +611,97 @@ event:
     receipt_evidence: This stable ready-for-review event and its exact evidence are committed in append-only EXECUTION.md.
 ~~~
 
+## 2026-09-01 — bounded Eve skill/tool/MCP harness implementation complete
+
+~~~yaml
+event:
+  event_id: evt-agent-or-not-bounded-harness-complete-20260901
+  task_id: ad-hoc-prototype-harness
+  type: implementation-complete
+  occurred_at: 2026-09-01T14:26:17.7182256-07:00
+  verdict: COMPLETE_WITH_RELEASE_GATES_OUTSTANDING
+  base:
+    canonical_path: C:\\Users\\henry\\andhrim-agent-or-not
+    branch: main
+    base_commit: 1d6cc1574990162992a5f9534229d1d3a47bf135
+    source_state: uncommitted working-tree implementation
+  diagnosis:
+    - The local Eve failure was a stale static Next.js rewrite: the launcher could start Eve on a different port than the one baked into `.next/routes-manifest.json`.
+    - The prior prototype deliberately disabled Eve's native skill loader and exposed only `final_output`, so it could not demonstrate authentic load-on-demand skill, authored-tool, or MCP behavior.
+  implementation:
+    - The launcher now reads the built rewrite port, follows it when no explicit port is set, and fails closed with `EVE_PROXY_PORT_MISMATCH` when an explicit value disagrees.
+    - The Eve session must execute `load_skill`, `connection_search`, `derive_delegation_evidence`, `governed-memory__lookup_approved_guidance`, then `final_output`; fixture evidence records prepare/evidence/final stages and the exact four/five-tool envelopes.
+    - The static `delegation-guidance` skill is loaded through Eve's native skill workspace. The authored `defineTool` is deterministic, typed, read-only, and limited to one call per session.
+    - The single `defineMcpClientConnection` is strict `http://127.0.0.1:<port>/mcp`, allowlists one read-only tool, and limits it to one call per session.
+    - The Python companion uses locked `mcp==2.1.1` and `pydantic==2.13.5`; it exposes only `lookup_approved_guidance` over loopback Streamable HTTP.
+    - The application atomically writes `approved-guidance.json` from its validated projection. The MCP process reads only this strict file and never opens `events.ndjson`; a test proves this by succeeding with a deliberately invalid/raw ledger beside a valid projection.
+    - Eve lifecycle requests/results, rather than model-authored claims, produce an exact capability trace that is validated, persisted with the recommendation, and displayed on the receipt with boundaries and data-flow provenance.
+    - `just-bash==3.4.2` was added as Eve's documented skill-workspace peer. Node and Python locks, setup, scope, dependency, README, and release documents were updated.
+  verification:
+    - command: corepack pnpm install --frozen-lockfile
+      exit_code: 0
+      result: Exact Node dependency graph materialized; final frozen replay passed with configured optional native builds disabled.
+    - command: uv sync --project mcp_server --frozen
+      exit_code: 0
+      result: Locked 29-package Python environment checked with Python 3.13.12 and uv 0.11.1.
+    - command: node scripts/verify-unit.mjs
+      exit_code: 0
+      result: 7 files and 41 tests passed; zero guarded non-loopback attempts.
+    - command: node scripts/verify-typecheck.mjs
+      exit_code: 0
+      result: TypeScript passed; zero guarded non-loopback attempts.
+    - command: node scripts/verify-mcp.mjs
+      exit_code: 0
+      result: 3 strict Pydantic/MCP boundary tests passed; zero non-loopback attempts.
+    - command: node scripts/verify-provider-free.mjs
+      exit_code: 0
+      result: Real built Eve plus real local MCP used the exact four action names, three fixture calls, strict result, cancellation, and clean teardown.
+    - command: node scripts/verify-build.mjs
+      exit_code: 0
+      result: Eve and Next production builds passed across 18 guarded processes with zero non-loopback attempts.
+    - command: node scripts/verify-start-local.mjs
+      exit_code: 0
+      result: Reproduced EVE_PROXY_PORT_MISMATCH, followed the baked port when unset, started MCP/Eve/Next on unique ports, and left zero residual processes.
+    - command: node scripts/verify-browser.mjs
+      exit_code: 0
+      result: 41-test source state passed the complete loopback browser lifecycle, including two-session correction, 31-second transition race, owner approval, projection-only MCP rule use, visible provenance, expiry, deletion, export, and zero browser/process non-loopback attempts.
+    - command: node scripts/verify-openrouter-smoke.mjs
+      exit_code: 0
+      result: Offline preflight passed with 2 sessions, 6 calls, exact stages/envelopes, complete cleanup, unchanged 25,027-entry dependency metadata digest, zero credential reads, zero provider calls, and zero non-loopback attempts.
+    - command: node scripts/openrouter-smoke.mjs
+      exit_code: 0
+      result: The public no-flag entry point independently passed the same provider-free preflight on final source.
+    - command: node scripts/scan-secrets.mjs
+      exit_code: 0
+      result: 84 source files scanned with zero findings; deleted tracked paths are safely ignored.
+    - command: node scripts/verify-licenses.mjs
+      exit_code: 0
+      result: 14 exact Node dependency records plus project MIT passed; Python licence evidence is separately documented.
+    - command: git diff --check
+      exit_code: 0
+      result: No whitespace errors before this append.
+  resolved_failures:
+    - The first revised smoke exceeded its 15-minute wrapper budget while byte-hashing pnpm's linked graph. The proof now hashes a complete file/link metadata manifest without following nested link farms and finishes in seconds.
+    - A concurrent no-flag smoke observed a bounded browser-close timeout despite complete final process/port proof. The close bound was raised from 5 to 15 seconds; the isolated final replay passed.
+  boundaries:
+    live_mode_executions: 0
+    provider_or_openrouter_calls: 0
+    provider_credential_or_key_access: 0
+    guarded_runtime_non_loopback_attempts: 0
+    dependency_registry_access: occurred only during explicit Node/Python dependency materialization
+    shared_brain_write: skipped because it would require provider credential access contrary to this task's provider-free boundary
+    git_commits_or_metadata_writes: 0
+    publication_or_deployment: 0
+  retained_local_residue:
+    - C:\\Users\\henry\\AppData\\Local\\Temp\\agent-or-not-openrouter-smoke-W7VIzO
+    - C:\\Users\\henry\\AppData\\Local\\Temp\\agent-or-not-openrouter-smoke-PUZHDx
+    note: Exact recursive cleanup was rejected by host command policy; the directories are isolated provider-free scratch workspaces from interrupted/timed-out preflight attempts and are outside the repository.
+  outstanding_release_gates:
+    - A disposable clean clone of this exact uncommitted source state has not been qualified.
+    - The current transitive Node/Python licence inventory has not replaced the historical pre-MCP inventory.
+    - The owner-only live OpenRouter smoke remains deliberately unexecuted.
+~~~
+
 ### R2 As Built and acceptance evidence
 
 Truth label: **verified** — source: final inspected diff plus node scripts/verify-browser.mjs.
@@ -2345,4 +2436,15 @@ event:
     source_thread_id: 01a0469c-2ac1-7573-93a3-aed2f92345c7
     state: durable-fallback
     receipt_evidence: This stable correction event is appended for orchestrator reconciliation.
+~~~
+
+## 2026-09-01 — execution-record ordering note
+
+~~~yaml
+event:
+  event_id: evt-agent-or-not-bounded-harness-record-order-note-20260901
+  type: evidence-note
+  occurred_at: 2026-09-01T14:26:17.7182256-07:00
+  canonical_evidence_event: evt-agent-or-not-bounded-harness-complete-20260901
+  note: The complete bounded-harness event was added after a closed historical event block at line 614 rather than at physical EOF. No historical text was removed or overwritten. This EOF note preserves that ordering fact and points to the canonical evidence event above.
 ~~~

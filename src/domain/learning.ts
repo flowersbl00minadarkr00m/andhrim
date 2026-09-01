@@ -5,6 +5,7 @@ import {
   recommendationReceiptSchema,
   type RecommendationReceipt,
 } from "./recommendation";
+import { capabilityTraceSchema, type CapabilityTrace } from "./capabilities";
 
 const boundedText = (maximum: number) => z.string().trim().min(1).max(maximum);
 const recordId = (prefix: string) => z.string().regex(new RegExp(`^${prefix}-[a-z0-9-]+$`, "u"));
@@ -101,7 +102,7 @@ const eventBase = {
 };
 
 export const productEventSchema = z.discriminatedUnion("type", [
-  z.object({ ...eventBase, type: z.literal("recommendation.recorded"), assessment: assessmentSchema, receipt: recommendationReceiptSchema }).strict(),
+  z.object({ ...eventBase, type: z.literal("recommendation.recorded"), assessment: assessmentSchema, receipt: recommendationReceiptSchema, capabilityTrace: capabilityTraceSchema.optional() }).strict(),
   z.object({ ...eventBase, type: z.literal("recommendation.edited"), receipt: recommendationReceiptSchema }).strict(),
   z.object({ ...eventBase, type: z.literal("outcome.recorded"), outcome: outcomeSchema }).strict(),
   z.object({ ...eventBase, type: z.literal("learning.proposed"), candidate: learningCandidateSchema }).strict(),
@@ -118,13 +119,14 @@ export type ProductEvent = z.infer<typeof productEventSchema>;
 export type ProductProjection = {
   assessments: Record<string, Assessment>;
   receipts: Record<string, RecommendationReceipt>;
+  capabilityTraces: Record<string, CapabilityTrace>;
   outcomes: Record<string, Outcome>;
   candidates: Record<string, LearningCandidate>;
   rules: Record<string, ActiveRule>;
 };
 
 export function createEmptyProjection(): ProductProjection {
-  return { assessments: {}, receipts: {}, outcomes: {}, candidates: {}, rules: {} };
+  return { assessments: {}, receipts: {}, capabilityTraces: {}, outcomes: {}, candidates: {}, rules: {} };
 }
 
 function candidateWithStatus(candidate: LearningCandidate, status: LearningCandidate["status"]): LearningCandidate {
@@ -139,6 +141,7 @@ export function projectProductEvents(values: readonly unknown[]): ProductProject
       case "recommendation.recorded":
         state.assessments[event.assessment.assessmentId] = event.assessment;
         state.receipts[event.receipt.receiptId] = event.receipt;
+        if (event.capabilityTrace) state.capabilityTraces[event.receipt.receiptId] = event.capabilityTrace;
         break;
       case "recommendation.edited": {
         const current = state.receipts[event.receipt.receiptId];

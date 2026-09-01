@@ -1,6 +1,6 @@
 # Dependency and licence evidence
 
-The project source is licensed under the [MIT License](../LICENSE). That project licence does not relicense third-party packages; each dependency retains its own terms. Dependency versions are exact in `package.json` and `pnpm-lock.yaml`.
+The project source is licensed under the [MIT License](../LICENSE). That project licence does not relicense third-party packages; each dependency retains its own terms. Node dependency versions are exact in `package.json` and `pnpm-lock.yaml`; Python MCP dependency versions are exact in `mcp_server/pyproject.toml` and `mcp_server/uv.lock`.
 
 | Package | Version | Role | Licence |
 | --- | ---: | --- | --- |
@@ -14,15 +14,18 @@ The project source is licensed under the [MIT License](../LICENSE). That project
 | typescript | 5.9.2 | Compiler | Apache-2.0 |
 | vitest | 4.1.11 | Deterministic tests | MIT |
 | @playwright/test | 1.62.1 | Browser verification | Apache-2.0 |
+| just-bash | 3.4.2 | Eve skill-workspace runtime peer | Apache-2.0 |
 | @types/node | 24.13.3 | Node type declarations | MIT |
 | @types/react | 19.2.18 | React type declarations | MIT |
 | @types/react-dom | 19.2.4 | React DOM type declarations | MIT |
+| mcp (Python) | 2.1.1 | Loopback FastMCP server/runtime | MIT |
+| pydantic (Python) | 2.13.5 | Strict MCP boundary models | MIT |
 
-Direct-dependency evidence source: the `license` fields in the exact locally materialized package manifests, cross-checked by `scripts/verify-licenses.mjs`. Transitive packages and integrity hashes are recorded by the lockfile. No project licence is inferred from dependency licences.
+Node direct-dependency evidence comes from the `license` fields in the exact locally materialized package manifests, cross-checked by `scripts/verify-licenses.mjs`. Python licence metadata is recorded by the exact installed distributions and upstream project metadata, while `uv.lock` records the complete locked graph and integrity hashes. No project licence is inferred from dependency licences.
 
-## Qualified clean-clone transitive inventory
+## Historical qualified clean-clone transitive inventory
 
-The disposable Windows clean-clone qualification at exact source commit `15a6b52fd80f22b60ab228acb00b36e37a93842b` reconstructed 115 unique package roots. It found zero missing manifest licence fields and zero missing lockfile mentions:
+The disposable Windows clean-clone qualification at exact source commit `15a6b52fd80f22b60ab228acb00b36e37a93842b` reconstructed 115 unique package roots. It predates the bounded skill/MCP implementation, `just-bash`, and the Python environment, so it is historical evidence rather than qualification of the current source. It found zero missing manifest licence fields and zero missing lockfile mentions:
 
 | Licence expression | Package roots |
 | --- | ---: |
@@ -46,7 +49,7 @@ The notable exact package roots in that inventory include:
 
 Packaged NOTICE records exist for Eve and the three Playwright roots. Nine roots have manifest licence metadata but no root licence/notice file. Non-simple obligations were identified for `@img/sharp-win32-x64` `0.35.3`, `caniuse-lite` `1.0.30001809`, `json-schema` `0.4.0`, `lightningcss` `1.33.0`, and `lightningcss-win32-x64-msvc` `1.33.0`.
 
-This evidence clears the transitive-inventory gate for a GitHub source-only release because `node_modules`, `.eve`, `.next`, `.output`, Playwright and Chromium are ignored and are not redistributed. The MIT project licence applies only to project source and does not relicense third-party packages. A bundled installer, generated runtime archive, vendored dependency tree or browser-inclusive release requires a separate audit of the actual bundle, including Apache and Chromium notices, the obligations above and the nine roots lacking packaged licence files. This is an engineering assessment, not legal advice.
+This historical evidence cleared the transitive-inventory gate for that earlier source revision only. The current source needs a new clean-clone Node and Python inventory before a release claim. The MIT project licence applies only to project source and does not relicense third-party packages. A bundled installer, generated runtime archive, vendored dependency tree or browser-inclusive release requires a separate audit of the actual bundle, including Apache and Chromium notices, the obligations above and the nine roots lacking packaged licence files. This is an engineering assessment, not legal advice.
 
 The qualification materialized 21,215 files totalling 474,605,647 bytes. The provider-free smoke matched pre/post SHA-256 evidence over 21,193 shared dependency files totalling 474,502,379 bytes. `pnpm install --frozen-lockfile --ignore-scripts` exited `0` with 115 packages, all reused and `downloaded 0`; no packet capture was performed, so this is bounded command evidence rather than proof of no network traffic.
 

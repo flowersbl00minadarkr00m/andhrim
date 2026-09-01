@@ -6,10 +6,11 @@ import path from "node:path";
 import { z } from "zod";
 
 export const SMOKE_SESSION_BUDGET = 2;
+export const SMOKE_MODEL_CALL_BUDGET = SMOKE_SESSION_BUDGET * 3;
 export const SMOKE_REPORT_PATH = path.join("output", "openrouter-smoke-report.json");
 export const PROCESS_INSPECTION_TIMEOUT_MS = 15_000;
 export const TASKKILL_TIMEOUT_MS = 5_000;
-export const FINAL_OUTPUT_ENVELOPE_CLASSIFICATION = "eve-final-output-only-v1";
+export const FINAL_OUTPUT_ENVELOPE_CLASSIFICATION = "eve-bounded-guidance-harness-v1";
 
 const explicitModelIdSchema = z.string().regex(/^[a-z0-9._-]+\/[a-z0-9._:-]+$/iu).max(120);
 const runtimeModelIdSchema = z.union([explicitModelIdSchema, z.literal("agent-or-not-fixture")]);
@@ -27,12 +28,29 @@ export class SmokeContractError extends Error {
 export const smokeModelCallSchema = z.object({
   timestamp: timestampSchema,
   modelId: runtimeModelIdSchema,
-  callIndex: z.number().int().min(1).max(SMOKE_SESSION_BUDGET),
+  callIndex: z.number().int().min(1).max(SMOKE_MODEL_CALL_BUDGET),
+  stage: z.enum(["prepare", "evidence", "final"]),
   classification: z.literal(FINAL_OUTPUT_ENVELOPE_CLASSIFICATION),
-  toolDefinitionCount: z.literal(1),
-  toolNames: z.tuple([z.literal("final_output")]),
-  actionCapableToolDefinitionCount: z.literal(0),
-}).strict();
+  toolDefinitionCount: z.union([z.literal(4), z.literal(5)]),
+  toolNames: z.array(z.enum(["connection_search", "derive_delegation_evidence", "final_output", "governed-memory__lookup_approved_guidance", "load_skill"])).min(4).max(5),
+  instructionToolDefinitionCount: z.literal(1),
+  discoveryToolDefinitionCount: z.literal(1),
+  localReadOnlyToolDefinitionCount: z.literal(1),
+  mcpReadOnlyToolDefinitionCount: z.union([z.literal(0), z.literal(1)]),
+  finalOutputToolDefinitionCount: z.literal(1),
+  actionCapableToolDefinitionCount: z.union([z.literal(1), z.literal(2)]),
+}).strict().superRefine((call, context) => {
+  const expectedNames = ["connection_search", "derive_delegation_evidence", "final_output", "load_skill"];
+  if (call.stage !== "prepare") expectedNames.push("governed-memory__lookup_approved_guidance");
+  expectedNames.sort();
+  const discovered = call.stage !== "prepare";
+  if (JSON.stringify(call.toolNames) !== JSON.stringify(expectedNames)
+    || call.toolDefinitionCount !== (discovered ? 5 : 4)
+    || call.mcpReadOnlyToolDefinitionCount !== (discovered ? 1 : 0)
+    || call.actionCapableToolDefinitionCount !== (discovered ? 2 : 1)) {
+    context.addIssue({ code: "custom", message: "Call does not match its bounded harness stage." });
+  }
+});
 
 const safeErrorSchema = z.object({
   class: z.enum(["configuration", "build", "service", "browser", "validation", "evidence", "cleanup", "internal"]),
@@ -63,16 +81,17 @@ export const smokeReportSchema = z.object({
   loopbackPorts: z.object({
     web: z.number().int().min(1).max(65_535),
     eve: z.number().int().min(1).max(65_535),
+    mcp: z.number().int().min(1).max(65_535),
   }).strict().nullable(),
   receiptValidated: z.boolean(),
   sessionCount: z.number().int().min(0).max(SMOKE_SESSION_BUDGET),
   blockedSessionRequests: z.number().int().min(0),
   modelBoundary: z.object({
     observed: z.boolean(),
-    modelCallCount: z.number().int().min(0).max(SMOKE_SESSION_BUDGET),
-    toolDefinitionCount: z.literal(1).nullable(),
+    modelCallCount: z.number().int().min(0).max(SMOKE_MODEL_CALL_BUDGET),
+    toolDefinitionCount: z.literal(5).nullable(),
     toolEnvelope: z.literal(FINAL_OUTPUT_ENVELOPE_CLASSIFICATION).nullable(),
-    calls: z.array(smokeModelCallSchema).max(SMOKE_SESSION_BUDGET),
+    calls: z.array(smokeModelCallSchema).max(SMOKE_MODEL_CALL_BUDGET),
   }).strict(),
   browserNonLoopbackRequests: z.number().int().min(0),
   liveEveEnvironmentAllowlistVerified: z.boolean().nullable(),
@@ -92,7 +111,7 @@ export const smokeReportSchema = z.object({
   if (report.modelBoundary.observed !== (report.modelBoundary.calls.length > 0)) {
     context.addIssue({ code: "custom", path: ["modelBoundary", "observed"], message: "Observed state must match retained safe calls." });
   }
-  const toolCount = report.modelBoundary.calls.length === 0 ? null : 1;
+  const toolCount = report.modelBoundary.calls.length === 0 ? null : 5;
   if (report.modelBoundary.toolDefinitionCount !== toolCount) {
     context.addIssue({ code: "custom", path: ["modelBoundary", "toolDefinitionCount"], message: "Tool count must reconcile safe calls." });
   }
@@ -108,12 +127,12 @@ export const smokeReportSchema = z.object({
   if (report.state === "passed") {
     if (!report.receiptValidated
       || !report.modelBoundary.observed
-      || report.modelBoundary.toolDefinitionCount !== 1
+      || report.modelBoundary.toolDefinitionCount !== 5
       || report.modelBoundary.toolEnvelope !== FINAL_OUTPUT_ENVELOPE_CLASSIFICATION) {
-      context.addIssue({ code: "custom", path: ["state"], message: "Passing reports require a validated final-output-only model boundary." });
+      context.addIssue({ code: "custom", path: ["state"], message: "Passing reports require a validated bounded guidance harness." });
     }
-    if (report.sessionCount < 1 || report.sessionCount !== report.modelBoundary.modelCallCount || report.blockedSessionRequests !== 0) {
-      context.addIssue({ code: "custom", path: ["sessionCount"], message: "Passing reports require one or two exactly reconciled sessions with no blocked third request." });
+    if (report.sessionCount < 1 || report.sessionCount * 3 !== report.modelBoundary.modelCallCount || report.blockedSessionRequests !== 0) {
+      context.addIssue({ code: "custom", path: ["sessionCount"], message: "Passing reports require three bounded model calls per session and no blocked third session." });
     }
     if (report.browserNonLoopbackRequests !== 0
       || !report.cleanup.scratchRemoved
@@ -194,6 +213,7 @@ export const liveEveRuntimeEnvironmentNames = Object.freeze([
   "AGENT_OR_NOT_DATA_DIR",
   "AGENT_OR_NOT_PROVIDER_MODE",
   "AGENT_OR_NOT_SESSION_NONCE",
+  "AGENT_OR_NOT_MEMORY_MCP_URL",
   "AGENT_OR_NOT_SMOKE_EVIDENCE_PATH",
   "EVE_NEXT_PRODUCTION_PORT",
   "NODE_ENV",
@@ -221,36 +241,26 @@ export function providerFreeEnvironment(overrides = {}) {
   return { ...environment, ...overrides };
 }
 
-function hashFileBytes(filePath) {
-  const digest = crypto.createHash("sha256");
-  const descriptor = fs.openSync(filePath, "r");
-  const buffer = Buffer.allocUnsafe(1024 * 1024);
-  try {
-    let offset = 0;
-    while (true) {
-      const bytesRead = fs.readSync(descriptor, buffer, 0, buffer.length, offset);
-      if (bytesRead === 0) break;
-      digest.update(buffer.subarray(0, bytesRead));
-      offset += bytesRead;
-    }
-  } finally {
-    fs.closeSync(descriptor);
-  }
-  return digest.digest("hex");
-}
-
 export function captureSharedDependencyIntegrity(sharedRoots) {
   const entries = [];
-  const visitedDirectories = new Set();
   const walk = (rootLabel, aliasPath, candidatePath) => {
-    const canonicalPath = fs.realpathSync(candidatePath);
-    const stat = fs.statSync(canonicalPath);
+    const stat = fs.lstatSync(candidatePath, { bigint: true });
+    const canonicalPath = path.resolve(candidatePath);
+    if (stat.isSymbolicLink()) {
+      entries.push({
+        rootLabel,
+        aliasPath,
+        canonicalPath: canonicalPath.toLowerCase(),
+        entryType: "link",
+        byteLength: 0,
+        modifiedNanoseconds: stat.mtimeNs.toString(),
+        linkTarget: fs.readlinkSync(candidatePath),
+      });
+      return;
+    }
     if (stat.isDirectory()) {
-      const directoryKey = canonicalPath.toLowerCase();
-      if (visitedDirectories.has(directoryKey)) return;
-      visitedDirectories.add(directoryKey);
-      for (const name of fs.readdirSync(canonicalPath).sort()) {
-        walk(rootLabel, path.posix.join(aliasPath, name), path.join(canonicalPath, name));
+      for (const name of fs.readdirSync(candidatePath).sort()) {
+        walk(rootLabel, path.posix.join(aliasPath, name), path.join(candidatePath, name));
       }
       return;
     }
@@ -259,8 +269,10 @@ export function captureSharedDependencyIntegrity(sharedRoots) {
       rootLabel,
       aliasPath,
       canonicalPath: canonicalPath.toLowerCase(),
-      byteLength: stat.size,
-      sha256: hashFileBytes(canonicalPath),
+      entryType: "file",
+      byteLength: Number(stat.size),
+      modifiedNanoseconds: stat.mtimeNs.toString(),
+      linkTarget: "",
     });
   };
 
@@ -272,10 +284,10 @@ export function captureSharedDependencyIntegrity(sharedRoots) {
   let totalBytes = 0;
   for (const entry of entries) {
     totalBytes += entry.byteLength;
-    manifestDigest.update(`${entry.rootLabel}\0${entry.aliasPath}\0${entry.canonicalPath}\0${entry.byteLength}\0${entry.sha256}\n`);
+    manifestDigest.update(`${entry.rootLabel}\0${entry.aliasPath}\0${entry.canonicalPath}\0${entry.entryType}\0${entry.byteLength}\0${entry.modifiedNanoseconds}\0${entry.linkTarget}\n`);
   }
   return {
-    algorithm: "sha256",
+    algorithm: "sha256-file-metadata-v1",
     fileCount: entries.length,
     totalBytes,
     digest: manifestDigest.digest("hex"),
@@ -283,8 +295,8 @@ export function captureSharedDependencyIntegrity(sharedRoots) {
 }
 
 export function reconcileSharedDependencyIntegrity(before, after) {
-  if (before.algorithm !== "sha256"
-    || after.algorithm !== "sha256"
+  if (before.algorithm !== "sha256-file-metadata-v1"
+    || after.algorithm !== "sha256-file-metadata-v1"
     || before.fileCount !== after.fileCount
     || before.totalBytes !== after.totalBytes
     || before.digest !== after.digest) {
@@ -302,32 +314,30 @@ export function readSmokeModelCalls(evidencePath) {
 }
 
 export function reconcileBoundaryEvidence(calls, expectedModelId, sessionCount, receiptValidated) {
-  if (sessionCount > SMOKE_SESSION_BUDGET || calls.length > SMOKE_SESSION_BUDGET) {
+  if (sessionCount > SMOKE_SESSION_BUDGET || calls.length > SMOKE_MODEL_CALL_BUDGET) {
     throw new SmokeContractError("evidence", "ATTEMPT_BUDGET_EXCEEDED");
   }
   for (const [index, call] of calls.entries()) {
     if (call.callIndex !== index + 1 || call.modelId !== expectedModelId) {
       throw new SmokeContractError("evidence", "EVIDENCE_INVALID");
     }
-    if (call.classification !== FINAL_OUTPUT_ENVELOPE_CLASSIFICATION
-      || call.toolDefinitionCount !== 1
-      || call.actionCapableToolDefinitionCount !== 0
-      || !Array.isArray(call.toolNames)
-      || call.toolNames.length !== 1
-      || call.toolNames[0] !== "final_output") {
+    const expectedStage = ["prepare", "evidence", "final"][index % 3];
+    if (!smokeModelCallSchema.safeParse(call).success
+      || call.classification !== FINAL_OUTPUT_ENVELOPE_CLASSIFICATION
+      || call.stage !== expectedStage) {
       throw new SmokeContractError("evidence", "MODEL_TOOL_ENVELOPE_INVALID");
     }
   }
   if (receiptValidated && calls.length === 0) {
     throw new SmokeContractError("evidence", "MODEL_BOUNDARY_NOT_OBSERVED");
   }
-  if (receiptValidated && calls.length !== sessionCount) {
+  if (receiptValidated && calls.length !== sessionCount * 3) {
     throw new SmokeContractError("evidence", "EVIDENCE_INVALID");
   }
   return {
     observed: calls.length > 0,
     modelCallCount: calls.length,
-    toolDefinitionCount: calls.length === 0 ? null : 1,
+    toolDefinitionCount: calls.length === 0 ? null : 5,
     toolEnvelope: calls.length === 0 ? null : FINAL_OUTPUT_ENVELOPE_CLASSIFICATION,
     calls,
   };

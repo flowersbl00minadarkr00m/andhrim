@@ -203,7 +203,7 @@ textarea { min-height: 74px; resize: vertical; }
 .confidence span { width: 13px; height: 13px; border: 1px solid var(--copper); border-radius: 50%; }
 .confidence span.is-filled { background: var(--copper); }
 .confidence b { margin-left: 6px; }
-.starter-pack, .rule-provenance { padding-top: 24px; }
+.starter-pack, .rule-provenance, .capability-provenance { padding-top: 24px; }
 .section-title { align-items: baseline; }
 .section-title span { color: var(--muted); font-size: 12px; }
 .text-button { min-height: 44px; border: 0; padding: 0 4px; background: transparent; color: var(--copper-dark); cursor: pointer; font-weight: 750; }
@@ -213,6 +213,15 @@ textarea { min-height: 74px; resize: vertical; }
 .starter-editor > div { padding-bottom: 14px; border-bottom: 1px solid var(--line); }
 .starter-editor label { display: grid; gap: 5px; margin-bottom: 9px; color: var(--muted); font-size: 12px; font-weight: 750; }
 .rule-provenance p { font-size: 14px; }
+.capability-provenance > ol { margin: 16px 0 0; padding: 0; list-style: none; counter-reset: capability; }
+.capability-provenance > ol > li { counter-increment: capability; padding: 16px 0 16px 34px; border-top: 1px solid var(--line); position: relative; }
+.capability-provenance > ol > li::before { content: counter(capability); position: absolute; left: 0; top: 16px; width: 22px; height: 22px; border: 1px solid var(--copper); border-radius: 50%; display: grid; place-items: center; color: var(--copper-dark); font-size: 11px; font-weight: 800; }
+.capability-provenance li > p { margin: 0 0 5px; font-size: 13px; }
+.capability-provenance li > p:first-child span { color: var(--muted); font-weight: 500; }
+.capability-provenance dl { margin: 10px 0 0; display: grid; gap: 6px; }
+.capability-provenance dl > div { display: grid; grid-template-columns: 96px 1fr; gap: 10px; }
+.capability-provenance dt { color: var(--muted); font-size: 10px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
+.capability-provenance dd { margin: 0; font-size: 12px; overflow-wrap: anywhere; }
 .receipt__note { margin-top: 26px; padding-top: 16px; border-top: 2px solid var(--ink); color: var(--muted); font-size: 12px; text-align: center; }
 
 .completed-layout { grid-template-columns: minmax(480px, 48%) minmax(480px, 52%); }

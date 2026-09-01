@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fixtureReceipt } from "../../agent/lib/fixture-receipt";
+import { capabilityTraceSchema } from "./capabilities";
 import {
   applyApprovedRules,
   assessmentSchema,
@@ -35,6 +36,22 @@ function event(eventId: string, value: object) {
 }
 
 describe("owner-approved learning projection", () => {
+  it("persists observed capability provenance alongside its receipt", () => {
+    const capabilityTrace = capabilityTraceSchema.parse({
+      schemaVersion: "harness-capability-trace-v1",
+      steps: [
+        { kind: "skill", name: "delegation-guidance", eveCapability: "load_skill", executionBoundary: "Eve instruction context", inputFields: ["skill"], outputSummary: "Instructions loaded on demand; no code or tool executed." },
+        { kind: "connection-discovery", name: "connection_search", eveCapability: "connection_search", executionBoundary: "Eve connection registry", inputFields: ["connection", "keywords", "limit"], discoveredTools: ["governed-memory__lookup_approved_guidance"], outputSummary: "One allowlisted MCP tool definition discovered; no memory data read." },
+        { kind: "authored-tool", name: "derive_delegation_evidence", eveCapability: "defineTool", executionBoundary: "local Eve application runtime", inputFields: ["outcomeStakes", "repeatability", "specificationClarity", "verificationCost", "contextSensitivity"], answers: assessment.answers, suggestedPosture: "ai-assisted", readOnly: true, outputSummary: "Deterministic delegation signals and guardrails returned." },
+        { kind: "mcp-tool", name: "governed-memory__lookup_approved_guidance", eveCapability: "defineMcpClientConnection + Pydantic MCPServer", executionBoundary: "127.0.0.1 Streamable HTTP", inputFields: ["outcomeStakes", "repeatability", "specificationClarity", "verificationCost", "contextSensitivity"], answers: assessment.answers, matchedRuleIds: [], sourceOutcomeIds: [], readOnly: true, historicalOutcomesRetrieved: false, rawOutcomeNotesCrossed: false, outputSummary: "Only matching approved-rule provenance returned; raw outcomes stayed behind the MCP boundary." },
+      ],
+    });
+    const state = projectProductEvents([
+      event("event-recommendation", { type: "recommendation.recorded", assessment, receipt: fixtureReceipt, capabilityTrace }),
+    ]);
+    expect(state.capabilityTraces[fixtureReceipt.receiptId]).toEqual(capabilityTrace);
+  });
+
   it("permits starter-pack edits without allowing receipt invariants to change", () => {
     const edited = validateReceiptStarterPackRevision(fixtureReceipt, {
       ...fixtureReceipt,

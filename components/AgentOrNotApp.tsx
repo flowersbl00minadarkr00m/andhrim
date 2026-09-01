@@ -92,13 +92,13 @@ export function AgentOrNotApp() {
       if (!runtimeStatus?.configured || !runtimeStatus.modelId || !runtimeStatus.sessionNonce) {
         throw new Error("The selected local model or session boundary is not configured.");
       }
-      const modelReceipt = await requestEveReceipt(validatedAssessment, {
+      const modelRun = await requestEveReceipt(validatedAssessment, {
         providerMode: runtimeStatus.providerMode,
         modelId: runtimeStatus.modelId,
         sessionNonce: runtimeStatus.sessionNonce,
       });
       const localReceipt = parseRecommendationReceipt({
-        ...modelReceipt,
+        ...modelRun.receipt,
         receiptId: `receipt-${crypto.randomUUID()}`,
         assessmentId: assessment.assessmentId,
       });
@@ -106,6 +106,7 @@ export function AgentOrNotApp() {
         action: "record-recommendation",
         assessment: validatedAssessment,
         receipt: localReceipt,
+        capabilityTrace: modelRun.capabilityTrace,
       }, runtimeStatus.sessionNonce);
       setProjection(nextProjection);
       setReceipt(nextProjection.receipts[localReceipt.receiptId]);
@@ -212,7 +213,7 @@ export function AgentOrNotApp() {
         </div>
       ) : (
         <div className="completed-layout">
-          <section className="completed-receipt"><Receipt receipt={receipt} previewRecommendation={receipt.recommendation} step={4} onStarterPackSave={saveStarterPack} privacyDisclosure={runtimeStatus?.privacyDisclosure} /></section>
+          <section className="completed-receipt"><Receipt receipt={receipt} capabilityTrace={projection?.capabilityTraces[receipt.receiptId]} previewRecommendation={receipt.recommendation} step={4} onStarterPackSave={saveStarterPack} privacyDisclosure={runtimeStatus?.privacyDisclosure} /></section>
           <LearningPanel key={receipt.receiptId} receipt={receipt} projection={projection} sessionNonce={runtimeStatus?.sessionNonce} onProjection={setProjection} onError={setError} />
           {error ? <p className="error completed-error" role="alert">{error}</p> : null}
         </div>
@@ -221,7 +222,7 @@ export function AgentOrNotApp() {
       <LearningHistory projection={projection} sessionNonce={runtimeStatus?.sessionNonce} onProjection={setProjection} onError={setError} onResumeReview={resumeLearningReview} />
 
       <footer className="app-footer" id="about">
-        <p><b>Loopback application</b> · Eve session · Final-output schema only · Local ledger</p>
+        <p><b>Loopback application</b> · Eve bounded guidance harness · Read-only skill/tool/MCP evidence · Local ledger</p>
         <p>{runtimeStatus ? `${runtimeStatus.providerMode === "fixture" ? "Fixture" : "OpenRouter"} · ${runtimeStatus.modelId ?? "model not selected"} · ${runtimeStatus.configured ? "configured" : "not configured"}` : "Reading local model status…"}</p>
         <p>{runtimeStatus?.privacyDisclosure ?? "Reading the runtime privacy boundary…"}</p>
       </footer>

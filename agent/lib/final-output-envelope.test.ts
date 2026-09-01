@@ -1,33 +1,47 @@
 import { describe, expect, it } from "vitest";
 import {
-  FINAL_OUTPUT_ENVELOPE_CLASSIFICATION,
-  assertFinalOutputOnlyEnvelope,
+  HARNESS_ENVELOPE_CLASSIFICATION,
+  assertBoundedHarnessEnvelope,
 } from "./final-output-envelope";
 
-const finalOutputTool = {
+const tool = (name: string) => ({
   type: "function",
-  name: "final_output",
+  name,
   inputSchema: { type: "object" },
-};
+});
+const baseTools = ["connection_search", "derive_delegation_evidence", "final_output", "load_skill"].map(tool);
 
 describe("model tool envelope", () => {
-  it("classifies exactly one non-executing Eve final-output tool", () => {
-    expect(assertFinalOutputOnlyEnvelope([finalOutputTool])).toEqual({
-      classification: FINAL_OUTPUT_ENVELOPE_CLASSIFICATION,
-      toolDefinitionCount: 1,
-      toolNames: ["final_output"],
-      actionCapableToolDefinitionCount: 0,
+  it("classifies the bounded pre-discovery Eve harness", () => {
+    expect(assertBoundedHarnessEnvelope(baseTools)).toEqual({
+      classification: HARNESS_ENVELOPE_CLASSIFICATION,
+      toolDefinitionCount: 4,
+      toolNames: ["connection_search", "derive_delegation_evidence", "final_output", "load_skill"],
+      instructionToolDefinitionCount: 1,
+      discoveryToolDefinitionCount: 1,
+      localReadOnlyToolDefinitionCount: 1,
+      mcpReadOnlyToolDefinitionCount: 0,
+      finalOutputToolDefinitionCount: 1,
+      actionCapableToolDefinitionCount: 1,
+    });
+  });
+
+  it("classifies the same harness after one allow-listed MCP tool is discovered", () => {
+    expect(assertBoundedHarnessEnvelope([...baseTools, tool("governed-memory__lookup_approved_guidance")])).toMatchObject({
+      toolDefinitionCount: 5,
+      mcpReadOnlyToolDefinitionCount: 1,
+      actionCapableToolDefinitionCount: 2,
     });
   });
 
   it.each([
     undefined,
     [],
-    [{ ...finalOutputTool, name: "web_search" }],
-    [{ ...finalOutputTool, type: "provider" }],
-    [{ ...finalOutputTool, execute: () => undefined }],
-    [finalOutputTool, { type: "function", name: "read_file", inputSchema: { type: "object" } }],
-  ])("rejects every envelope except final-output-only", (tools) => {
-    expect(() => assertFinalOutputOnlyEnvelope(tools)).toThrow("MODEL_TOOL_ENVELOPE_INVALID");
+    [tool("final_output")],
+    [...baseTools, tool("read_file")],
+    baseTools.map((entry) => entry.name === "final_output" ? { ...entry, type: "provider" } : entry),
+    baseTools.map((entry) => entry.name === "final_output" ? { ...entry, execute: () => undefined } : entry),
+  ])("rejects anything outside the bounded harness", (tools) => {
+    expect(() => assertBoundedHarnessEnvelope(tools)).toThrow("MODEL_TOOL_ENVELOPE_INVALID");
   });
 });

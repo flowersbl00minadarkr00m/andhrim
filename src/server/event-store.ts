@@ -1,4 +1,5 @@
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import {
   productEventSchema,
@@ -18,6 +19,29 @@ export function eventLedgerPath() {
   return path.join(dataDirectory(), "events.ndjson");
 }
 
+export function approvedGuidancePath() {
+  return path.join(dataDirectory(), "approved-guidance.json");
+}
+
+function writeApprovedGuidanceProjection(projection: ProductProjection) {
+  const directory = dataDirectory();
+  mkdirSync(directory, { recursive: true });
+  const destination = approvedGuidancePath();
+  const temporary = `${destination}.${process.pid}.${randomUUID()}.tmp`;
+  const rules = Object.values(projection.rules)
+    .filter((rule) => rule.active)
+    .sort((left, right) => left.ruleId.localeCompare(right.ruleId));
+  try {
+    writeFileSync(temporary, `${JSON.stringify({ schemaVersion: "approved-guidance-projection-v1", rules })}\n`, {
+      encoding: "utf8",
+      flag: "wx",
+    });
+    renameSync(temporary, destination);
+  } finally {
+    rmSync(temporary, { force: true });
+  }
+}
+
 export function readProductEvents(): ProductEvent[] {
   const ledgerPath = eventLedgerPath();
   if (!existsSync(ledgerPath)) return [];
@@ -34,7 +58,9 @@ export function readProductEvents(): ProductEvent[] {
 }
 
 export function readProductProjection(): ProductProjection {
-  return projectProductEvents(readProductEvents());
+  const projection = projectProductEvents(readProductEvents());
+  writeApprovedGuidanceProjection(projection);
+  return projection;
 }
 
 export function appendProductEvent(value: unknown): ProductProjection {
@@ -54,5 +80,7 @@ export function appendProductEvents(values: readonly unknown[]): ProductProjecti
   const directory = dataDirectory();
   mkdirSync(directory, { recursive: true });
   appendFileSync(eventLedgerPath(), events.map((event) => JSON.stringify(event)).join("\n") + "\n", { encoding: "utf8", flag: "a" });
-  return projectProductEvents(next);
+  const projection = projectProductEvents(next);
+  writeApprovedGuidanceProjection(projection);
+  return projection;
 }
