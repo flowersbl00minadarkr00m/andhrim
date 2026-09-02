@@ -38,6 +38,8 @@ html {
 }
 
 body {
+  position: relative;
+  isolation: isolate;
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
@@ -50,6 +52,51 @@ body {
   font-size: 16px;
   line-height: 1.55;
   text-rendering: optimizeLegibility;
+}
+
+body > main {
+  position: relative;
+  z-index: 1;
+}
+
+.visual-atmosphere {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  contain: strict;
+}
+
+.visual-atmosphere::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(5, 7, 13, .72), rgba(5, 7, 13, .2) 52%, rgba(5, 7, 13, .54)),
+    linear-gradient(180deg, rgba(5, 7, 13, .12), rgba(5, 7, 13, .7));
+}
+
+.visual-atmosphere__static,
+.visual-atmosphere__field {
+  position: absolute;
+  inset: -8%;
+  width: 116%;
+  height: 116%;
+}
+
+.visual-atmosphere__static {
+  opacity: .28;
+  background:
+    repeating-radial-gradient(ellipse at 82% 20%, transparent 0 38px, rgba(47, 108, 246, .09) 39px 40px, transparent 41px 62px),
+    radial-gradient(700px 540px at 76% 10%, rgba(47, 108, 246, .11), transparent 68%);
+  transform: rotate(-6deg) scale(1.08);
+}
+
+.visual-atmosphere__field {
+  opacity: .42;
+  mix-blend-mode: screen;
 }
 
 ::selection {
@@ -1447,6 +1494,14 @@ textarea {
 }
 
 @media (max-width: 700px) {
+  .visual-atmosphere__static {
+    opacity: .19;
+  }
+
+  .visual-atmosphere__field {
+    opacity: .24;
+  }
+
   .app-header {
     min-height: auto;
     padding-top: 16px;
@@ -1728,6 +1783,10 @@ textarea {
     animation: none !important;
     transition: none !important;
   }
+
+  .visual-atmosphere__field {
+    display: none;
+  }
 }
 
 @media print {
@@ -1745,6 +1804,7 @@ textarea {
   }
 
   .app-header,
+  .visual-atmosphere,
   .learning-panel,
   .learning-history,
   .app-footer,
