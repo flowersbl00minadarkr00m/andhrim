@@ -1,0 +1,81 @@
+.actions {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-inset);
+}
+
+.intro {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.intro h3,
+.intro p,
+.status {
+  margin: 0;
+}
+
+.intro h3 {
+  font-size: 14px;
+}
+
+.intro p {
+  max-width: 44rem;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 13px;
+}
+
+.control {
+  min-height: 44px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.control:hover {
+  border-color: var(--accent-text);
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+.status {
+  min-height: 1.25rem;
+  padding-top: 7px;
+  color: var(--accent-text);
+  font-size: 11px;
+}
+
+@media (max-width: 700px) {
+  .intro {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .controls {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (forced-colors: active) {
+  .control:hover {
+    border: 2px solid ButtonText;
+  }
+}

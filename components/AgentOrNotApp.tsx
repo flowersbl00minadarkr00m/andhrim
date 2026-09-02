@@ -199,7 +199,7 @@ export function AgentOrNotApp() {
           <button type="button" onClick={reset}>New case</button>
           {receipt ? <a href="#outcome-heading">Outcome</a> : null}
           <a href="#history">History</a>
-          <a href="/api/export">Export</a>
+          <a href="/api/export">Export full ledger</a>
           <a href="#about">About</a>
         </nav>
       </header>

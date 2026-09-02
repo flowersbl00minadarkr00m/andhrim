@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { RecommendationReceipt } from "@/src/domain/recommendation";
 import type { CapabilityTrace } from "@/src/domain/capabilities";
 import type { ReceiptVerification } from "@/src/domain/verification";
+import { ReceiptActions } from "./ReceiptActions";
 
 const recommendationLabels: Record<RecommendationReceipt["recommendation"], string> = {
   "human-led": "Human-led",
@@ -60,6 +61,8 @@ export function Receipt({ receipt, capabilityTrace, verification, previewRecomme
         </div>
         <span>Step {step + 1} of 5</span>
       </header>
+
+      {receipt ? <ReceiptActions key={receipt.receiptId} receipt={receipt} capabilityTrace={capabilityTrace} verification={verification} /> : null}
 
       {receipt ? (
         <nav className="receipt-view-nav" aria-label="Receipt sections">
