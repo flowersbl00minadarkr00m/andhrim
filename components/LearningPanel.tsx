@@ -2,6 +2,7 @@ import { useState } from "react";
 import { postProductAction } from "@/src/client/events";
 import type { LearningCandidate, Outcome, ProductProjection } from "@/src/domain/learning";
 import type { RecommendationReceipt } from "@/src/domain/recommendation";
+import { LearningLineage } from "./LearningLineage";
 
 type Props = {
   receipt: RecommendationReceipt;
@@ -63,6 +64,7 @@ export function LearningPanel({ receipt, projection, sessionNonce, onProjection,
     <section className="learning-panel" aria-labelledby="outcome-heading">
       <div className="learning-panel__eyebrow">What happened?</div>
       <h2 id="outcome-heading" tabIndex={-1}>Turn an outcome into reviewable learning.</h2>
+      <LearningLineage projection={projection} focusReceiptId={receipt.receiptId} idPrefix={`focused-${receipt.receiptId}`} compact />
 
       <div className="outcome-step">
         <span className="step-number">1</span>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { postProductAction } from "@/src/client/events";
 import type { LearningCandidate, ProductProjection } from "@/src/domain/learning";
+import { LearningLineage } from "./LearningLineage";
 
 type Props = {
   projection?: ProductProjection;
@@ -53,6 +54,7 @@ export function LearningHistory({ projection, sessionNonce, onProjection, onErro
       <p className="history-boundary">
         Deactivation writes a deletion tombstone: it disables the candidate’s rule but does not erase append-only history. The candidate, provenance, prior revisions, and tombstone remain in the local export.
       </p>
+      <LearningLineage projection={projection} idPrefix="history-lineage" />
       {candidates.length === 0 ? <p>No learning candidates have been recorded yet.</p> : (
         <div className="history-list">
           {candidates.map((candidate) => {

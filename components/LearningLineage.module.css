@@ -1,0 +1,340 @@
+.lineage {
+  margin: 26px 0 32px;
+  padding: clamp(18px, 2vw, 28px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(145deg, rgba(16, 28, 48, .88), rgba(7, 12, 21, .94));
+}
+
+.compact {
+  margin-top: 18px;
+}
+
+.compact .timeline {
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+.compact .step {
+  padding: 0 0 14px 39px;
+}
+
+.compact .step:not(:last-child)::after {
+  top: 27px;
+  bottom: -2px;
+  left: 12px;
+  right: auto;
+  width: 1px;
+  height: auto;
+  background: linear-gradient(180deg, var(--accent), var(--line-strong));
+}
+
+.header,
+.groupHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.header h3,
+.groupHeading h4 {
+  margin: 0;
+}
+
+.eyebrow,
+.groupHeading p,
+.stage {
+  margin: 0 0 6px;
+  color: var(--accent-text);
+  font-size: 10px;
+  font-weight: 820;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.boundary {
+  max-width: 520px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.lineageList {
+  display: grid;
+  gap: 18px;
+  margin-top: 20px;
+}
+
+.lineageGroup {
+  min-width: 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.status {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--ink-soft);
+  background: rgba(142, 160, 190, .1);
+  font-size: 10px;
+  font-weight: 780;
+  letter-spacing: .03em;
+  white-space: nowrap;
+}
+
+.status[data-state="approved"] {
+  border-color: rgba(88, 223, 139, .48);
+  color: #87efad;
+  background: rgba(88, 223, 139, .08);
+}
+
+.status[data-state="proposed"] {
+  border-color: rgba(90, 161, 255, .52);
+  color: #91c0ff;
+  background: rgba(47, 108, 246, .1);
+}
+
+.status[data-state="rejected"],
+.status[data-state="deleted-tombstone"] {
+  border-color: rgba(255, 124, 124, .48);
+  color: #ffaaaa;
+  background: rgba(255, 93, 93, .08);
+}
+
+.status[data-state="superseded"],
+.status[data-state="expired"] {
+  border-color: rgba(255, 197, 93, .45);
+  color: #ffd18a;
+  background: rgba(255, 183, 66, .08);
+}
+
+.timeline {
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.step {
+  min-width: 0;
+  position: relative;
+  padding-top: 31px;
+}
+
+.step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: 12px;
+  left: 28px;
+  right: -14px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent), var(--line-strong));
+}
+
+.stepIndex {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  width: 25px;
+  height: 25px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  color: var(--accent-text);
+  background: #0c1627;
+  font-size: 10px;
+  font-weight: 840;
+}
+
+.card {
+  height: 100%;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 12, 21, .74);
+}
+
+.card[data-state="approved"] {
+  border-top-color: rgba(88, 223, 139, .58);
+}
+
+.card[data-state="proposed"] {
+  border-top-color: rgba(90, 161, 255, .66);
+}
+
+.card[data-state="rejected"],
+.card[data-state="deleted-tombstone"] {
+  border-top-color: rgba(255, 124, 124, .58);
+}
+
+.card[data-state="superseded"],
+.card[data-state="expired"] {
+  border-top-color: rgba(255, 197, 93, .58);
+}
+
+.step:target .card {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+.card h5 {
+  margin: 0 0 10px;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+
+.card > p:not(.stage, .privateNote, .stateDetail) {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.details {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.details div {
+  min-width: 0;
+}
+
+.details dt {
+  color: var(--quiet);
+  font-size: 9px;
+  font-weight: 790;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.details dd {
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+}
+
+.privateNote,
+.stateDetail {
+  margin: 12px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.revisions {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.revisions span,
+.revisions strong {
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.revisions strong {
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+.receiptList {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.receiptList li {
+  min-width: 0;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+}
+
+.receiptList strong,
+.receiptList span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.receiptList strong {
+  font-size: 11px;
+}
+
+.receiptList span,
+.receiptList p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.receiptList a {
+  color: var(--accent-text);
+}
+
+@media (max-width: 1180px) {
+  .timeline {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .step {
+    padding: 0 0 14px 39px;
+  }
+
+  .step:not(:last-child)::after {
+    top: 27px;
+    bottom: -2px;
+    left: 12px;
+    right: auto;
+    width: 1px;
+    height: auto;
+    background: linear-gradient(180deg, var(--accent), var(--line-strong));
+  }
+}
+
+@media (max-width: 700px) {
+  .lineage {
+    margin-inline: -4px;
+    padding: 16px;
+  }
+
+  .header,
+  .groupHeading {
+    display: block;
+  }
+
+  .header .boundary,
+  .groupHeading .status {
+    margin-top: 10px;
+  }
+}
+
+@media (forced-colors: active) {
+  .status,
+  .stepIndex,
+  .card {
+    border: 1px solid CanvasText;
+  }
+}
