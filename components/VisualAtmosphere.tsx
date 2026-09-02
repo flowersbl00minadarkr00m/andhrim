@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const TopologyField = dynamic(
@@ -20,7 +21,9 @@ const initialPreferences: AtmospherePreferences = {
 };
 
 export function VisualAtmosphere() {
+  const pathname = usePathname();
   const [preferences, setPreferences] = useState(initialPreferences);
+  const staticOnly = pathname === "/evaluation" || pathname.startsWith("/evaluation/");
 
   useEffect(() => {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -46,7 +49,7 @@ export function VisualAtmosphere() {
   return (
     <div className="visual-atmosphere" aria-hidden="true">
       <div className="visual-atmosphere__static" />
-      {preferences.motionAllowed ? (
+      {!staticOnly && preferences.motionAllowed ? (
         <TopologyField
           className="visual-atmosphere__field"
           variant="topo-field"

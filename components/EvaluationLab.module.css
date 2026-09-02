@@ -1,0 +1,421 @@
+.shell {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  padding-bottom: 72px;
+}
+
+.header {
+  min-height: 72px;
+  padding: 0 clamp(20px, 3.5vw, 56px);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  background: rgba(5, 7, 13, .94);
+}
+
+.wordmark {
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 28px;
+  font-weight: 650;
+  letter-spacing: -.035em;
+}
+
+.wordmark span {
+  margin-left: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+.header nav {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.header nav a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 680;
+}
+
+.header nav a:hover,
+.header nav a[aria-current="page"] {
+  color: var(--ink);
+}
+
+.hero,
+.metrics,
+.scenarios,
+.futureBoundary,
+.loading,
+.error {
+  width: min(1380px, calc(100% - 28px));
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.hero {
+  min-height: 430px;
+  padding: clamp(54px, 8vw, 106px) clamp(20px, 4vw, 58px);
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr);
+  align-items: end;
+  gap: clamp(36px, 8vw, 120px);
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 760;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  max-width: 800px;
+  margin: 0;
+  font-size: clamp(48px, 7vw, 94px);
+  font-weight: 620;
+  line-height: .98;
+  letter-spacing: -.055em;
+}
+
+.lede {
+  max-width: 780px;
+  margin: 26px 0 0;
+  color: var(--ink-soft);
+  font-size: clamp(17px, 1.5vw, 21px);
+}
+
+.runPanel,
+.metrics,
+.scenarios,
+.futureBoundary,
+.loading {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(145deg, rgba(16, 27, 45, .55), transparent 42%),
+    rgba(10, 18, 32, .9);
+  box-shadow: var(--shadow-focal);
+}
+
+.runPanel {
+  padding: 24px;
+}
+
+.boundaries {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.boundaries span,
+.validationKinds {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: var(--muted);
+  background: var(--surface-inset);
+  font-size: 11px;
+  font-weight: 720;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.runButton {
+  width: 100%;
+  min-height: 50px;
+  margin-top: 20px;
+  border: 1px solid #5f91ff;
+  border-radius: var(--radius-sm);
+  color: white;
+  background: var(--accent);
+  cursor: pointer;
+  font-weight: 760;
+}
+
+.runButton:hover {
+  background: var(--accent-strong);
+  box-shadow: 0 0 28px var(--accent-glow);
+}
+
+.runPanel > p {
+  margin: 12px 0 0;
+  color: var(--quiet);
+  font-size: 12px;
+}
+
+.metrics,
+.scenarios {
+  padding: clamp(24px, 4vw, 48px);
+}
+
+.scenarios,
+.futureBoundary {
+  margin-top: 14px;
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.sectionHeading h2,
+.futureBoundary h2 {
+  margin: 0;
+  font-size: clamp(28px, 3vw, 42px);
+  font-weight: 620;
+  letter-spacing: -.035em;
+}
+
+.sectionHeading > p,
+.telemetryNote,
+.futureBoundary p,
+.loading {
+  color: var(--muted);
+}
+
+.overallPass,
+.overallFail,
+.pass,
+.fail {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.overallPass,
+.pass {
+  border: 1px solid rgba(88, 223, 139, .34);
+  color: var(--success);
+  background: var(--success-soft);
+}
+
+.overallFail,
+.fail {
+  border: 1px solid rgba(255, 136, 127, .34);
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.metricGrid {
+  margin: 32px 0 0;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--line);
+}
+
+.metricGrid > div {
+  min-height: 132px;
+  padding: 18px;
+  background: var(--surface-inset);
+}
+
+.metricGrid dt,
+.cardMetrics dt {
+  color: var(--quiet);
+  font-size: 11px;
+  font-weight: 720;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.metricGrid dd {
+  margin: 8px 0 0;
+  color: var(--ink);
+  font-size: clamp(24px, 2.4vw, 36px);
+  font-weight: 650;
+  line-height: 1.05;
+  letter-spacing: -.035em;
+}
+
+.metricGrid small {
+  display: block;
+  margin-top: 8px;
+  color: var(--quiet);
+  line-height: 1.35;
+}
+
+.metricGrid .cost {
+  color: var(--warning);
+  font-size: 23px;
+}
+
+.telemetryNote {
+  margin: 22px 0 0;
+  font-size: 13px;
+}
+
+.scenarioGrid {
+  margin: 32px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  list-style: none;
+}
+
+.scenarioCard {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 20px;
+  background: rgba(7, 12, 21, .76);
+}
+
+.cardTopline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--accent-text);
+  font-size: 11px;
+  font-weight: 720;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.scenarioCard h3 {
+  margin: 22px 0 0;
+  font-size: 21px;
+  font-weight: 650;
+  letter-spacing: -.025em;
+}
+
+.expectation,
+.observed {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.observed {
+  color: var(--ink-soft);
+}
+
+.cardMetrics {
+  margin: 20px 0 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cardMetrics div {
+  min-width: 0;
+}
+
+.cardMetrics dd {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.validationKinds {
+  width: fit-content;
+  margin: 18px 0 0;
+  border-radius: 4px;
+  color: var(--warning);
+}
+
+.futureBoundary {
+  padding: clamp(28px, 5vw, 58px);
+}
+
+.futureBoundary p:not(.eyebrow) {
+  max-width: 860px;
+  margin: 16px 0 0;
+}
+
+.loading,
+.error {
+  padding: 28px;
+}
+
+.error {
+  border: 1px solid rgba(255, 136, 127, .34);
+  border-radius: var(--radius);
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+@media (max-width: 1120px) {
+  .metricGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .scenarioGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .header {
+    min-height: auto;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .wordmark {
+    font-size: 23px;
+  }
+
+  .hero {
+    min-height: auto;
+    padding: 54px 20px 28px;
+    grid-template-columns: 1fr;
+    gap: 34px;
+  }
+
+  .hero h1 {
+    font-size: clamp(44px, 16vw, 68px);
+  }
+
+  .sectionHeading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .metricGrid,
+  .scenarioGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .metricGrid > div {
+    min-height: 108px;
+  }
+
+  .cardMetrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .runButton {
+    transition: none;
+  }
+}
