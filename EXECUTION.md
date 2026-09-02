@@ -2448,3 +2448,92 @@ event:
   canonical_evidence_event: evt-agent-or-not-bounded-harness-complete-20260901
   note: The complete bounded-harness event was added after a closed historical event block at line 614 rather than at physical EOF. No historical text was removed or overwritten. This EOF note preserves that ordering fact and points to the canonical evidence event above.
 ~~~
+
+## 2026-09-01 — Current clean-clone qualification and transitive inventory
+
+~~~yaml
+event:
+  event_id: evt-agent-or-not-clean-clone-qualification-0bd5f2e-20260901
+  type: release-evidence
+  occurred_at: 2026-09-01T18:32:57.0412279-07:00
+  qualified_runtime_commit: 0bd5f2e7292a1713f9175c3f0691a81b38e19113
+  clone:
+    transport: local Git clone with --no-local and --no-hardlinks
+    checkout: detached exact qualified commit
+    worktree: clean
+    env_local_present: false
+    openrouter_environment_present: false
+  frozen_materialization:
+    node:
+      command: corepack pnpm install --frozen-lockfile
+      exit_code: 0
+      result: 193 packages reused; 0 downloaded; 193 added
+    python:
+      command: uv sync --project mcp_server --frozen
+      exit_code: 0
+      result: CPython 3.13.12 environment created with 29 exact distributions
+    browser:
+      command: corepack pnpm exec playwright install chromium
+      exit_code: 0
+      result: matching Playwright Chromium already present; no download output
+    evidence_limit: No packet capture was performed; setup statements are bounded command evidence rather than proof of no network traffic.
+  verification:
+    - command: node scripts/scan-secrets.mjs
+      exit_code: 0
+      result: 84 source files scanned; 0 findings
+    - command: node scripts/verify-unit.mjs
+      exit_code: 0
+      result: 7 files and 41 tests passed; 0 guarded non-loopback attempts
+    - command: node scripts/verify-typecheck.mjs
+      exit_code: 0
+      result: TypeScript passed; 0 guarded non-loopback attempts
+    - command: node scripts/verify-licenses.mjs
+      exit_code: 0
+      result: 14 direct dependency records reconciled; MIT project licence present
+    - command: node scripts/verify-mcp.mjs
+      exit_code: 0
+      result: 3 real Pydantic/FastMCP tests passed; 0 guarded non-loopback attempts
+    - command: node scripts/verify-provider-free.mjs
+      exit_code: 0
+      result: real Eve/MCP bounded capability chain, strict receipt, cancellation, build, and cleanup passed; 0 non-loopback attempts
+    - command: node scripts/verify-build.mjs
+      exit_code: 0
+      result: Eve and Next production builds passed across 18 guarded processes; 0 non-loopback attempts
+    - command: node scripts/verify-start-local.mjs
+      exit_code: 0
+      result: stale proxy mismatch reproduced safely, rebuilt proxy followed, unique loopback ports passed, and 0 residual processes remained
+    - command: node scripts/verify-browser.mjs
+      exit_code: 0
+      result: complete desktop/mobile learning, correction, race, provenance, expiry, deletion, and export flow passed; 0 browser/process non-loopback attempts
+    - command: node scripts/verify-openrouter-smoke.mjs
+      exit_code: 0
+      result: bounded no-key preflight passed with 0 live provider calls and complete cleanup
+    - command: node scripts/openrouter-smoke.mjs
+      exit_code: 0
+      result: no-flag bounded preflight passed with 0 live provider calls, 0 credential reads outside the adapter, and unchanged shared dependencies
+  transitive_inventory:
+    node:
+      package_versions: 193
+      licence_expressions: 14
+      unknown_licences: 0
+      roots_with_licence_or_notice_file: 182
+      roots_without_licence_or_notice_file: 11
+    python:
+      distributions: 29
+      licence_expressions: 7
+      unknown_licences: 0
+      distributions_without_licence_files: 0
+    source_publication_gate: passed
+    bundled_or_binary_redistribution_gate: requires audit of actual redistributed bytes
+  boundaries:
+    live_mode_executions: 0
+    provider_or_openrouter_calls: 0
+    credential_or_key_access: 0
+    non_loopback_runtime_attempts: 0
+    deployment_or_publication: 0
+  remaining_owner_gates:
+    - one owner-supplied live OpenRouter smoke with the documented explicit consent flags
+    - owner review of the current dependency evidence and repository diff
+    - optional source publication and demo recording
+    - a separate audit before any bundled or binary redistribution
+~~~

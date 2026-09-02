@@ -16,8 +16,8 @@
 - [x] Source secret scanning and direct Node dependency-licence verification pass at current source.
 - [x] MIT project licence is recorded; third-party terms remain separate.
 - [x] Offline OpenRouter smoke contract/preflight passes without credential access or provider calls.
-- [ ] A disposable Windows clean clone of the current exact source passes frozen Node and Python installs plus the full sequence below.
-- [ ] A current transitive dependency/licence inventory replaces the historical pre-MCP inventory.
+- [x] A disposable Windows clean clone of runtime source commit `0bd5f2e7292a1713f9175c3f0691a81b38e19113` passes frozen Node and Python installs plus the full sequence below.
+- [x] A current transitive dependency/licence inventory replaces the historical pre-MCP inventory.
 
 ## Current provider-free sequence
 
@@ -40,7 +40,7 @@ node scripts/verify-openrouter-smoke.mjs
 node scripts/openrouter-smoke.mjs
 ```
 
-The final two commands use no live flag and are provider-free preflight only. The current canonical working tree has passed the substantive runtime checks, but that is not a clean-clone qualification.
+The final two commands use no live flag and are provider-free preflight only. On 2026-09-01 this complete sequence passed in a clean, credential-free Windows clone at exact runtime source commit `0bd5f2e7292a1713f9175c3f0691a81b38e19113`. The Node install reported 193 packages reused and zero downloaded; Python created the exact 29-package frozen environment; matching Playwright Chromium was already present. No packet capture was performed, so the install statements are command evidence rather than proof of no network traffic.
 
 ## Owner-only gates
 

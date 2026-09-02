@@ -14,7 +14,7 @@ This is a non-production exploratory repository. It does not complete canonical 
 - Strict Zod/Pydantic schemas, deterministic provider-free fixtures, append-only local NDJSON records, inert Learning Candidates, and explicit owner approval before a rule can affect later recommendations.
 - Bounded edit, approve, reject, supersede, expire, export, and delete semantics.
 
-The provider-free fixture, MCP server, Eve/Next builds, launcher behavior, full browser learning flow, and offline OpenRouter smoke preflight are tested locally. The real OpenRouter smoke remains deliberately unexecuted until the owner-only gate. A fresh clean-clone qualification for this exact source revision is also still outstanding.
+The provider-free fixture, MCP server, Eve/Next builds, launcher behavior, full browser learning flow, and offline OpenRouter smoke preflight are tested locally. Runtime source commit `0bd5f2e7292a1713f9175c3f0691a81b38e19113` also passed the complete frozen Windows clean-clone qualification. The real OpenRouter smoke remains deliberately unexecuted until the owner-only gate.
 
 ## Requirements
 
@@ -76,4 +76,4 @@ Learning means owner-approved rule adaptation. It is not model fine-tuning, auto
 
 ## Licence
 
-The project source is MIT-licensed. Third-party packages retain their own terms; exact direct dependency evidence and the historical clean-clone inventory boundary are documented in `docs/DEPENDENCIES.md`. Bundled or binary redistribution requires a separate audit of the actual bundle.
+The project source is MIT-licensed. Third-party packages retain their own terms; exact direct and current clean-clone transitive dependency evidence is documented in `docs/DEPENDENCIES.md`. Bundled or binary redistribution requires a separate audit of the actual bundle.
