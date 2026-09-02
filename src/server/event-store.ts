@@ -9,6 +9,15 @@ import {
 } from "../domain/learning";
 import { verifyRecommendationEvents } from "./receipt-verification";
 
+export class ProductLedgerReadError extends Error {
+  readonly code = "PRODUCT_LEDGER_INVALID";
+
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = "ProductLedgerReadError";
+  }
+}
+
 function dataDirectory() {
   const configured = process.env.AGENT_OR_NOT_DATA_DIR;
   if (!configured) return path.join(process.cwd(), "data");
@@ -22,6 +31,11 @@ export function eventLedgerPath() {
 
 export function approvedGuidancePath() {
   return path.join(dataDirectory(), "approved-guidance.json");
+}
+
+export function readRawProductLedger(): string {
+  const ledgerPath = eventLedgerPath();
+  return existsSync(ledgerPath) ? readFileSync(ledgerPath, "utf8") : "";
 }
 
 function writeApprovedGuidanceProjection(projection: ProductProjection) {
@@ -46,22 +60,32 @@ function writeApprovedGuidanceProjection(projection: ProductProjection) {
 export function readProductEvents(): ProductEvent[] {
   const ledgerPath = eventLedgerPath();
   if (!existsSync(ledgerPath)) return [];
-  const text = readFileSync(ledgerPath, "utf8");
+  const text = readRawProductLedger();
   const events = text.split(/\r?\n/u)
     .filter((line) => line.trim().length > 0)
     .map((line, index) => {
       try {
         return productEventSchema.parse(JSON.parse(line));
       } catch (error) {
-        throw new Error(`Local event ledger is invalid at line ${index + 1}.`, { cause: error });
+        throw new ProductLedgerReadError(`Local event ledger is invalid at line ${index + 1}.`, { cause: error });
       }
     });
-  verifyRecommendationEvents(events);
+  try {
+    verifyRecommendationEvents(events);
+  } catch (error) {
+    throw new ProductLedgerReadError("Local event ledger failed receipt verification replay.", { cause: error });
+  }
   return events;
 }
 
 export function readProductProjection(): ProductProjection {
-  const projection = projectProductEvents(readProductEvents());
+  let projection;
+  try {
+    projection = projectProductEvents(readProductEvents());
+  } catch (error) {
+    if (error instanceof ProductLedgerReadError) throw error;
+    throw new ProductLedgerReadError("Local event ledger could not be projected safely.", { cause: error });
+  }
   writeApprovedGuidanceProjection(projection);
   return projection;
 }

@@ -23,7 +23,8 @@
     "test": "node scripts/verify-unit.mjs",
     "typecheck": "node scripts/verify-typecheck.mjs",
     "scan:secrets": "node scripts/scan-secrets.mjs",
-    "verify:licenses": "node scripts/verify-licenses.mjs"
+    "verify:licenses": "node scripts/verify-licenses.mjs",
+    "verify:release": "node scripts/verify-release.mjs"
   },
   "dependencies": {
     "@openrouter/ai-sdk-provider": "3.0.0",

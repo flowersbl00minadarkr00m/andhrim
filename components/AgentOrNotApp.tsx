@@ -29,6 +29,11 @@ type RuntimeStatus = {
   privacyDisclosure: string;
 };
 
+type LedgerRecovery = {
+  message: string;
+  url: string;
+};
+
 function newAssessment(): Assessment {
   return assessmentSchema.parse({
     schemaVersion: "assessment-v1",
@@ -49,13 +54,24 @@ export function AgentOrNotApp() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus>();
+  const [ledgerRecovery, setLedgerRecovery] = useState<LedgerRecovery>();
 
   useEffect(() => {
     setAssessment(newAssessment());
     fetch("/api/state", { cache: "no-store" })
-      .then((response) => response.json())
-      .then((value: { projection?: ProductProjection }) => value.projection && setProjection(value.projection))
-      .catch(() => setError("The local event ledger could not be read."));
+      .then(async (response) => {
+        const value = await response.json() as { projection?: ProductProjection; code?: string; error?: string; recoveryUrl?: string };
+        if (response.ok && value.projection) {
+          setProjection(value.projection);
+          return;
+        }
+        if (value.code === "PRODUCT_LEDGER_INVALID" && value.recoveryUrl) {
+          setLedgerRecovery({ message: value.error ?? "The local ledger failed an integrity check.", url: value.recoveryUrl });
+          return;
+        }
+        throw new Error(value.error ?? "The local event ledger could not be read.");
+      })
+      .catch((caught) => setError(caught instanceof Error ? caught.message : "The local event ledger could not be read."));
     fetch("/api/runtime", { cache: "no-store" })
       .then(async (response) => {
         const value = await response.json() as RuntimeStatus & { error?: string };
@@ -170,6 +186,13 @@ export function AgentOrNotApp() {
           <a href="#about">About</a>
         </nav>
       </header>
+
+      {ledgerRecovery ? (
+        <section className="recovery-notice" role="alert" aria-labelledby="recovery-heading">
+          <div><p>Local data needs attention</p><h2 id="recovery-heading">The ledger was preserved.</h2><span>{ledgerRecovery.message} Download the unchanged NDJSON before attempting a manual repair.</span></div>
+          <a className="button" href={ledgerRecovery.url}>Download untouched ledger</a>
+        </section>
+      ) : null}
 
       {!receipt ? (
         <div className="assessment-layout">

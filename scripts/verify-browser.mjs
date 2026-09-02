@@ -186,6 +186,8 @@ let rejectedProxyEveStatus;
 let rejectedDirectEveStatus;
 let exportEvidence;
 let learningTransitionEvidence;
+let recoveryEvidence;
+let responsiveReceiptEvidence;
 try {
   const baseUrl = `http://127.0.0.1:${port}`;
   const deadline = Date.now() + 45_000;
@@ -347,16 +349,29 @@ try {
     throw new Error(`Receipt did not complete. Page: ${await page.locator("body").innerText()}\nBrowser errors: ${browserErrors.join(" | ")}\nServer: ${serverLog}`, { cause: error });
   }
   await page.getByRole("heading", { name: "Turn an outcome into reviewable learning." }).waitFor();
+  await page.getByRole("button", { name: /^Decision/u }).waitFor();
+  await page.getByText(/5 deterministic gates passed; 2 of 2 Eve sessions used/u).waitFor();
+  await page.screenshot({ path: path.join(artifactDirectory, "receipt-decision-desktop.png"), fullPage: true });
+  await page.getByRole("button", { name: /^Trust/u }).click();
+  await page.getByRole("heading", { name: "Trust evidence" }).waitFor();
   await page.getByRole("heading", { name: "Capability provenance" }).waitFor();
-  await page.getByRole("heading", { name: "Verification evidence" }).waitFor();
-  await page.getByText("5 deterministic gates passed", { exact: true }).waitFor();
+  await page.getByRole("heading", { name: "Verification" }).waitFor();
+  await page.getByText("5 gates passed", { exact: true }).waitFor();
   await page.getByText("2 of 2", { exact: true }).waitFor();
-  await page.getByText("Inspect replay evidence", { exact: true }).click();
+  await page.getByText("Inspect gates and replay fingerprints", { exact: true }).click();
   await page.getByText("strict-receipt-schema", { exact: true }).waitFor();
   await page.getByText("outcome-data-isolation", { exact: true }).waitFor();
+  const displayedHashes = await page.locator(".verification-hashes code").evaluateAll((elements) => elements.map((element) => ({
+    text: element.textContent,
+    full: element.getAttribute("title"),
+  })));
+  assert.equal(displayedHashes.length, 3);
+  assert.ok(displayedHashes.every((hash) => hash.text.length === 21 && /^[a-f0-9]{64}$/u.test(hash.full)));
   await page.getByText("delegation-guidance", { exact: true }).waitFor();
-  await page.getByText("governed-memory__lookup_approved_guidance", { exact: true }).first().waitFor();
-  await page.getByText(/Raw outcome notes crossed: no/u).waitFor();
+  const mcpDisclosure = page.locator(".capability-provenance details").last();
+  await mcpDisclosure.locator("summary").click();
+  await mcpDisclosure.locator("summary").getByText("governed-memory__lookup_approved_guidance", { exact: true }).waitFor();
+  await mcpDisclosure.getByText(/Raw outcome notes crossed: no/u).waitFor();
   const retryEvidence = fs.readFileSync(fixtureEvidencePath, "utf8").trim().split(/\r?\n/u).map(JSON.parse);
   assert.equal(retryEvidence.length, 6, "requestEveReceipt must use three bounded model steps in each of two validation sessions.");
   assert.deepEqual(retryEvidence.map((call) => call.stage), ["prepare", "evidence", "final", "prepare", "evidence", "final"]);
@@ -365,8 +380,23 @@ try {
   assert.ok(retryEvidence.every((call) => call.classification === "eve-bounded-guidance-harness-v1"));
   await new Promise((resolve) => setTimeout(resolve, 250));
   assert.equal(fs.readFileSync(fixtureEvidencePath, "utf8").trim().split(/\r?\n/u).length, 6, "requestEveReceipt opened an unexpected third session.");
-  await page.screenshot({ path: path.join(artifactDirectory, "outcome-desktop.png"), fullPage: true });
+  await page.screenshot({ path: path.join(artifactDirectory, "receipt-trust-desktop.png"), fullPage: true });
 
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobileReceiptLayout = await page.locator(".receipt").evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    return { left: box.left, right: box.right, clientWidth: element.clientWidth, scrollWidth: element.scrollWidth };
+  });
+  const mobileReceiptTargets = await page.locator(".receipt-view-nav button").evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().height));
+  assert.ok(mobileReceiptLayout.left >= 0 && mobileReceiptLayout.right <= 390 && mobileReceiptLayout.scrollWidth <= mobileReceiptLayout.clientWidth + 1);
+  assert.ok(mobileReceiptTargets.length === 3 && mobileReceiptTargets.every((height) => height >= 44));
+  await page.screenshot({ path: path.join(artifactDirectory, "receipt-trust-mobile.png"), fullPage: true });
+  await page.getByRole("button", { name: /^Decision/u }).click();
+  await page.screenshot({ path: path.join(artifactDirectory, "receipt-decision-mobile.png"), fullPage: true });
+  responsiveReceiptEvidence = { desktopViews: 3, mobileViews: 3, noHorizontalOverflow: true, minimumTargetHeight: 44, shortenedHashes: 3 };
+  await page.setViewportSize({ width: 1440, height: 1000 });
+
+  await page.getByRole("button", { name: /^Work plan/u }).click();
   await page.getByRole("button", { name: "Edit locally" }).click();
   await page.getByLabel("Instruction").first().fill("Prepare a concise owner-edited recommendation with explicit trade-offs.");
   await page.getByRole("button", { name: "Save starter pack" }).click();
@@ -428,8 +458,9 @@ try {
   });
   assert.equal(delayedLearningSession, true, "The focused learning-transition race falsifier did not run.");
   assert.ok(semanticReceipt.elapsedMs >= learningTransitionDelayMs, "Semantic readiness returned before the injected slow transition completed.");
-  await page.getByText("Approved lessons applied").waitFor({ timeout: 10_000 });
   await page.getByText("Human-led", { exact: true }).waitFor({ timeout: 10_000 });
+  await page.getByRole("button", { name: /^Work plan/u }).click();
+  await page.getByText("Approved lessons applied").waitFor({ timeout: 10_000 });
   learningTransitionEvidence = {
     delayedSessionMs: learningTransitionDelayMs,
     semanticReceipt,
@@ -496,7 +527,33 @@ try {
   await page.screenshot({ path: path.join(artifactDirectory, "assessment-mobile.png"), fullPage: true });
 
   assert.deepEqual(browserBlocked, []);
-  assert.deepEqual(browserErrors, []);
+  assert.deepEqual(browserErrors, [], "The browser reported an error before the intentional ledger-tamper recovery check.");
+  const ledgerPath = path.join(dataDirectory, "events.ndjson");
+  const tamperedEvents = fs.readFileSync(ledgerPath, "utf8").trim().split(/\r?\n/u).map(JSON.parse);
+  tamperedEvents[0].receipt.summary = "Schema-valid text changed after verification was recorded.";
+  const tamperedLedger = `${tamperedEvents.map((event) => JSON.stringify(event)).join("\n")}\n`;
+  fs.writeFileSync(ledgerPath, tamperedLedger, "utf8");
+  const failedStateResponse = await page.request.get(`${baseUrl}/api/state`);
+  assert.equal(failedStateResponse.status(), 409);
+  const failedState = await failedStateResponse.json();
+  assert.deepEqual(failedState, {
+    code: "PRODUCT_LEDGER_INVALID",
+    error: "The local ledger failed an integrity check. It was left untouched so you can inspect and recover it.",
+    recoveryUrl: "/api/recovery",
+  });
+  const recoveryResponse = await page.request.get(`${baseUrl}/api/recovery`);
+  assert.equal(recoveryResponse.ok(), true);
+  assert.equal(await recoveryResponse.text(), tamperedLedger, "Recovery download must preserve the exact failed ledger bytes.");
+  assert.match(recoveryResponse.headers()["x-content-sha256"], /^[a-f0-9]{64}$/u);
+  await page.reload({ waitUntil: "networkidle" });
+  await page.getByRole("heading", { name: "The ledger was preserved." }).waitFor();
+  await page.getByRole("link", { name: "Download untouched ledger" }).waitFor();
+  await page.screenshot({ path: path.join(artifactDirectory, "ledger-recovery-mobile.png"), fullPage: true });
+  recoveryEvidence = { failedStateStatus: 409, rawLedgerBytesPreserved: Buffer.byteLength(tamperedLedger, "utf8"), recoverySha256Present: true, recoveryUiVisible: true };
+
+  assert.deepEqual(browserBlocked, []);
+  assert.ok(browserErrors.length >= 1, "The failed state read should remain visible as an intentional 409 response.");
+  assert.ok(browserErrors.every((message) => /Failed to load resource:.*409 \(Conflict\)/u.test(message)), `Unexpected browser errors after the intentional recovery response: ${browserErrors.join(" | ")}`);
 } finally {
   if (browser) await browser.close();
   await new Promise((resolve) => attackerServer.close(resolve));
@@ -556,9 +613,11 @@ process.stdout.write(`${JSON.stringify({
     unexpectedThirdSession: false,
   },
   learningTransitionRace: learningTransitionEvidence,
+  responsiveReceipt: responsiveReceiptEvidence,
+  ledgerRecovery: recoveryEvidence,
   exportEvidence,
   fixtureEvidence,
   eventTypes: ledger.map((event) => event.type),
-  screenshots: ["assessment-desktop.png", "outcome-desktop.png", "learning-resumed-desktop.png", "learning-resumed-mobile.png", "learning-approved-desktop.png", "approved-rule-provenance.png", "assessment-mobile.png"],
+  screenshots: ["assessment-desktop.png", "receipt-decision-desktop.png", "receipt-trust-desktop.png", "receipt-decision-mobile.png", "receipt-trust-mobile.png", "learning-resumed-desktop.png", "learning-resumed-mobile.png", "learning-approved-desktop.png", "approved-rule-provenance.png", "assessment-mobile.png", "ledger-recovery-mobile.png"],
 })}\n`);
 fs.rmSync(scratch, { recursive: true, force: true });

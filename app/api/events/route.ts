@@ -16,6 +16,7 @@ import { receiptVerificationContextSchema } from "@/src/domain/verification";
 import {
   appendProductEvent,
   appendProductEvents,
+  ProductLedgerReadError,
   readProductProjection,
 } from "@/src/server/event-store";
 import {
@@ -135,6 +136,13 @@ export async function POST(request: Request) {
   } catch (error) {
     const securityResponse = localRequestErrorResponse(error);
     if (securityResponse) return securityResponse;
+    if (error instanceof ProductLedgerReadError) {
+      return Response.json({
+        code: error.code,
+        error: "The local ledger failed an integrity check and was left untouched.",
+        recoveryUrl: "/api/recovery",
+      }, { status: 409 });
+    }
     const message = error instanceof Error ? error.message : "Invalid local event action.";
     return Response.json({ error: message }, { status: 400 });
   }

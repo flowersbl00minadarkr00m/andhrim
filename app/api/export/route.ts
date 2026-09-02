@@ -1,4 +1,4 @@
-import { readProductEvents, readProductProjection } from "@/src/server/event-store";
+import { ProductLedgerReadError, readProductEvents, readProductProjection } from "@/src/server/event-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +20,13 @@ export async function GET() {
       },
     });
   } catch (error) {
+    if (error instanceof ProductLedgerReadError) {
+      return Response.json({
+        code: error.code,
+        error: "The validated export is unavailable because the local ledger failed an integrity check.",
+        recoveryUrl: "/api/recovery",
+      }, { status: 409 });
+    }
     return Response.json({ error: error instanceof Error ? error.message : "Could not export local state." }, { status: 500 });
   }
 }
