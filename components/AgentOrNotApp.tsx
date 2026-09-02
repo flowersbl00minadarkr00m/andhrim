@@ -1,12 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AssessmentSamples } from "./AssessmentSamples";
+import { ConnectionHealth } from "./ConnectionHealth";
 import { LearningHistory } from "./LearningHistory";
 import { LearningPanel } from "./LearningPanel";
 import { Receipt } from "./Receipt";
 import { requestEveReceipt } from "@/src/client/eve";
 import { postProductAction } from "@/src/client/events";
 import { assessmentFactorCopy } from "@/src/domain/assessment-copy";
+import {
+  createAssessmentFromSample,
+  previewRecommendationForAssessment,
+  type AssessmentSampleId,
+} from "@/src/domain/assessment-samples";
 import {
   assessmentFactors,
   assessmentSchema,
@@ -17,17 +24,9 @@ import {
   parseRecommendationReceipt,
   type RecommendationReceipt,
 } from "@/src/domain/recommendation";
-import type { ProviderMode } from "@/src/domain/runtime";
+import { runtimeStatusSchema, type RuntimeStatus } from "@/src/domain/runtime";
 
 const questions = assessmentFactors.map((factor) => ({ factor, ...assessmentFactorCopy[factor] }));
-
-type RuntimeStatus = {
-  providerMode: ProviderMode;
-  modelId: string | null;
-  configured: boolean;
-  sessionNonce: string;
-  privacyDisclosure: string;
-};
 
 type LedgerRecovery = {
   message: string;
@@ -54,7 +53,27 @@ export function AgentOrNotApp() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus>();
+  const [runtimeError, setRuntimeError] = useState("");
+  const [runtimeChecking, setRuntimeChecking] = useState(true);
   const [ledgerRecovery, setLedgerRecovery] = useState<LedgerRecovery>();
+
+  const refreshRuntime = useCallback(async () => {
+    setRuntimeChecking(true);
+    setRuntimeError("");
+    try {
+      const response = await fetch("/api/runtime", { cache: "no-store" });
+      const value = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(value.error ?? "Invalid local model configuration.");
+      const parsed = runtimeStatusSchema.safeParse(value);
+      if (!parsed.success) throw new Error("The local runtime returned an invalid status response.");
+      setRuntimeStatus(parsed.data);
+    } catch (caught) {
+      setRuntimeStatus(undefined);
+      setRuntimeError(caught instanceof Error ? caught.message : "The local runtime diagnostic could not be read.");
+    } finally {
+      setRuntimeChecking(false);
+    }
+  }, []);
 
   useEffect(() => {
     setAssessment(newAssessment());
@@ -72,22 +91,12 @@ export function AgentOrNotApp() {
         throw new Error(value.error ?? "The local event ledger could not be read.");
       })
       .catch((caught) => setError(caught instanceof Error ? caught.message : "The local event ledger could not be read."));
-    fetch("/api/runtime", { cache: "no-store" })
-      .then(async (response) => {
-        const value = await response.json() as RuntimeStatus & { error?: string };
-        if (!response.ok) throw new Error(value.error ?? "Invalid local model configuration.");
-        setRuntimeStatus(value);
-      })
-      .catch(() => setError("The local model configuration could not be read."));
-  }, []);
+    void refreshRuntime();
+  }, [refreshRuntime]);
 
   const previewRecommendation = useMemo<RecommendationReceipt["recommendation"]>(() => {
     if (!assessment) return "ai-assisted";
-    const answers = assessment.answers;
-    if (answers.outcomeStakes >= 4 || answers.contextSensitivity >= 5) return "human-led";
-    if (answers.specificationClarity <= 2) return "more-information-required";
-    if (answers.repeatability >= 4 && answers.verificationCost <= 2) return "agent-delegated";
-    return "ai-assisted";
+    return previewRecommendationForAssessment(assessment);
   }, [assessment]);
 
   if (!assessment) return <main className="loading">Preparing the local assessment…</main>;
@@ -98,6 +107,14 @@ export function AgentOrNotApp() {
       ...current,
       answers: { ...current.answers, [question.factor]: value },
     }) : current);
+  };
+
+  const loadSample = (sampleId: AssessmentSampleId) => {
+    setAssessment(createAssessmentFromSample(sampleId));
+    setStep(0);
+    setReceipt(undefined);
+    setError("");
+    window.requestAnimationFrame(() => document.getElementById("assessment-title")?.focus());
   };
 
   const generate = async () => {
@@ -187,6 +204,13 @@ export function AgentOrNotApp() {
         </nav>
       </header>
 
+      <ConnectionHealth
+        status={runtimeStatus}
+        error={runtimeError}
+        checking={runtimeChecking}
+        onRefresh={() => { void refreshRuntime(); }}
+      />
+
       {ledgerRecovery ? (
         <section className="recovery-notice" role="alert" aria-labelledby="recovery-heading">
           <div><p>Local data needs attention</p><h2 id="recovery-heading">The ledger was preserved.</h2><span>{ledgerRecovery.message} Download the unchanged NDJSON before attempting a manual repair.</span></div>
@@ -195,10 +219,12 @@ export function AgentOrNotApp() {
       ) : null}
 
       {!receipt ? (
-        <div className="assessment-layout">
+        <>
+          <AssessmentSamples onLoad={loadSample} />
+          <div className="assessment-layout">
           <section className="assessment" aria-labelledby="assessment-title">
             <div className="assessment__topline">
-              <h1 id="assessment-title">Delegation assessment</h1>
+              <h1 id="assessment-title" tabIndex={-1}>Delegation assessment</h1>
               <span>Step {step + 1} of 5</span>
             </div>
             <div className="progress" aria-label="Assessment progress">
@@ -234,7 +260,8 @@ export function AgentOrNotApp() {
             {error ? <p className="error" role="alert">{error}</p> : null}
           </section>
           <aside className="receipt-pane"><Receipt previewRecommendation={previewRecommendation} step={step} privacyDisclosure={runtimeStatus?.privacyDisclosure} /></aside>
-        </div>
+          </div>
+        </>
       ) : (
         <div className="completed-layout">
           <section className="completed-receipt"><Receipt receipt={receipt} capabilityTrace={projection?.capabilityTraces[receipt.receiptId]} verification={projection?.receiptVerifications[receipt.receiptId]} previewRecommendation={receipt.recommendation} step={4} onStarterPackSave={saveStarterPack} privacyDisclosure={runtimeStatus?.privacyDisclosure} /></section>

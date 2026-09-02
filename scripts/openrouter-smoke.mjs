@@ -471,11 +471,18 @@ export async function executeSmoke({
           contentType: "application/json",
           headers: { "cache-control": "no-store" },
           body: JSON.stringify({
+            schemaVersion: "runtime-status-v1",
             providerMode: "openrouter",
             modelId,
             configured: true,
             sessionNonce,
             privacyDisclosure: `OpenRouter mode: the representative assessment is sent through OpenRouter to ${modelId}.`,
+            lastDiagnosticAt: new Date().toISOString(),
+            services: {
+              app: { state: "healthy", detail: "This browser reached the local Andhrím application." },
+              eve: { state: "healthy", detail: "The bounded Eve recommendation runtime responded on loopback." },
+              mcp: { state: "healthy", detail: "The read-only approved-guidance service responded on loopback." },
+            },
           }),
         });
         return;
