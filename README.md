@@ -14,7 +14,7 @@ This is a non-production exploratory repository. It does not complete canonical 
 - Strict Zod/Pydantic schemas, deterministic provider-free fixtures, append-only local NDJSON records, inert Learning Candidates, and explicit owner approval before a rule can affect later recommendations.
 - Bounded edit, approve, reject, supersede, expire, export, and delete semantics.
 
-The provider-free fixture, MCP server, Eve/Next builds, launcher behavior, full browser learning flow, and offline OpenRouter smoke preflight are tested locally. Runtime source commit `0bd5f2e7292a1713f9175c3f0691a81b38e19113` also passed the complete frozen Windows clean-clone qualification. The real OpenRouter smoke remains deliberately unexecuted until the owner-only gate.
+The provider-free fixture, MCP server, Eve/Next builds, launcher behavior, full browser learning flow, and offline OpenRouter smoke preflight are tested locally. Runtime source commit `0bd5f2e7292a1713f9175c3f0691a81b38e19113` also passed the complete frozen Windows clean-clone qualification and one owner-authorized live OpenRouter smoke with `openai/gpt-4.1-mini`. That live check validates the bounded receipt path and cleanup contract; it is not a general provider-availability or production-readiness claim.
 
 ## Requirements
 

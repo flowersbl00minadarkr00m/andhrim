@@ -2537,3 +2537,95 @@ event:
     - optional source publication and demo recording
     - a separate audit before any bundled or binary redistribution
 ~~~
+
+## 2026-09-01 — Owner-authorized live OpenRouter smoke
+
+~~~yaml
+event:
+  event_id: evt-agent-or-not-owner-live-openrouter-smoke-20260901
+  type: release-evidence
+  occurred_at: 2026-09-01T19:15:25.4961825-07:00
+  qualified_runtime_commit: 0bd5f2e7292a1713f9175c3f0691a81b38e19113
+  evidence_record_base: 335ba414c349138b0cc42d48faa63d98c0644a42
+  owner_authorization:
+    interface: local masked Windows GUI
+    provider_data_boundary_displayed: true
+    explicit_checkbox_required: true
+    key_persisted_to_env_file: false
+    key_passed_on_command_line: false
+    key_observed_or_printed_by_codex: false
+    key_cleared_after_child_start: true
+  failed_closed_attempts:
+    - location: canonical checkout
+      model_id: openai/gpt-5.6-luna
+      state: failed
+      error: build/BUILD_FAILED
+      session_count: 0
+      model_call_count: 0
+      cleanup: complete
+      diagnosis: Canonical installed Eve files were Windows reparse-point copies, which Eve's workflow file scanner did not count as ordinary source files in the scratch build.
+      provider_free_reproduction: The same build failure reproduced with the key removed and zero provider calls.
+    - location: exact qualified clean clone
+      model_id: openai/gpt-5.6.-luna
+      state: failed
+      error: validation/RECEIPT_NOT_OBSERVED
+      session_count: 1
+      model_call_count: 1
+      observed_stage: prepare
+      cleanup: complete
+      note: The entered model identifier contained an extra dot; no receipt was accepted or claimed.
+  passing_attempt:
+    location: exact qualified clean clone
+    command: node scripts/openrouter-smoke.mjs --live-openrouter --confirm-provider-data-transfer --provider openrouter --model "openai/gpt-4.1-mini"
+    model_id: openai/gpt-4.1-mini
+    state: passed
+    receipt_validated: true
+    session_count: 1
+    model_call_count: 3
+    call_sequence:
+      - stage: prepare
+        tool_definition_count: 4
+        mcp_read_only_tool_definition_count: 0
+      - stage: evidence
+        tool_definition_count: 5
+        mcp_read_only_tool_definition_count: 1
+      - stage: final
+        tool_definition_count: 5
+        mcp_read_only_tool_definition_count: 1
+    classification: eve-bounded-guidance-harness-v1
+    environment_allowlist_verified: true
+    browser_non_loopback_requests: 0
+    blocked_session_requests: 0
+    loopback_ports:
+      web: 59076
+      eve: 59077
+      mcp: 59078
+    cleanup:
+      scratch_removed: true
+      residual_process_count: 0
+      residual_port_count: 0
+      process_inspection_complete: true
+      process_tree_proof_complete: true
+      shared_dependency_integrity_verified: true
+  redacted_report_review:
+    schema_version: openrouter-owner-smoke-report-v2
+    bytes: 2973
+    forbidden_pattern_hits: 0
+    absent_content:
+      - prompt or messages
+      - assessment or constraints
+      - provider header, body, or response
+      - API key or authorization value
+      - raw model output
+      - outcome content or event ledger
+  post_run:
+    env_local_created: false
+    source_secret_scan_files: 84
+    source_secret_scan_findings: 0
+    qualified_clone_worktree: clean
+  gate_result: OWNER_LIVE_OPENROUTER_SMOKE_PASSED
+  remaining_owner_gates:
+    - owner review of the current dependency evidence and repository diff
+    - optional source publication and demo recording
+    - separate audit before bundled or binary redistribution
+~~~

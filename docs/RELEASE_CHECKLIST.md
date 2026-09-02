@@ -44,21 +44,21 @@ The final two commands use no live flag and are provider-free preflight only. On
 
 ## Owner-only gates
 
-- [ ] Copy `.env.example` to `.env.local` on the owner's machine.
-- [ ] Only after the provider-free clean-clone gates pass, enter a local OpenRouter key and explicit model identifier.
-- [ ] With `OPENROUTER_API_KEY` already inherited privately by the parent shell, run exactly:
+- [x] Only after the provider-free clean-clone gates passed, enter an OpenRouter key through the local masked GUI and keep it in memory rather than creating `.env.local`.
+- [x] Supply the explicit verified model identifier `openai/gpt-4.1-mini` and authorize the documented bounded provider-data transfer.
+- [x] Run the equivalent of the exact owner-only command below with `OPENROUTER_API_KEY` present only in the smoke child environment:
 
 ```powershell
-node scripts/openrouter-smoke.mjs --live-openrouter --confirm-provider-data-transfer --provider openrouter --model "provider/model"
+node scripts/openrouter-smoke.mjs --live-openrouter --confirm-provider-data-transfer --provider openrouter --model "openai/gpt-4.1-mini"
 ```
 
-- [ ] Inspect ignored `output/openrouter-smoke-report.json`: require `state: passed`; one strictly validated receipt; exactly three calls per completed session; no more than six calls; classification `eve-bounded-guidance-harness-v1`; four pre-discovery and five post-discovery tool definitions; the exact prepare/evidence/final sequence; loopback-only Next/Eve/MCP ports; unchanged shared dependencies; scratch removal; and zero residual owned processes or ports.
-- [ ] Confirm the report contains no prompt, assessment, provider header, key, raw model output, outcome content, or event ledger.
-- [ ] Remove the key from the shell/session and rerun the secret scan.
+- [x] Inspect ignored `output/openrouter-smoke-report.json`: `state: passed`; one strictly validated receipt; exactly three calls; classification `eve-bounded-guidance-harness-v1`; four pre-discovery and five post-discovery tool definitions; exact prepare/evidence/final sequence; loopback-only Next/Eve/MCP ports; unchanged shared dependencies; scratch removal; and zero residual owned processes or ports.
+- [x] Confirm the redacted report contains no prompt, assessment, provider header, key, raw model output, outcome content, or event ledger.
+- [x] Clear the key from the GUI/child environment and rerun the secret scan: 84 source files, zero findings.
 - [ ] Review the current dependency evidence and repository diff.
 - [ ] Publish the GitHub repository, if desired.
 
-The live OpenRouter smoke remains owner-only and unexecuted. Do not describe the provider-backed path as verified. Source-only publication and bundled/binary redistribution are separate decisions; the latter requires a new audit of the actual bundle.
+The owner-only OpenRouter smoke passed on 2026-09-01 against exact qualified runtime commit `0bd5f2e7292a1713f9175c3f0691a81b38e19113` with `openai/gpt-4.1-mini`. This verifies one bounded provider-backed receipt and cleanup run only. Source-only publication and bundled/binary redistribution remain separate decisions; the latter requires a new audit of the actual bundle.
 
 ## Concise install/demo recording plan
 
