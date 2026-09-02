@@ -46,8 +46,7 @@ export function LearningHistory({ projection, sessionNonce, onProjection, onErro
     <section className="learning-history" id="history" aria-labelledby="history-heading">
       <div className="learning-history__heading">
         <div>
-          <div className="learning-panel__eyebrow">Persistent local control</div>
-          <h2 id="history-heading">Learning history</h2>
+          <h2 id="history-heading" tabIndex={-1}>Learning history</h2>
         </div>
         <a className="button" href="/api/export">Export full ledger</a>
       </div>

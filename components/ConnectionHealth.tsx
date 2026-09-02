@@ -63,8 +63,7 @@ export function ConnectionHealth({ status, error, checking, onRefresh }: Props) 
     <section className={styles.panel} id="connection-health" aria-labelledby="connection-health-heading">
       <div className={styles.headingRow}>
         <div>
-          <p className={styles.eyebrow}>Local runtime topology</p>
-          <h2 id="connection-health-heading">Connection &amp; health</h2>
+          <h2 id="connection-health-heading" tabIndex={-1}>Connection &amp; health</h2>
           <p className={styles.intro}>Your assessment app is separate from the two internal services it uses. Diagnostics stay on loopback.</p>
         </div>
         <button className={styles.refresh} type="button" onClick={onRefresh} disabled={checking}>

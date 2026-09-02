@@ -342,7 +342,7 @@ try {
   await page.getByText(/Fixture mode: assessment processing stays on this computer/u).first().waitFor();
   await page.screenshot({ path: path.join(artifactDirectory, "assessment-desktop.png"), fullPage: true });
 
-  const interactiveSizes = await page.locator("button, a, input[type=radio]").evaluateAll((elements) => elements.map((element) => {
+  const interactiveSizes = await page.locator("button:visible, a:visible, input[type=radio]:visible").evaluateAll((elements) => elements.map((element) => {
     const box = element.getBoundingClientRect();
     return { tag: element.tagName, text: element.textContent?.trim(), width: box.width, height: box.height };
   }));
@@ -431,6 +431,7 @@ try {
   assert.equal(proposedState.projection.candidates[approvedCandidateId].status, "proposed");
   await page.getByRole("button", { name: "New case" }).click();
   await page.reload({ waitUntil: "networkidle" });
+  await page.getByRole("link", { name: /History Review local learning/u }).click();
   await page.getByRole("heading", { name: "Learning history" }).waitFor();
   await page.getByText(approvedCandidateId, { exact: true }).waitFor();
   const resumeReviewButton = page.getByRole("button", { name: `Resume review ${approvedCandidateId}` });
@@ -464,8 +465,10 @@ try {
   const approvedRule = Object.values(state.projection.rules)[0];
   const receiptIdsBeforeLearningTransition = new Set(Object.keys(state.projection.receipts));
   await page.getByRole("button", { name: "New case" }).click();
+  await page.getByRole("link", { name: /History Review local learning/u }).click();
   await page.getByRole("heading", { name: "Learning history" }).waitFor();
   await page.getByText(approvedCandidateId, { exact: true }).waitFor();
+  await page.getByRole("link", { name: /Assess Frame the decision/u }).click();
   await page.getByRole("button", { name: "Go to step 3" }).click();
   await page.getByRole("radio", { name: "2 — Ambiguous; major constraints are missing" }).click();
   await page.getByRole("button", { name: "Go to step 5" }).click();
@@ -489,6 +492,7 @@ try {
   await page.screenshot({ path: path.join(artifactDirectory, "approved-rule-provenance.png"), fullPage: true });
 
   await page.getByRole("button", { name: "New case" }).click();
+  await page.getByRole("link", { name: /History Review local learning/u }).click();
   await page.getByRole("heading", { name: "Learning history" }).waitFor();
   await page.getByRole("button", { name: "Expire now" }).click();
   await page.getByText("Expired — inactive", { exact: true }).waitFor();
@@ -543,7 +547,7 @@ try {
   };
 
   const ledgerBeforeBackupValidation = fs.readFileSync(path.join(dataDirectory, "events.ndjson"), "utf8");
-  await page.getByRole("link", { name: "Data", exact: true }).click();
+  await page.getByRole("link", { name: /Data Backup and restore/u }).click();
   await page.getByRole("heading", { name: "Backup & restore" }).waitFor();
   const [backupDownload] = await Promise.all([
     page.waitForEvent("download"),
@@ -626,6 +630,7 @@ try {
   };
 
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("link", { name: "Assess", exact: true }).click();
   await page.getByRole("heading", { name: "Delegation assessment" }).waitFor();
   await page.screenshot({ path: path.join(artifactDirectory, "assessment-mobile.png"), fullPage: true });
 

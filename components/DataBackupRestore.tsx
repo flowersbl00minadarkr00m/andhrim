@@ -185,8 +185,7 @@ export function DataBackupRestore({
     <section className={styles.panel} id="data" aria-labelledby="data-heading">
       <div className={styles.heading}>
         <div>
-          <p className={styles.eyebrow}>Local data</p>
-          <h2 id="data-heading">Backup &amp; restore</h2>
+          <h2 id="data-heading" tabIndex={-1}>Backup &amp; restore</h2>
           <p>Create a validated portable backup, inspect an import without mutation, then explicitly confirm complete ledger replacement.</p>
         </div>
         <button className="button" type="button" onClick={() => { void createBackup(); }} disabled={!sessionNonce || busy !== undefined}>

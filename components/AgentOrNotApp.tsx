@@ -34,6 +34,28 @@ type LedgerRecovery = {
   url: string;
 };
 
+type Workspace = "assess" | "history" | "data" | "system";
+
+const workspaceMeta: Array<{
+  id: Workspace;
+  hash: string;
+  label: string;
+  description: string;
+  headingId: string;
+}> = [
+  { id: "assess", hash: "#assessment", label: "Assess", description: "Frame the decision", headingId: "assessment-title" },
+  { id: "history", hash: "#history", label: "History", description: "Review local learning", headingId: "history-heading" },
+  { id: "data", hash: "#data", label: "Data", description: "Backup and restore", headingId: "data-heading" },
+  { id: "system", hash: "#connection-health", label: "System", description: "Inspect runtime health", headingId: "connection-health-heading" },
+];
+
+function workspaceFromHash(hash: string): Workspace {
+  if (hash === "#history") return "history";
+  if (hash === "#data") return "data";
+  if (hash === "#connection-health") return "system";
+  return "assess";
+}
+
 function newAssessment(): Assessment {
   return assessmentSchema.parse({
     schemaVersion: "assessment-v1",
@@ -57,6 +79,7 @@ export function AgentOrNotApp() {
   const [runtimeError, setRuntimeError] = useState("");
   const [runtimeChecking, setRuntimeChecking] = useState(true);
   const [ledgerRecovery, setLedgerRecovery] = useState<LedgerRecovery>();
+  const [workspace, setWorkspace] = useState<Workspace>("assess");
 
   const refreshRuntime = useCallback(async () => {
     setRuntimeChecking(true);
@@ -95,6 +118,17 @@ export function AgentOrNotApp() {
     void refreshRuntime();
   }, [refreshRuntime]);
 
+  useEffect(() => {
+    const syncWorkspace = () => setWorkspace(workspaceFromHash(window.location.hash));
+    syncWorkspace();
+    window.addEventListener("hashchange", syncWorkspace);
+    window.addEventListener("popstate", syncWorkspace);
+    return () => {
+      window.removeEventListener("hashchange", syncWorkspace);
+      window.removeEventListener("popstate", syncWorkspace);
+    };
+  }, []);
+
   const previewRecommendation = useMemo<RecommendationReceipt["recommendation"]>(() => {
     if (!assessment) return "ai-assisted";
     return previewRecommendationForAssessment(assessment);
@@ -110,11 +144,19 @@ export function AgentOrNotApp() {
     }) : current);
   };
 
+  const openWorkspace = (nextWorkspace: Workspace, hash: string, headingId: string) => {
+    setWorkspace(nextWorkspace);
+    if (window.location.hash !== hash) window.history.pushState(null, "", hash);
+    window.requestAnimationFrame(() => document.getElementById(headingId)?.focus());
+  };
+
   const loadSample = (sampleId: AssessmentSampleId) => {
     setAssessment(createAssessmentFromSample(sampleId));
     setStep(0);
     setReceipt(undefined);
     setError("");
+    setWorkspace("assess");
+    window.history.replaceState(null, "", "#assessment");
     window.requestAnimationFrame(() => document.getElementById("assessment-title")?.focus());
   };
 
@@ -157,6 +199,7 @@ export function AgentOrNotApp() {
     setStep(0);
     setReceipt(undefined);
     setError("");
+    openWorkspace("assess", "#assessment", "assessment-title");
   };
 
   const saveStarterPack = async (nextReceipt: RecommendationReceipt) => {
@@ -189,100 +232,141 @@ export function AgentOrNotApp() {
     }
     setReceipt(sourceReceipt);
     setError("");
+    setWorkspace("assess");
+    window.history.pushState(null, "", "#outcome-heading");
     window.requestAnimationFrame(() => document.getElementById("outcome-heading")?.focus());
   };
 
   return (
-    <main>
+    <main className="app-shell-root">
       <header className="app-header">
         <button type="button" className="wordmark" onClick={reset}>Andhrím <em>Agent or Not?</em></button>
-        <nav aria-label="Primary">
-          <button type="button" onClick={reset}>New case</button>
-          {receipt ? <a href="#outcome-heading">Outcome</a> : null}
-          <a href="#history">History</a>
-          <a href="#data">Data</a>
-          <a href="/api/export">Export full ledger</a>
-          <a href="#about">About</a>
-        </nav>
+        <div className="header-actions">
+          <a
+            className="runtime-summary"
+            data-state={runtimeStatus?.configured ? "ready" : runtimeError ? "unavailable" : "checking"}
+            href="#connection-health"
+            aria-label="Open system health"
+            onClick={(event) => { event.preventDefault(); openWorkspace("system", "#connection-health", "connection-health-heading"); }}
+          >
+            <i aria-hidden="true" />
+            <span><b>{runtimeStatus?.configured ? "Runtime ready" : runtimeError ? "Runtime unavailable" : "Checking runtime"}</b><small>{runtimeStatus ? `${runtimeStatus.providerMode === "fixture" ? "Fixture" : "OpenRouter"} · ${runtimeStatus.modelId ?? "No model"}` : "Local services"}</small></span>
+          </a>
+          <button className="header-new-case" type="button" onClick={reset}>New case</button>
+        </div>
       </header>
 
-      <ConnectionHealth
-        status={runtimeStatus}
-        error={runtimeError}
-        checking={runtimeChecking}
-        onRefresh={() => { void refreshRuntime(); }}
-      />
+      <div className="workspace-shell">
+        <aside className="workspace-rail">
+          <nav aria-label="Workspaces">
+            {workspaceMeta.map((item) => (
+              <a
+                key={item.id}
+                className="workspace-link"
+                href={item.hash}
+                aria-current={workspace === item.id ? "page" : undefined}
+                onClick={(event) => { event.preventDefault(); openWorkspace(item.id, item.hash, item.headingId); }}
+              >
+                <b>{item.label}</b>
+                <span>{item.description}</span>
+              </a>
+            ))}
+            <a className="workspace-link" href="/evaluation"><b>Evaluation</b><span>Compare model runs</span></a>
+          </nav>
+          <p>One local decision path. Supporting tools stay in their own workspace.</p>
+        </aside>
 
-      {ledgerRecovery ? (
-        <section className="recovery-notice" role="alert" aria-labelledby="recovery-heading">
-          <div><p>Local data needs attention</p><h2 id="recovery-heading">The ledger was preserved.</h2><span>{ledgerRecovery.message} Download the unchanged NDJSON before attempting a manual repair.</span></div>
-          <a className="button" href={ledgerRecovery.url}>Download untouched ledger</a>
-        </section>
-      ) : null}
+        <div className="workspace-main">
+          {ledgerRecovery ? (
+            <section className="recovery-notice" role="alert" aria-labelledby="recovery-heading">
+              <div><p>Local data needs attention</p><h2 id="recovery-heading">The ledger was preserved.</h2><span>{ledgerRecovery.message} Download the unchanged NDJSON before attempting a manual repair.</span></div>
+              <a className="button" href={ledgerRecovery.url}>Download untouched ledger</a>
+            </section>
+          ) : null}
 
-      <DataBackupRestore
-        sessionNonce={runtimeStatus?.sessionNonce}
-        onRestore={(restoredProjection) => {
-          setProjection(restoredProjection);
-          setReceipt(undefined);
-          setLedgerRecovery(undefined);
-          setError("");
-        }}
-      />
+          {error ? <p className="error global-error" role="alert">{error}</p> : null}
 
-      {!receipt ? (
-        <>
-          <AssessmentSamples onLoad={loadSample} />
-          <div className="assessment-layout">
-          <section className="assessment" aria-labelledby="assessment-title">
-            <div className="assessment__topline">
-              <h1 id="assessment-title" tabIndex={-1}>Delegation assessment</h1>
-              <span>Step {step + 1} of 5</span>
-            </div>
-            <div className="progress" aria-label="Assessment progress">
-              {questions.map((item, index) => (
-                <button key={item.factor} type="button" aria-label={`Go to step ${index + 1}`} aria-current={step === index ? "step" : undefined} className={index < step ? "is-complete" : step === index ? "is-current" : ""} onClick={() => setStep(index)}>{index < step ? "✓" : index + 1}</button>
-              ))}
-            </div>
+          <div className="workspace-view" data-workspace="assess" hidden={workspace !== "assess"}>
+            {!receipt ? (
+              <>
+                <details className="sample-drawer">
+                  <summary><span><b>Start from a sample</b><small>Load an editable case without generating a receipt</small></span><span aria-hidden="true">View cases</span></summary>
+                  <AssessmentSamples onLoad={loadSample} />
+                </details>
+                <div className="assessment-layout">
+                  <section className="assessment" aria-labelledby="assessment-title">
+                    <div className="assessment__topline">
+                      <h1 id="assessment-title" tabIndex={-1}>Delegation assessment</h1>
+                      <span>Step {step + 1} of 5</span>
+                    </div>
+                    <div className="progress" aria-label="Assessment progress">
+                      {questions.map((item, index) => (
+                        <button key={item.factor} type="button" aria-label={`Go to step ${index + 1}`} aria-current={step === index ? "step" : undefined} className={index < step ? "is-complete" : step === index ? "is-current" : ""} onClick={() => setStep(index)}>{index < step ? "✓" : index + 1}</button>
+                      ))}
+                    </div>
 
-            <div className="case-context">
-              <label>Case title<input value={assessment.title} maxLength={120} onChange={(event) => setAssessment({ ...assessment, title: event.target.value })} /></label>
-              <label>Desired outcome<textarea value={assessment.desiredOutcome} maxLength={800} onChange={(event) => setAssessment({ ...assessment, desiredOutcome: event.target.value })} /></label>
-              <label>Constraints<textarea value={assessment.constraints} maxLength={800} onChange={(event) => setAssessment({ ...assessment, constraints: event.target.value })} /></label>
-            </div>
+                    <div className="case-context">
+                      <label>Case title<input value={assessment.title} maxLength={120} onChange={(event) => setAssessment({ ...assessment, title: event.target.value })} /></label>
+                      <label>Desired outcome<textarea value={assessment.desiredOutcome} maxLength={800} onChange={(event) => setAssessment({ ...assessment, desiredOutcome: event.target.value })} /></label>
+                      <label>Constraints<textarea value={assessment.constraints} maxLength={800} onChange={(event) => setAssessment({ ...assessment, constraints: event.target.value })} /></label>
+                    </div>
 
-            <fieldset className="question">
-              <legend>{question.title}</legend>
-              <p>{question.help}</p>
-              <div className="options">
-                {question.labels.map((label, index) => {
-                  const value = index + 1;
-                  return <label key={label}><input type="radio" name={question.factor} value={value} checked={assessment.answers[question.factor] === value} onChange={() => updateAnswer(value)} /><span>{label}</span></label>;
-                })}
+                    <fieldset className="question">
+                      <legend>{question.title}</legend>
+                      <p>{question.help}</p>
+                      <div className="options">
+                        {question.labels.map((label, index) => {
+                          const value = index + 1;
+                          return <label key={label}><input type="radio" name={question.factor} value={value} checked={assessment.answers[question.factor] === value} onChange={() => updateAnswer(value)} /><span>{label}</span></label>;
+                        })}
+                      </div>
+                    </fieldset>
+
+                    <div className="assessment__actions">
+                      <button className="button" type="button" onClick={() => setStep((value) => Math.max(0, value - 1))} disabled={step === 0}>← Back</button>
+                      {step < 4
+                        ? <button className="button button--primary" type="button" onClick={() => setStep((value) => value + 1)}>Continue →</button>
+                        : <button className="button button--primary" type="button" onClick={generate} disabled={busy}>{busy ? "Running local Eve…" : "Generate receipt →"}</button>}
+                    </div>
+                    <p className="keyboard-hint">Tab and Shift+Tab move. Space selects. {runtimeStatus?.privacyDisclosure ?? "Reading the runtime privacy boundary…"}</p>
+                  </section>
+                  <aside className="receipt-pane"><Receipt previewRecommendation={previewRecommendation} step={step} privacyDisclosure={runtimeStatus?.privacyDisclosure} /></aside>
+                </div>
+              </>
+            ) : (
+              <div className="completed-layout">
+                <section className="completed-receipt"><Receipt receipt={receipt} capabilityTrace={projection?.capabilityTraces[receipt.receiptId]} verification={projection?.receiptVerifications[receipt.receiptId]} previewRecommendation={receipt.recommendation} step={4} onStarterPackSave={saveStarterPack} privacyDisclosure={runtimeStatus?.privacyDisclosure} /></section>
+                <LearningPanel key={receipt.receiptId} receipt={receipt} projection={projection} sessionNonce={runtimeStatus?.sessionNonce} onProjection={setProjection} onError={setError} />
               </div>
-            </fieldset>
-
-            <div className="assessment__actions">
-              <button className="button" type="button" onClick={() => setStep((value) => Math.max(0, value - 1))} disabled={step === 0}>← Back</button>
-              {step < 4
-                ? <button className="button button--primary" type="button" onClick={() => setStep((value) => value + 1)}>Continue →</button>
-                : <button className="button button--primary" type="button" onClick={generate} disabled={busy}>{busy ? "Running local Eve…" : "Generate receipt →"}</button>}
-            </div>
-            <p className="keyboard-hint">Tab and Shift+Tab move. Space selects. {runtimeStatus?.privacyDisclosure ?? "Reading the runtime privacy boundary…"}</p>
-            {error ? <p className="error" role="alert">{error}</p> : null}
-          </section>
-          <aside className="receipt-pane"><Receipt previewRecommendation={previewRecommendation} step={step} privacyDisclosure={runtimeStatus?.privacyDisclosure} /></aside>
+            )}
           </div>
-        </>
-      ) : (
-        <div className="completed-layout">
-          <section className="completed-receipt"><Receipt receipt={receipt} capabilityTrace={projection?.capabilityTraces[receipt.receiptId]} verification={projection?.receiptVerifications[receipt.receiptId]} previewRecommendation={receipt.recommendation} step={4} onStarterPackSave={saveStarterPack} privacyDisclosure={runtimeStatus?.privacyDisclosure} /></section>
-          <LearningPanel key={receipt.receiptId} receipt={receipt} projection={projection} sessionNonce={runtimeStatus?.sessionNonce} onProjection={setProjection} onError={setError} />
-          {error ? <p className="error completed-error" role="alert">{error}</p> : null}
-        </div>
-      )}
 
-      <LearningHistory projection={projection} sessionNonce={runtimeStatus?.sessionNonce} onProjection={setProjection} onError={setError} onResumeReview={resumeLearningReview} />
+          <div className="workspace-view" data-workspace="history" hidden={workspace !== "history"}>
+            <LearningHistory projection={projection} sessionNonce={runtimeStatus?.sessionNonce} onProjection={setProjection} onError={setError} onResumeReview={resumeLearningReview} />
+          </div>
+
+          <div className="workspace-view" data-workspace="data" hidden={workspace !== "data"}>
+            <DataBackupRestore
+              sessionNonce={runtimeStatus?.sessionNonce}
+              onRestore={(restoredProjection) => {
+                setProjection(restoredProjection);
+                setReceipt(undefined);
+                setLedgerRecovery(undefined);
+                setError("");
+              }}
+            />
+          </div>
+
+          <div className="workspace-view" data-workspace="system" hidden={workspace !== "system"}>
+            <ConnectionHealth
+              status={runtimeStatus}
+              error={runtimeError}
+              checking={runtimeChecking}
+              onRefresh={() => { void refreshRuntime(); }}
+            />
+          </div>
+        </div>
+      </div>
 
       <footer className="app-footer" id="about">
         <p><b>Loopback application</b> · Eve bounded guidance harness · Read-only skill/tool/MCP evidence · Local ledger</p>

@@ -126,10 +126,7 @@
 
 .appZone,
 .internalZone {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 10px;
-  background: rgba(7, 12, 21, .45);
+  padding: 10px 0;
 }
 
 .appZone {
@@ -153,19 +150,16 @@
 
 .serviceCard {
   min-width: 0;
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  padding: 14px 15px;
-  background: var(--surface);
+  border-top: 1px solid var(--line-strong);
+  padding: 14px 4px;
 }
 
 .serviceCard[data-state="healthy"] {
-  border-left-color: var(--success);
+  border-top-color: rgba(88, 223, 139, .52);
 }
 
 .serviceCard[data-state="unavailable"] {
-  border-left-color: var(--danger);
+  border-top-color: rgba(255, 136, 127, .58);
 }
 
 .serviceTopline {

@@ -23,8 +23,7 @@ export function AssessmentSamples({ onLoad }: Props) {
     <section className={styles.samples} aria-labelledby="sample-assessments-heading">
       <div className={styles.heading}>
         <div>
-          <p>First-run samples</p>
-          <h2 id="sample-assessments-heading">Start with a recognisable case</h2>
+          <h2 id="sample-assessments-heading">Choose a starting point</h2>
         </div>
         <span>Loads an editable draft · never generates a receipt</span>
       </div>
