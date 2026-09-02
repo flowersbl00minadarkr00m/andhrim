@@ -64,6 +64,7 @@ pnpm verify:licenses
 pnpm verify:mcp
 pnpm verify:provider-free
 pnpm build
+pnpm verify:atmosphere
 pnpm verify:start
 pnpm verify:browser
 pnpm verify:openrouter-smoke

@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@designcodeio/threeui':
-        specifier: 1.2.0
-        version: 1.2.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(three@0.165.0)
       '@openrouter/ai-sdk-provider':
         specifier: 3.0.0
         version: 3.0.0(ai@7.0.77(zod@4.4.3))(zod@4.4.3)
@@ -29,9 +26,6 @@ importers:
       react-dom:
         specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
-      three:
-        specifier: 0.165.0
-        version: 0.165.0
       zod:
         specifier: 4.4.3
         version: 4.4.3
@@ -78,13 +72,6 @@ packages:
 
   '@borewit/text-codec@0.2.2':
     resolution: {integrity: sha512-DDaRehssg1aNrH4+2hnj1B7vnUGEjU6OIlyRdkMd0aUdIUvKXrJfXsy8LVtXAy7DRvYVluWbMspsRhz2lcW0mQ==}
-
-  '@designcodeio/threeui@1.2.0':
-    resolution: {integrity: sha512-E6F/+IPfLKYatB5W62H3gK1bp9WYvfO6xuWBaBh8oLVR7fbTeeEwgLqqy7ZPMA0zmDpAy03nKYOIswBXsstL2g==}
-    peerDependencies:
-      react: '>=18 <20'
-      react-dom: '>=18 <20'
-      three: '>=0.149 <1'
 
   '@emnapi/runtime@1.11.3':
     resolution: {integrity: sha512-Xz4Tpyki7XyrpbUK1jR1AhdAdaXyhhY4lZ3neLodmhpuWfy2PAQN5B46sAiU4liOXGLkHypn/qU+jvfWSCYYLA==}
@@ -1284,12 +1271,6 @@ packages:
     resolution: {integrity: sha512-ujeqbceABgwMZxEJnk2HDY2DlnUZ+9oEcb1KzTVfYHio0UE6dG71n60d8D2I4qNvleWrrXpmjpt7vZeF1LnMZQ==}
     engines: {node: '>=6'}
 
-  three@0.128.0:
-    resolution: {integrity: sha512-i0ap/E+OaSfzw7bD1TtYnPo3VEplkl70WX5fZqZnfZsE3k3aSFudqrrC9ldFZfYFkn1zwDmBcdGfiIm/hnbyZA==}
-
-  three@0.165.0:
-    resolution: {integrity: sha512-cc96IlVYGydeceu0e5xq70H8/yoVT/tXBxV/W8A/U6uOq7DXc4/s1Mkmnu6SqoYGhSRWWYFOhVwvq6V0VtbplA==}
-
   tinybench@2.9.0:
     resolution: {integrity: sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg==}
 
@@ -1550,14 +1531,6 @@ snapshots:
       json-schema: 0.4.0
 
   '@borewit/text-codec@0.2.2': {}
-
-  '@designcodeio/threeui@1.2.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(three@0.165.0)':
-    dependencies:
-      react: 19.2.8
-      react-dom: 19.2.8(react@19.2.8)
-      three: 0.165.0
-      three128: three@0.128.0
-      three165: three@0.165.0
 
   '@emnapi/runtime@1.11.3':
     dependencies:
@@ -2574,10 +2547,6 @@ snapshots:
       inherits: 2.0.4
       readable-stream: 3.6.2
     optional: true
-
-  three@0.128.0: {}
-
-  three@0.165.0: {}
 
   tinybench@2.9.0: {}
 

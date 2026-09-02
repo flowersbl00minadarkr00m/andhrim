@@ -32,6 +32,7 @@ const independentChecks = [
 const orderedChecks = [
   { id: "eve-provider-free", script: "scripts/verify-provider-free.mjs" },
   { id: "production-build", script: "scripts/verify-build.mjs" },
+  { id: "visual-atmosphere", script: "scripts/verify-visual-atmosphere.mjs" },
   { id: "production-launcher", script: "scripts/verify-start-local.mjs" },
   { id: "browser-flow", script: "scripts/verify-browser.mjs" },
   { id: "openrouter-offline-preflight", script: "scripts/verify-openrouter-smoke.mjs" },

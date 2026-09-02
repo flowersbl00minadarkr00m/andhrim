@@ -67,36 +67,122 @@ body > main {
   pointer-events: none;
   user-select: none;
   contain: strict;
+  isolation: isolate;
 }
 
 .visual-atmosphere::after {
   content: "";
   position: absolute;
+  z-index: 4;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(5, 7, 13, .72), rgba(5, 7, 13, .2) 52%, rgba(5, 7, 13, .54)),
-    linear-gradient(180deg, rgba(5, 7, 13, .12), rgba(5, 7, 13, .7));
+    linear-gradient(90deg, rgba(5, 7, 13, .78), rgba(5, 7, 13, .18) 54%, rgba(5, 7, 13, .58)),
+    linear-gradient(180deg, rgba(5, 7, 13, .08), rgba(5, 7, 13, .78));
 }
 
-.visual-atmosphere__static,
-.visual-atmosphere__field {
+.visual-atmosphere__glow,
+.visual-atmosphere__mesh,
+.visual-atmosphere__particles {
   position: absolute;
-  inset: -8%;
-  width: 116%;
-  height: 116%;
+  pointer-events: none;
 }
 
-.visual-atmosphere__static {
-  opacity: .28;
+.visual-atmosphere__glow {
+  z-index: 0;
+  inset: -18%;
+  opacity: .74;
   background:
-    repeating-radial-gradient(ellipse at 82% 20%, transparent 0 38px, rgba(47, 108, 246, .09) 39px 40px, transparent 41px 62px),
-    radial-gradient(700px 540px at 76% 10%, rgba(47, 108, 246, .11), transparent 68%);
-  transform: rotate(-6deg) scale(1.08);
+    radial-gradient(ellipse at 82% 8%, rgba(61, 121, 255, .22), transparent 40%),
+    radial-gradient(ellipse at 58% 56%, rgba(19, 72, 169, .11), transparent 45%),
+    radial-gradient(ellipse at 14% 86%, rgba(47, 108, 246, .06), transparent 34%);
+  transform: scale(1.04);
+  animation: atmosphere-breathe 18s ease-in-out infinite alternate;
+  will-change: transform, opacity;
 }
 
-.visual-atmosphere__field {
-  opacity: .42;
+.visual-atmosphere__mesh {
+  z-index: 1;
+  inset: -28%;
+  background-image:
+    linear-gradient(rgba(117, 167, 255, .15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(117, 167, 255, .12) 1px, transparent 1px);
+  background-size: 72px 72px;
   mix-blend-mode: screen;
+  transform-origin: 76% 12%;
+  -webkit-mask-image: radial-gradient(ellipse at 76% 16%, black 0 12%, rgba(0, 0, 0, .78) 30%, transparent 69%);
+  mask-image: radial-gradient(ellipse at 76% 16%, black 0 12%, rgba(0, 0, 0, .78) 30%, transparent 69%);
+  will-change: transform;
+}
+
+.visual-atmosphere__mesh--far {
+  opacity: .33;
+  transform: perspective(900px) rotateX(66deg) rotateZ(-14deg) translate3d(-1.5%, -2%, 0) scale(1.08);
+  animation: atmosphere-grid-drift 34s ease-in-out infinite alternate;
+}
+
+.visual-atmosphere__mesh--near {
+  z-index: 2;
+  inset: -42%;
+  opacity: .14;
+  background-size: 112px 112px;
+  transform-origin: 68% 22%;
+  transform: perspective(720px) rotateX(72deg) rotateZ(18deg) translate3d(3%, 5%, 0) scale(1.16);
+  animation: atmosphere-grid-counterdrift 46s ease-in-out infinite alternate;
+}
+
+.visual-atmosphere__particles {
+  z-index: 3;
+  inset: -10%;
+  opacity: .46;
+  background-image:
+    radial-gradient(circle, rgba(197, 219, 255, .82) 0 1px, transparent 1.4px),
+    radial-gradient(circle, rgba(86, 145, 255, .62) 0 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(117, 167, 255, .38) 0 1px, transparent 1.6px);
+  background-position: 0 0, 37px 71px, 91px 19px;
+  background-size: 149px 173px, 211px 197px, 263px 229px;
+  -webkit-mask-image: radial-gradient(ellipse at 76% 12%, black 0 10%, rgba(0, 0, 0, .74) 38%, transparent 75%);
+  mask-image: radial-gradient(ellipse at 76% 12%, black 0 10%, rgba(0, 0, 0, .74) 38%, transparent 75%);
+  transform: translate3d(0, 0, 0);
+  animation: atmosphere-particle-drift 52s linear infinite alternate;
+  will-change: transform;
+}
+
+@keyframes atmosphere-breathe {
+  from {
+    opacity: .58;
+    transform: scale(1.02) translate3d(-.5%, .4%, 0);
+  }
+  to {
+    opacity: .8;
+    transform: scale(1.08) translate3d(1%, -1%, 0);
+  }
+}
+
+@keyframes atmosphere-grid-drift {
+  from {
+    transform: perspective(900px) rotateX(66deg) rotateZ(-14deg) translate3d(-1.5%, -2%, 0) scale(1.08);
+  }
+  to {
+    transform: perspective(900px) rotateX(66deg) rotateZ(-12deg) translate3d(1.5%, 2%, 0) scale(1.11);
+  }
+}
+
+@keyframes atmosphere-grid-counterdrift {
+  from {
+    transform: perspective(720px) rotateX(72deg) rotateZ(18deg) translate3d(3%, 5%, 0) scale(1.16);
+  }
+  to {
+    transform: perspective(720px) rotateX(72deg) rotateZ(16deg) translate3d(-1%, 1%, 0) scale(1.12);
+  }
+}
+
+@keyframes atmosphere-particle-drift {
+  from {
+    transform: translate3d(-1.5%, -1%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(1.5%, 1.2%, 0) scale(1.025);
+  }
 }
 
 ::selection {
@@ -1494,12 +1580,25 @@ textarea {
 }
 
 @media (max-width: 700px) {
-  .visual-atmosphere__static {
-    opacity: .19;
+  .visual-atmosphere__glow {
+    inset: -10%;
+    opacity: .54;
   }
 
-  .visual-atmosphere__field {
-    opacity: .24;
+  .visual-atmosphere__mesh--far {
+    inset: -38%;
+    opacity: .2;
+    background-size: 88px 88px;
+    animation-duration: 48s;
+  }
+
+  .visual-atmosphere__mesh--near {
+    display: none;
+  }
+
+  .visual-atmosphere__particles {
+    opacity: .28;
+    animation-duration: 64s;
   }
 
   .app-header {
@@ -1784,8 +1883,11 @@ textarea {
     transition: none !important;
   }
 
-  .visual-atmosphere__field {
-    display: none;
+  .visual-atmosphere__glow,
+  .visual-atmosphere__mesh,
+  .visual-atmosphere__particles {
+    animation: none !important;
+    will-change: auto;
   }
 }
 
