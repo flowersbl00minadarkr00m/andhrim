@@ -6,6 +6,7 @@ import {
   type RecommendationReceipt,
 } from "./recommendation";
 import { capabilityTraceSchema, type CapabilityTrace } from "./capabilities";
+import { receiptVerificationSchema, type ReceiptVerification } from "./verification";
 
 const boundedText = (maximum: number) => z.string().trim().min(1).max(maximum);
 const recordId = (prefix: string) => z.string().regex(new RegExp(`^${prefix}-[a-z0-9-]+$`, "u"));
@@ -102,7 +103,18 @@ const eventBase = {
 };
 
 export const productEventSchema = z.discriminatedUnion("type", [
-  z.object({ ...eventBase, type: z.literal("recommendation.recorded"), assessment: assessmentSchema, receipt: recommendationReceiptSchema, capabilityTrace: capabilityTraceSchema.optional() }).strict(),
+  z.object({
+    ...eventBase,
+    type: z.literal("recommendation.recorded"),
+    assessment: assessmentSchema,
+    receipt: recommendationReceiptSchema,
+    capabilityTrace: capabilityTraceSchema.optional(),
+    verification: receiptVerificationSchema.optional(),
+  }).strict().superRefine((event, context) => {
+    if (event.verification && !event.capabilityTrace) {
+      context.addIssue({ code: "custom", path: ["capabilityTrace"], message: "Verification evidence requires a capability trace." });
+    }
+  }),
   z.object({ ...eventBase, type: z.literal("recommendation.edited"), receipt: recommendationReceiptSchema }).strict(),
   z.object({ ...eventBase, type: z.literal("outcome.recorded"), outcome: outcomeSchema }).strict(),
   z.object({ ...eventBase, type: z.literal("learning.proposed"), candidate: learningCandidateSchema }).strict(),
@@ -120,13 +132,14 @@ export type ProductProjection = {
   assessments: Record<string, Assessment>;
   receipts: Record<string, RecommendationReceipt>;
   capabilityTraces: Record<string, CapabilityTrace>;
+  receiptVerifications: Record<string, ReceiptVerification>;
   outcomes: Record<string, Outcome>;
   candidates: Record<string, LearningCandidate>;
   rules: Record<string, ActiveRule>;
 };
 
 export function createEmptyProjection(): ProductProjection {
-  return { assessments: {}, receipts: {}, capabilityTraces: {}, outcomes: {}, candidates: {}, rules: {} };
+  return { assessments: {}, receipts: {}, capabilityTraces: {}, receiptVerifications: {}, outcomes: {}, candidates: {}, rules: {} };
 }
 
 function candidateWithStatus(candidate: LearningCandidate, status: LearningCandidate["status"]): LearningCandidate {
@@ -142,6 +155,7 @@ export function projectProductEvents(values: readonly unknown[]): ProductProject
         state.assessments[event.assessment.assessmentId] = event.assessment;
         state.receipts[event.receipt.receiptId] = event.receipt;
         if (event.capabilityTrace) state.capabilityTraces[event.receipt.receiptId] = event.capabilityTrace;
+        if (event.verification) state.receiptVerifications[event.receipt.receiptId] = event.verification;
         break;
       case "recommendation.edited": {
         const current = state.receipts[event.receipt.receiptId];

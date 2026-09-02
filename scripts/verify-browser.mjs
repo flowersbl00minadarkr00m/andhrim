@@ -348,6 +348,12 @@ try {
   }
   await page.getByRole("heading", { name: "Turn an outcome into reviewable learning." }).waitFor();
   await page.getByRole("heading", { name: "Capability provenance" }).waitFor();
+  await page.getByRole("heading", { name: "Verification evidence" }).waitFor();
+  await page.getByText("5 deterministic gates passed", { exact: true }).waitFor();
+  await page.getByText("2 of 2", { exact: true }).waitFor();
+  await page.getByText("Inspect replay evidence", { exact: true }).click();
+  await page.getByText("strict-receipt-schema", { exact: true }).waitFor();
+  await page.getByText("outcome-data-isolation", { exact: true }).waitFor();
   await page.getByText("delegation-guidance", { exact: true }).waitFor();
   await page.getByText("governed-memory__lookup_approved_guidance", { exact: true }).first().waitFor();
   await page.getByText(/Raw outcome notes crossed: no/u).waitFor();
@@ -448,6 +454,14 @@ try {
   const exportPayload = await exportResponse.json();
   assert.equal(exportPayload.projection.candidates[approvedCandidateId].status, "deleted");
   assert.equal(exportPayload.projection.candidates[approvedCandidateId].sourceOutcomeId, proposedState.projection.candidates[approvedCandidateId].sourceOutcomeId);
+  const exportedVerifications = Object.values(exportPayload.projection.receiptVerifications);
+  assert.equal(exportedVerifications.length, 2, "Each browser-created receipt must export replayable verification evidence.");
+  assert.deepEqual(exportedVerifications.map((verification) => verification.sessionAttemptsUsed), [2, 1]);
+  assert.ok(exportedVerifications.every((verification) => verification.gates.length === 5
+    && verification.gates.every((gate) => gate.state === "passed")
+    && /^[a-f0-9]{64}$/u.test(verification.assessmentInputHash)
+    && /^[a-f0-9]{64}$/u.test(verification.capabilityTraceHash)
+    && /^[a-f0-9]{64}$/u.test(verification.recordedReceiptHash)));
   const exportedCandidateEventTypes = exportPayload.events
     .filter((event) => event.candidate?.candidateId === approvedCandidateId || event.candidateId === approvedCandidateId)
     .map((event) => event.type);
@@ -474,6 +488,8 @@ try {
     completeEventCount: exportPayload.events.length,
     candidateEventTypes: exportedCandidateEventTypes,
     forbiddenProviderFields: forbiddenExportKeys.length,
+    replayVerifiedReceipts: exportedVerifications.length,
+    deterministicGatesPerReceipt: 5,
   };
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("heading", { name: "Delegation assessment" }).waitFor();

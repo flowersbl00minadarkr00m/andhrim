@@ -10,6 +10,7 @@ This is a non-production exploratory repository. It does not complete canonical 
 - An Eve `0.44.0` session that must complete one bounded capability chain: load the static delegation skill, discover one allowlisted MCP connection, derive deterministic evidence with one authored tool, read approved guidance through one local MCP tool, then submit the final structured output.
 - A loopback-only Python MCP server built with the official Pydantic/FastMCP stack. It returns only active, matching, owner-approved guidance provenance; it cannot write records and never receives or returns raw outcomes.
 - Framework-lifecycle-derived provenance for every capability call, persisted with each recommendation and displayed on its receipt.
+- Five deterministic receipt gates, bounded retry usage, and SHA-256 input/trace/output fingerprints. Verification evidence is replayed whenever the local event ledger is read and is included in local exports.
 - Same-origin, Fetch Metadata, JSON-content, and unpredictable per-launch session-nonce checks on local mutation and Eve session routes.
 - Strict Zod/Pydantic schemas, deterministic provider-free fixtures, append-only local NDJSON records, inert Learning Candidates, and explicit owner approval before a rule can affect later recommendations.
 - Bounded edit, approve, reject, supersede, expire, export, and delete semantics.

@@ -12,6 +12,7 @@ import {
 } from "@/src/domain/learning";
 import { recommendationReceiptSchema } from "@/src/domain/recommendation";
 import { capabilityTraceSchema } from "@/src/domain/capabilities";
+import { receiptVerificationContextSchema } from "@/src/domain/verification";
 import {
   appendProductEvent,
   appendProductEvents,
@@ -21,11 +22,18 @@ import {
   assertLocalMutationRequest,
   localRequestErrorResponse,
 } from "@/src/server/local-request-security";
+import { createReceiptVerification } from "@/src/server/receipt-verification";
 
 export const runtime = "nodejs";
 
 const actionSchema = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("record-recommendation"), assessment: assessmentSchema, receipt: recommendationReceiptSchema, capabilityTrace: capabilityTraceSchema }).strict(),
+  z.object({
+    action: z.literal("record-recommendation"),
+    assessment: assessmentSchema,
+    receipt: recommendationReceiptSchema,
+    capabilityTrace: capabilityTraceSchema,
+    verificationContext: receiptVerificationContextSchema,
+  }).strict(),
   z.object({ action: z.literal("edit-receipt"), receipt: recommendationReceiptSchema }).strict(),
   z.object({ action: z.literal("record-outcome"), outcome: outcomeSchema }).strict(),
   z.object({ action: z.literal("edit-learning"), candidate: learningCandidateSchema }).strict(),
@@ -50,7 +58,15 @@ export async function POST(request: Request) {
         if (action.receipt.assessmentId !== action.assessment.assessmentId) throw new Error("Receipt and assessment identities do not match.");
         if (current.receipts[action.receipt.receiptId]) throw new Error("Receipt is already recorded.");
         const receipt = applyApprovedRules(action.assessment, action.receipt, Object.values(current.rules));
-        projection = appendProductEvent({ ...eventBase(), type: "recommendation.recorded", assessment: action.assessment, receipt, capabilityTrace: action.capabilityTrace });
+        const verification = createReceiptVerification(action.assessment, receipt, action.capabilityTrace, action.verificationContext);
+        projection = appendProductEvent({
+          ...eventBase(),
+          type: "recommendation.recorded",
+          assessment: action.assessment,
+          receipt,
+          capabilityTrace: action.capabilityTrace,
+          verification,
+        });
         break;
       }
       case "edit-receipt": {

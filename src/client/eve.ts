@@ -10,6 +10,7 @@ import {
   type RecommendationReceipt,
 } from "../domain/recommendation";
 import { assessmentForProvider, type ProviderMode } from "../domain/runtime";
+import { RECEIPT_SESSION_BUDGET, type ReceiptVerificationContext } from "../domain/verification";
 
 type LocalRuntime = {
   providerMode: ProviderMode;
@@ -17,11 +18,12 @@ type LocalRuntime = {
   sessionNonce: string;
 };
 
-export const RECEIPT_SESSION_BUDGET = 2;
+export { RECEIPT_SESSION_BUDGET };
 
 export type EveReceiptRun = {
   receipt: RecommendationReceipt;
   capabilityTrace: CapabilityTrace;
+  verificationContext: ReceiptVerificationContext;
 };
 
 export function localEveStartError(status: number): string {
@@ -41,7 +43,14 @@ export async function requestEveReceipt(assessment: Assessment, runtime: LocalRu
   let validationFailure = false;
   for (let attempt = 1; attempt <= RECEIPT_SESSION_BUDGET; attempt += 1) {
     try {
-      return await requestAttempt(assessment, runtime, validationFailure);
+      const run = await requestAttempt(assessment, runtime, validationFailure);
+      return {
+        ...run,
+        verificationContext: {
+          sessionAttemptsUsed: attempt,
+          sessionAttemptBudget: RECEIPT_SESSION_BUDGET,
+        },
+      };
     } catch (error) {
       if (!(error instanceof ReceiptValidationError) || attempt === RECEIPT_SESSION_BUDGET) throw error;
       validationFailure = true;
@@ -75,7 +84,7 @@ async function requestAttempt(
   assessment: Assessment,
   localRuntime: LocalRuntime,
   correction: boolean,
-): Promise<EveReceiptRun> {
+): Promise<Omit<EveReceiptRun, "verificationContext">> {
   const runtime: RecommendationReceipt["runtime"] = {
     providerMode: localRuntime.providerMode,
     modelId: localRuntime.modelId,

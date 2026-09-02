@@ -107,6 +107,7 @@ export function AgentOrNotApp() {
         assessment: validatedAssessment,
         receipt: localReceipt,
         capabilityTrace: modelRun.capabilityTrace,
+        verificationContext: modelRun.verificationContext,
       }, runtimeStatus.sessionNonce);
       setProjection(nextProjection);
       setReceipt(nextProjection.receipts[localReceipt.receiptId]);
@@ -213,7 +214,7 @@ export function AgentOrNotApp() {
         </div>
       ) : (
         <div className="completed-layout">
-          <section className="completed-receipt"><Receipt receipt={receipt} capabilityTrace={projection?.capabilityTraces[receipt.receiptId]} previewRecommendation={receipt.recommendation} step={4} onStarterPackSave={saveStarterPack} privacyDisclosure={runtimeStatus?.privacyDisclosure} /></section>
+          <section className="completed-receipt"><Receipt receipt={receipt} capabilityTrace={projection?.capabilityTraces[receipt.receiptId]} verification={projection?.receiptVerifications[receipt.receiptId]} previewRecommendation={receipt.recommendation} step={4} onStarterPackSave={saveStarterPack} privacyDisclosure={runtimeStatus?.privacyDisclosure} /></section>
           <LearningPanel key={receipt.receiptId} receipt={receipt} projection={projection} sessionNonce={runtimeStatus?.sessionNonce} onProjection={setProjection} onError={setError} />
           {error ? <p className="error completed-error" role="alert">{error}</p> : null}
         </div>

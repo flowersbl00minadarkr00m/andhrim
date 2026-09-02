@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { RecommendationReceipt } from "@/src/domain/recommendation";
 import type { CapabilityTrace } from "@/src/domain/capabilities";
+import type { ReceiptVerification } from "@/src/domain/verification";
 
 const recommendationLabels: Record<RecommendationReceipt["recommendation"], string> = {
   "human-led": "Human-led",
@@ -15,13 +16,14 @@ const recommendationLabels: Record<RecommendationReceipt["recommendation"], stri
 type Props = {
   receipt?: RecommendationReceipt;
   capabilityTrace?: CapabilityTrace;
+  verification?: ReceiptVerification;
   previewRecommendation: RecommendationReceipt["recommendation"];
   step: number;
   privacyDisclosure?: string;
   onStarterPackSave?: (receipt: RecommendationReceipt) => Promise<void>;
 };
 
-export function Receipt({ receipt, capabilityTrace, previewRecommendation, step, privacyDisclosure, onStarterPackSave }: Props) {
+export function Receipt({ receipt, capabilityTrace, verification, previewRecommendation, step, privacyDisclosure, onStarterPackSave }: Props) {
   const recommendation = receipt?.recommendation ?? previewRecommendation;
   const [editing, setEditing] = useState(false);
   const [starterPack, setStarterPack] = useState(receipt?.starterPack ?? []);
@@ -102,6 +104,29 @@ export function Receipt({ receipt, capabilityTrace, previewRecommendation, step,
           {receipt.appliedRules.map((rule) => (
             <p key={`${rule.ruleId}-${rule.version}`}><b>{rule.ruleId} v{rule.version}</b> — {rule.explanation} Source: {rule.sourceOutcomeId}.</p>
           ))}
+        </section>
+      ) : null}
+
+      {verification ? (
+        <section className="verification-evidence" aria-labelledby="verification-evidence-heading">
+          <div className="section-title">
+            <h3 id="verification-evidence-heading">Verification evidence</h3>
+            <span>{verification.gates.length} deterministic gates passed</span>
+          </div>
+          <p>Model confidence is a judgment. These checks are code-verified and replayed whenever the local event ledger is read.</p>
+          <div className="verification-summary">
+            <div><b>{verification.sessionAttemptsUsed} of {verification.sessionAttemptBudget}</b><span>Eve sessions used</span></div>
+            <div><b>{verification.gates.length} of {verification.gates.length}</b><span>Deterministic gates</span></div>
+          </div>
+          <details>
+            <summary>Inspect replay evidence</summary>
+            <ol>{verification.gates.map((gate) => <li key={gate.id}><b>{gate.id}</b><span>{gate.evidence}</span></li>)}</ol>
+            <dl className="verification-hashes">
+              <div><dt>Assessment input</dt><dd><code>{verification.assessmentInputHash}</code></dd></div>
+              <div><dt>Capability trace</dt><dd><code>{verification.capabilityTraceHash}</code></dd></div>
+              <div><dt>Original receipt event</dt><dd><code>{verification.recordedReceiptHash}</code></dd></div>
+            </dl>
+          </details>
         </section>
       ) : null}
 

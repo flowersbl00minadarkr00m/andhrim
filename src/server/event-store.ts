@@ -7,6 +7,7 @@ import {
   type ProductEvent,
   type ProductProjection,
 } from "../domain/learning";
+import { verifyRecommendationEvents } from "./receipt-verification";
 
 function dataDirectory() {
   const configured = process.env.AGENT_OR_NOT_DATA_DIR;
@@ -46,7 +47,7 @@ export function readProductEvents(): ProductEvent[] {
   const ledgerPath = eventLedgerPath();
   if (!existsSync(ledgerPath)) return [];
   const text = readFileSync(ledgerPath, "utf8");
-  return text.split(/\r?\n/u)
+  const events = text.split(/\r?\n/u)
     .filter((line) => line.trim().length > 0)
     .map((line, index) => {
       try {
@@ -55,6 +56,8 @@ export function readProductEvents(): ProductEvent[] {
         throw new Error(`Local event ledger is invalid at line ${index + 1}.`, { cause: error });
       }
     });
+  verifyRecommendationEvents(events);
+  return events;
 }
 
 export function readProductProjection(): ProductProjection {
@@ -77,6 +80,7 @@ export function appendProductEvents(values: readonly unknown[]): ProductProjecti
   }
   const next = [...existing, ...events];
   projectProductEvents(next);
+  verifyRecommendationEvents(next);
   const directory = dataDirectory();
   mkdirSync(directory, { recursive: true });
   appendFileSync(eventLedgerPath(), events.map((event) => JSON.stringify(event)).join("\n") + "\n", { encoding: "utf8", flag: "a" });
