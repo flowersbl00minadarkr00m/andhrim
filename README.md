@@ -50,6 +50,8 @@ pnpm start
 
 Open `http://127.0.0.1:3000`. The production launcher starts three loopback services: the Pydantic MCP companion, Eve, and Next.js. It derives Eve's port from the built Next.js proxy manifest and fails closed if an explicit configured port disagrees. Stop all services with Ctrl+C.
 
+Open **System → Configure OpenRouter** to enter an explicit `provider/model` identifier and your key without editing the environment file by hand. The loopback-only route writes those values to Git-ignored `.env.local`, never returns the key, and requires one `pnpm start` restart before Eve uses the new configuration.
+
 The launcher creates a fresh session nonce in memory and gives it only to the local child services. It is not written to source, `.env.local`, the event ledger, exports, screenshots, or normal logs.
 
 ## Verification

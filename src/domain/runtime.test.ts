@@ -36,7 +36,7 @@ describe("runtime privacy disclosure", () => {
 
     expect(JSON.stringify(status)).not.toMatch(/apiKey|credentialValue/u);
     expect(runtimeActionGuidance(status)).toEqual(expect.arrayContaining([
-      expect.stringMatching(/\.env\.local/u),
+      expect.stringMatching(/Configure OpenRouter/u),
       expect.stringMatching(/pnpm start/u),
     ]));
   });

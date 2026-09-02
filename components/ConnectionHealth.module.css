@@ -66,12 +66,11 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   display: grid;
-  grid-template-columns: .75fr 1.35fr .8fr minmax(260px, 1.6fr);
+  grid-template-columns: .75fr 1.35fr .8fr minmax(300px, 1.6fr);
   background: rgba(7, 12, 21, .6);
 }
 
-.configuration > div,
-.configuration > p {
+.configuration > div {
   min-width: 0;
   margin: 0;
   padding: 13px 16px;
@@ -111,10 +110,47 @@
   color: var(--warning);
 }
 
-.configuration p {
-  align-self: center;
+.configurationAction {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.configurationAction p {
+  min-width: 0;
+  margin: 0;
   color: var(--muted);
   font-size: 11px;
+}
+
+.configurationAction button,
+.dialogActions button,
+.savedState button {
+  min-height: 42px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 8px 13px;
+  flex: 0 0 auto;
+  background: var(--surface-raised);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.configurationAction button:hover:not(:disabled),
+.dialogActions button:hover:not(:disabled),
+.savedState button:hover:not(:disabled) {
+  border-color: var(--accent-text);
+}
+
+.configurationAction button:disabled,
+.dialogActions button:disabled,
+.savedState button:disabled,
+.closeButton:disabled {
+  cursor: wait;
+  opacity: .55;
 }
 
 .topology {
@@ -306,12 +342,197 @@
   color: var(--accent-text);
 }
 
+.dialog {
+  width: min(560px, calc(100% - 28px));
+  max-height: calc(100dvh - 32px);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 0;
+  overflow: auto;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 28px 80px rgba(0, 4, 14, .68);
+}
+
+.dialog::backdrop {
+  background: rgba(1, 5, 12, .76);
+  backdrop-filter: blur(8px);
+}
+
+.dialog form {
+  padding: clamp(22px, 4vw, 32px);
+}
+
+.dialogHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 22px;
+}
+
+.dialogHeading h3 {
+  margin: 0;
+  font-size: clamp(1.45rem, 4vw, 2rem);
+  letter-spacing: -.025em;
+}
+
+.dialogHeading p {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.closeButton {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  padding: 0;
+  flex: 0 0 auto;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.closeButton:hover:not(:disabled) {
+  color: var(--ink);
+}
+
+.closeButton svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.formFields {
+  margin-top: 26px;
+  display: grid;
+  gap: 18px;
+}
+
+.formFields label,
+.formFields label > span,
+.formFields small {
+  display: block;
+}
+
+.formFields label > span {
+  margin-bottom: 7px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.formFields input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  background: var(--surface-inset);
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.formFields input::placeholder {
+  color: var(--quiet);
+}
+
+.formFields input:hover:not(:disabled) {
+  border-color: var(--accent-text);
+}
+
+.formFields small {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.formFields code,
+.savedState code {
+  color: var(--accent-text);
+  font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace;
+  font-size: .95em;
+}
+
+.securityNote {
+  margin-top: 22px;
+  border-top: 1px solid var(--line);
+  padding-top: 17px;
+}
+
+.securityNote strong {
+  color: var(--success);
+  font-size: 11px;
+}
+
+.securityNote p,
+.savedState p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.formError {
+  margin: 18px 0 0;
+  border: 1px solid rgba(255, 136, 127, .34);
+  border-radius: var(--radius-sm);
+  padding: 11px 12px;
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.dialogActions {
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.dialogActions .primaryAction,
+.savedState .primaryAction {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+}
+
+.dialogActions .primaryAction:hover:not(:disabled),
+.savedState .primaryAction:hover:not(:disabled) {
+  border-color: var(--accent-text);
+  background: var(--accent-strong);
+}
+
+.savedState {
+  margin-top: 28px;
+  border-top: 1px solid rgba(88, 223, 139, .4);
+  padding-top: 20px;
+}
+
+.savedState > strong {
+  color: var(--success);
+  font-size: 15px;
+}
+
+.savedState b {
+  overflow-wrap: anywhere;
+  color: var(--ink-soft);
+}
+
+.savedState button {
+  margin-top: 22px;
+}
+
 @media (max-width: 920px) {
   .configuration {
     grid-template-columns: repeat(3, 1fr);
   }
 
-  .configuration > p {
+  .configurationAction {
     grid-column: 1 / -1;
     border-top: 1px solid var(--line);
     border-left: 0;
@@ -358,8 +579,23 @@
     border-left: 0;
   }
 
-  .configuration > p {
+  .configurationAction {
     grid-column: auto;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .configurationAction button {
+    width: 100%;
+  }
+
+  .dialogActions {
+    flex-direction: column-reverse;
+  }
+
+  .dialogActions button,
+  .savedState button {
+    width: 100%;
   }
 
   .guidance {

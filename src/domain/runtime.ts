@@ -4,6 +4,31 @@ import type { Assessment } from "./learning";
 export const providerModeSchema = z.enum(["fixture", "openrouter"]);
 export type ProviderMode = z.infer<typeof providerModeSchema>;
 
+export const openRouterModelIdSchema = z.string()
+  .trim()
+  .min(1, "Enter an OpenRouter model.")
+  .max(160, "The model identifier is too long.")
+  .regex(/^[a-z0-9._-]+\/[a-z0-9._:-]+$/iu, "Use the explicit provider/model format.");
+
+export const openRouterConfigurationInputSchema = z.object({
+  modelId: openRouterModelIdSchema,
+  apiKey: z.string()
+    .trim()
+    .min(16, "Enter your OpenRouter API key.")
+    .max(512, "The API key is too long.")
+    .regex(/^[A-Za-z0-9._-]+$/u, "Use a key containing only letters, numbers, dots, underscores, and hyphens."),
+}).strict();
+
+export type OpenRouterConfigurationInput = z.infer<typeof openRouterConfigurationInputSchema>;
+
+export const openRouterConfigurationResponseSchema = z.object({
+  schemaVersion: z.literal("openrouter-configuration-response-v1"),
+  modelId: openRouterModelIdSchema,
+  restartRequired: z.literal(true),
+}).strict();
+
+export type OpenRouterConfigurationResponse = z.infer<typeof openRouterConfigurationResponseSchema>;
+
 export const runtimeServiceStatusSchema = z.object({
   state: z.enum(["healthy", "unavailable"]),
   detail: z.string().trim().min(1).max(180),
@@ -49,7 +74,7 @@ export function runtimePrivacyDisclosure(providerMode: ProviderMode, modelId: st
 export function runtimeActionGuidance(status: RuntimeStatus): string[] {
   const guidance: string[] = [];
   if (status.providerMode === "openrouter" && !status.configured) {
-    guidance.push("Add OPENROUTER_MODEL and OPENROUTER_API_KEY to .env.local, then restart the local app. This page never accepts or reveals the key.");
+    guidance.push("Open Configure OpenRouter, save the model and key locally, then restart the app so Eve can use them.");
   }
   if (status.services.eve.state === "unavailable") {
     guidance.push("Restart with pnpm start so Eve uses the loopback port baked into the current Next.js build.");
