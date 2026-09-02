@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AssessmentSamples } from "./AssessmentSamples";
 import { ConnectionHealth } from "./ConnectionHealth";
+import { DataBackupRestore } from "./DataBackupRestore";
 import { LearningHistory } from "./LearningHistory";
 import { LearningPanel } from "./LearningPanel";
 import { Receipt } from "./Receipt";
@@ -199,6 +200,7 @@ export function AgentOrNotApp() {
           <button type="button" onClick={reset}>New case</button>
           {receipt ? <a href="#outcome-heading">Outcome</a> : null}
           <a href="#history">History</a>
+          <a href="#data">Data</a>
           <a href="/api/export">Export full ledger</a>
           <a href="#about">About</a>
         </nav>
@@ -217,6 +219,16 @@ export function AgentOrNotApp() {
           <a className="button" href={ledgerRecovery.url}>Download untouched ledger</a>
         </section>
       ) : null}
+
+      <DataBackupRestore
+        sessionNonce={runtimeStatus?.sessionNonce}
+        onRestore={(restoredProjection) => {
+          setProjection(restoredProjection);
+          setReceipt(undefined);
+          setLedgerRecovery(undefined);
+          setError("");
+        }}
+      />
 
       {!receipt ? (
         <>

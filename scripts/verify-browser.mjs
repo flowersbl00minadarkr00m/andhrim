@@ -182,12 +182,14 @@ mcpServer.stderr.on("data", (chunk) => { serverLog += chunk.toString(); });
 let browser;
 const browserBlocked = [];
 let rejectedApiStatus;
+let rejectedRestoreStatus;
 let rejectedProxyEveStatus;
 let rejectedDirectEveStatus;
 let exportEvidence;
 let learningTransitionEvidence;
 let recoveryEvidence;
 let responsiveReceiptEvidence;
+let backupRestoreEvidence;
 try {
   const baseUrl = `http://127.0.0.1:${port}`;
   const deadline = Date.now() + 45_000;
@@ -233,6 +235,17 @@ try {
   });
   assert.equal(rejectedApiResponse.status, 403);
   rejectedApiStatus = rejectedApiResponse.status;
+  const rejectedRestoreResponse = await fetch(`${baseUrl}/api/data/restore/validate`, {
+    method: "POST",
+    headers: {
+      "content-type": "text/plain",
+      "origin": `http://127.0.0.1:${attackerPort}`,
+      "sec-fetch-site": "cross-site",
+    },
+    body: JSON.stringify({ backup: {} }),
+  });
+  assert.equal(rejectedRestoreResponse.status, 403);
+  rejectedRestoreStatus = rejectedRestoreResponse.status;
   const rejectedProxyEveResponse = await fetch(`${baseUrl}/eve/v1/session`, {
     method: "POST",
     headers: {
@@ -297,6 +310,12 @@ try {
         mode: "no-cors",
         headers: { "content-type": "text/plain" },
         body: JSON.stringify({ action: "delete-learning", candidateId: "candidate-drive-by", reason: "drive-by" }),
+      }),
+      fetch(`${applicationOrigin}/api/data/restore/validate`, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "content-type": "text/plain" },
+        body: JSON.stringify({ backup: {} }),
       }),
       fetch(`${applicationOrigin}/eve/v1/session`, {
         method: "POST",
@@ -522,6 +541,90 @@ try {
     replayVerifiedReceipts: exportedVerifications.length,
     deterministicGatesPerReceipt: 5,
   };
+
+  const ledgerBeforeBackupValidation = fs.readFileSync(path.join(dataDirectory, "events.ndjson"), "utf8");
+  await page.getByRole("link", { name: "Data", exact: true }).click();
+  await page.getByRole("heading", { name: "Backup & restore" }).waitFor();
+  const [backupDownload] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Download validated backup" }).click(),
+  ]);
+  const downloadedBackupPath = await backupDownload.path();
+  assert.ok(downloadedBackupPath, "The validated backup download did not produce a local file.");
+  const backupEnvelope = JSON.parse(fs.readFileSync(downloadedBackupPath, "utf8"));
+  assert.equal(backupEnvelope.schemaVersion, "agent-or-not-backup-v1");
+  assert.equal(backupEnvelope.hashAlgorithm, "sha256-canonical-json-v1");
+  assert.equal(backupEnvelope.content.eventCount, ledgerAtExport.length);
+  assert.deepEqual(backupEnvelope.content.events, ledgerAtExport);
+  assert.match(backupEnvelope.digest, /^[a-f0-9]{64}$/u);
+
+  const backupInput = page.getByLabel("Backup file");
+  await backupInput.setInputFiles({ name: "malformed-backup.json", mimeType: "application/json", buffer: Buffer.from("{") });
+  await page.getByRole("button", { name: "Validate selected backup" }).click();
+  await page.getByText("The selected backup is malformed JSON.").waitFor();
+  assert.equal(await page.getByRole("button", { name: "Confirm and replace local ledger" }).count(), 0);
+
+  const tamperedEnvelope = structuredClone(backupEnvelope);
+  tamperedEnvelope.content.events[0].receipt.summary = "Tampered after the backup digest was created.";
+  await backupInput.setInputFiles({
+    name: "tampered-backup.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(tamperedEnvelope)),
+  });
+  await page.getByRole("button", { name: "Validate selected backup" }).click();
+  await page.getByText(/backup digest does not match its canonical content/u).waitFor();
+  assert.equal(await page.getByRole("button", { name: "Confirm and replace local ledger" }).count(), 0);
+  assert.equal(fs.readFileSync(path.join(dataDirectory, "events.ndjson"), "utf8"), ledgerBeforeBackupValidation, "Tampered dry-run validation mutated the ledger.");
+
+  await backupInput.setInputFiles({
+    name: "validated-backup.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(backupEnvelope)),
+  });
+  await page.getByRole("button", { name: "Validate selected backup" }).click();
+  await page.getByText(/Validation passed\. The local ledger was not changed/u).waitFor();
+  const restoreButton = page.getByRole("button", { name: "Confirm and replace local ledger" });
+  await restoreButton.waitFor();
+  assert.equal(await restoreButton.isDisabled(), true, "Restore must require a separate explicit owner confirmation.");
+  assert.equal(fs.readFileSync(path.join(dataDirectory, "events.ndjson"), "utf8"), ledgerBeforeBackupValidation, "Valid dry-run validation mutated the ledger.");
+  await page.screenshot({ path: path.join(artifactDirectory, "backup-validation-desktop.png"), fullPage: true });
+
+  await page.getByLabel("I approve replacing the complete local ledger with this exact validated backup.").check();
+  await restoreButton.click();
+  await page.getByText(/Restore completed atomically/u).waitFor();
+  await page.getByRole("heading", { name: "Pre-restore recovery retained" }).waitFor();
+  assert.equal(fs.readFileSync(path.join(dataDirectory, "events.ndjson"), "utf8"), ledgerBeforeBackupValidation, "Complete restore changed the validated event order or values.");
+  const preRestoreFiles = fs.readdirSync(path.join(dataDirectory, "pre-restore"));
+  assert.equal(preRestoreFiles.length, 1, "Confirmed restore must retain exactly one pre-restore recovery in this flow.");
+  assert.equal(fs.readFileSync(path.join(dataDirectory, "pre-restore", preRestoreFiles[0]), "utf8"), ledgerBeforeBackupValidation);
+  const [recoveryDownload] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Download pre-restore recovery" }).click(),
+  ]);
+  const downloadedRecoveryPath = await recoveryDownload.path();
+  assert.ok(downloadedRecoveryPath);
+  assert.equal(fs.readFileSync(downloadedRecoveryPath, "utf8"), ledgerBeforeBackupValidation);
+  await page.setViewportSize({ width: 390, height: 844 });
+  const dataPanelLayout = await page.locator("#data").evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+    left: element.getBoundingClientRect().left,
+    right: element.getBoundingClientRect().right,
+  }));
+  assert.ok(dataPanelLayout.left >= 0 && dataPanelLayout.right <= 390 && dataPanelLayout.scrollWidth <= dataPanelLayout.clientWidth + 1);
+  await page.screenshot({ path: path.join(artifactDirectory, "backup-restore-mobile.png"), fullPage: true });
+  backupRestoreEvidence = {
+    schemaVersion: backupEnvelope.schemaVersion,
+    digestVerifiedBeforeConfirmation: true,
+    dryRunLedgerMutations: 0,
+    malformedRestoreActions: 0,
+    tamperedRestoreActions: 0,
+    explicitConfirmationRequired: true,
+    restoredEventCount: ledgerAtExport.length,
+    preRestoreBytesPreserved: Buffer.byteLength(ledgerBeforeBackupValidation, "utf8"),
+    mobileNoHorizontalOverflow: true,
+  };
+
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("heading", { name: "Delegation assessment" }).waitFor();
   await page.screenshot({ path: path.join(artifactDirectory, "assessment-mobile.png"), fullPage: true });
@@ -601,6 +704,7 @@ process.stdout.write(`${JSON.stringify({
   uniquePortProductionBuild: "passed",
   rejectedDriveBy: {
     apiStatus: rejectedApiStatus,
+    restoreStatus: rejectedRestoreStatus,
     proxyEveStatus: rejectedProxyEveStatus,
     directEveStatus: rejectedDirectEveStatus,
     eveSessionIdentities: 0,
@@ -614,10 +718,11 @@ process.stdout.write(`${JSON.stringify({
   },
   learningTransitionRace: learningTransitionEvidence,
   responsiveReceipt: responsiveReceiptEvidence,
+  backupRestore: backupRestoreEvidence,
   ledgerRecovery: recoveryEvidence,
   exportEvidence,
   fixtureEvidence,
   eventTypes: ledger.map((event) => event.type),
-  screenshots: ["assessment-desktop.png", "receipt-decision-desktop.png", "receipt-trust-desktop.png", "receipt-decision-mobile.png", "receipt-trust-mobile.png", "learning-resumed-desktop.png", "learning-resumed-mobile.png", "learning-approved-desktop.png", "approved-rule-provenance.png", "assessment-mobile.png", "ledger-recovery-mobile.png"],
+  screenshots: ["assessment-desktop.png", "receipt-decision-desktop.png", "receipt-trust-desktop.png", "receipt-decision-mobile.png", "receipt-trust-mobile.png", "learning-resumed-desktop.png", "learning-resumed-mobile.png", "learning-approved-desktop.png", "approved-rule-provenance.png", "backup-validation-desktop.png", "backup-restore-mobile.png", "assessment-mobile.png", "ledger-recovery-mobile.png"],
 })}\n`);
 fs.rmSync(scratch, { recursive: true, force: true });
