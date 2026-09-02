@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import styles from "./EvaluationLab.module.css";
 import { runEvaluationSuite, type EvaluationReport } from "@/src/domain/evaluation";
+import {
+  projectEvaluationComparison,
+  type EvaluationComparisonProjection,
+} from "@/src/domain/evaluation-comparison";
+import { evaluationComparisonFixture } from "@/src/evaluation/comparison-fixtures";
 import { evaluationScenarioPack } from "@/src/evaluation/fixtures";
+import { EvaluationComparisonGraph } from "./EvaluationComparisonGraph";
 
 const categoryLabels: Record<EvaluationReport["results"][number]["category"], string> = {
   recommendation: "Recommendation class",
@@ -19,13 +25,24 @@ function formatLatency(value: number) {
 }
 
 export function EvaluationLab() {
-  const [report, setReport] = useState<EvaluationReport>();
+  const [evaluation, setEvaluation] = useState<{
+    report: EvaluationReport;
+    comparison: EvaluationComparisonProjection;
+  }>();
   const [error, setError] = useState("");
+  const report = evaluation?.report;
+  const comparison = evaluation?.comparison;
 
   const run = () => {
     setError("");
     try {
-      setReport(runEvaluationSuite(evaluationScenarioPack, () => performance.now()));
+      const nextReport = runEvaluationSuite(evaluationScenarioPack, () => performance.now());
+      const nextComparison = projectEvaluationComparison(
+        nextReport,
+        evaluationScenarioPack,
+        evaluationComparisonFixture,
+      );
+      setEvaluation({ report: nextReport, comparison: nextComparison });
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The local evaluation could not run.");
     }
@@ -96,6 +113,8 @@ export function EvaluationLab() {
             </p>
           </section>
 
+          {comparison ? <EvaluationComparisonGraph projection={comparison} /> : null}
+
           <section className={styles.scenarios} aria-labelledby="scenarios-heading">
             <div className={styles.sectionHeading}>
               <div>
@@ -104,7 +123,7 @@ export function EvaluationLab() {
               </div>
               <p>{report.results.length} deterministic cases</p>
             </div>
-            <ol className={styles.scenarioGrid}>
+            <ol className={styles.scenarioGrid} data-testid="evaluation-scenario-list">
               {report.results.map((result) => (
                 <li className={styles.scenarioCard} key={result.id}>
                   <div className={styles.cardTopline}>
