@@ -10,13 +10,13 @@ importers:
     dependencies:
       '@openrouter/ai-sdk-provider':
         specifier: 3.0.0
-        version: 3.0.0(ai@7.0.77(zod@4.4.3))(zod@4.4.3)
+        version: 3.0.0(ai@7.0.85(zod@4.4.3))(zod@4.4.3)
       ai:
-        specifier: 7.0.77
-        version: 7.0.77(zod@4.4.3)
+        specifier: 7.0.85
+        version: 7.0.85(zod@4.4.3)
       eve:
         specifier: 0.44.0
-        version: 0.44.0(ai@7.0.77(zod@4.4.3))(drizzle-orm@0.45.2(pg@8.23.0)(sql.js@1.14.2))(just-bash@3.4.2)(vite@8.2.2(@types/node@24.13.3)(yaml@2.9.0))
+        version: 0.44.0(ai@7.0.85(zod@4.4.3))(drizzle-orm@0.45.2(pg@8.23.0)(sql.js@1.14.2))(just-bash@3.4.2)(vite@8.2.2(@types/node@24.13.3)(yaml@2.9.0))
       next:
         specifier: 16.3.2
         version: 16.3.2(@playwright/test@1.62.1)(@types/node@24.13.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -54,20 +54,20 @@ importers:
 
 packages:
 
-  '@ai-sdk/gateway@4.0.62':
-    resolution: {integrity: sha512-zR3pustGWhw5eUZHG+fJZx/V/PBe+LxdDpc5hDFWxozG/3MB/+eY62jn+YiR+9uOH+Hx63e5zJoeKLfZfPktWQ==}
+  '@ai-sdk/gateway@4.0.69':
+    resolution: {integrity: sha512-W5MMdyqsaziQy/A4kxlK74iEQ+NuO6OaszH32cEQpUgBW0o15S2fAdP0aYSH2/5lrVZSMXLQLCzuMkRGHBua3A==}
     engines: {node: '>=22'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
-  '@ai-sdk/provider-utils@5.0.29':
-    resolution: {integrity: sha512-7EIbwXiXKGa7EFk6tDZpuZBs6lxhEJpOuHeqrDb3Vd85uYdjwkdRuHnZDVDIIb2+QTSRmyph2NrXcbvuO/KAjQ==}
+  '@ai-sdk/provider-utils@5.0.34':
+    resolution: {integrity: sha512-tRBdgRcys/4d8wyQdOdyYScq1AxfMdMd0hIlwolxJKVIbBwXUgClZuQT0VIsz4e7pylY8FE6utYCCZ494UAMJQ==}
     engines: {node: '>=22'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
-  '@ai-sdk/provider@4.0.7':
-    resolution: {integrity: sha512-6or44XprPzKbr8zkmzosowSE0pxkvJcoojBL+mCZvPUt3kvXp3XSNqeVun9golb1acEfSo6yaEBRT18h2VU+1Q==}
+  '@ai-sdk/provider@4.0.9':
+    resolution: {integrity: sha512-XnGXPWiBIfqjsVEud5pOaVneRByJQOu2sYNwlSVJTPCvakdCDkVuYKKfNuStkIpMUYl7JIkBZGBx+B5YfNeVjA==}
     engines: {node: '>=22'}
 
   '@borewit/text-codec@0.2.2':
@@ -504,8 +504,8 @@ packages:
   '@workflow/serde@4.1.0':
     resolution: {integrity: sha512-pav4F2BoirECWR7Nf1TKt+2eETcBj7jj4cBefQ8VXQCA6NPkaKeLfj/zMgi+3zYV5ZIBT4GuUiphsj0/b9hPQQ==}
 
-  ai@7.0.77:
-    resolution: {integrity: sha512-muLtBSTAUCreR77L16w4AFBiX2gK/RNt84EKp8m03SN9+MfNlC5EGqYYttRjYKV3xe0a33yj1Zawj1EnjejIWw==}
+  ai@7.0.85:
+    resolution: {integrity: sha512-HVtPz0qLbTUad+QBnWWReIUmwk+U4PcRENMx+9PsHGVoinoc5CLDiVjNR+VBXTKOSaNgce8kSU/Rtbb4kjZsSw==}
     engines: {node: '>=22'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -1510,23 +1510,23 @@ packages:
 
 snapshots:
 
-  '@ai-sdk/gateway@4.0.62(zod@4.4.3)':
+  '@ai-sdk/gateway@4.0.69(zod@4.4.3)':
     dependencies:
-      '@ai-sdk/provider': 4.0.7
-      '@ai-sdk/provider-utils': 5.0.29(zod@4.4.3)
+      '@ai-sdk/provider': 4.0.9
+      '@ai-sdk/provider-utils': 5.0.34(zod@4.4.3)
       '@vercel/oidc': 3.2.0
       zod: 4.4.3
 
-  '@ai-sdk/provider-utils@5.0.29(zod@4.4.3)':
+  '@ai-sdk/provider-utils@5.0.34(zod@4.4.3)':
     dependencies:
-      '@ai-sdk/provider': 4.0.7
+      '@ai-sdk/provider': 4.0.9
       '@standard-schema/spec': 1.1.0
       '@workflow/serde': 4.1.0
       eventsource-parser: 3.1.1
       undici: 7.29.0
       zod: 4.4.3
 
-  '@ai-sdk/provider@4.0.7':
+  '@ai-sdk/provider@4.0.9':
     dependencies:
       json-schema: 0.4.0
 
@@ -1700,9 +1700,9 @@ snapshots:
 
   '@nodable/entities@3.0.0': {}
 
-  '@openrouter/ai-sdk-provider@3.0.0(ai@7.0.77(zod@4.4.3))(zod@4.4.3)':
+  '@openrouter/ai-sdk-provider@3.0.0(ai@7.0.85(zod@4.4.3))(zod@4.4.3)':
     dependencies:
-      ai: 7.0.77(zod@4.4.3)
+      ai: 7.0.85(zod@4.4.3)
       zod: 4.4.3
 
   '@oxc-project/types@0.146.0': {}
@@ -1839,11 +1839,11 @@ snapshots:
 
   '@workflow/serde@4.1.0': {}
 
-  ai@7.0.77(zod@4.4.3):
+  ai@7.0.85(zod@4.4.3):
     dependencies:
-      '@ai-sdk/gateway': 4.0.62(zod@4.4.3)
-      '@ai-sdk/provider': 4.0.7
-      '@ai-sdk/provider-utils': 5.0.29(zod@4.4.3)
+      '@ai-sdk/gateway': 4.0.69(zod@4.4.3)
+      '@ai-sdk/provider': 4.0.9
+      '@ai-sdk/provider-utils': 5.0.34(zod@4.4.3)
       zod: 4.4.3
 
   anynum@1.0.1: {}
@@ -1939,9 +1939,9 @@ snapshots:
     dependencies:
       '@types/estree': 1.0.9
 
-  eve@0.44.0(ai@7.0.77(zod@4.4.3))(drizzle-orm@0.45.2(pg@8.23.0)(sql.js@1.14.2))(just-bash@3.4.2)(vite@8.2.2(@types/node@24.13.3)(yaml@2.9.0)):
+  eve@0.44.0(ai@7.0.85(zod@4.4.3))(drizzle-orm@0.45.2(pg@8.23.0)(sql.js@1.14.2))(just-bash@3.4.2)(vite@8.2.2(@types/node@24.13.3)(yaml@2.9.0)):
     dependencies:
-      ai: 7.0.77(zod@4.4.3)
+      ai: 7.0.85(zod@4.4.3)
       nitro: 3.0.260610-beta(drizzle-orm@0.45.2(pg@8.23.0)(sql.js@1.14.2))(vite@8.2.2(@types/node@24.13.3)(yaml@2.9.0))
       undici: 8.9.0
     optionalDependencies:
