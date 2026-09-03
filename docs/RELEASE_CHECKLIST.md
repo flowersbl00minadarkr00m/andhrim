@@ -17,7 +17,7 @@
 - [x] Source secret scanning and direct Node dependency-licence verification pass at current source.
 - [x] MIT project licence is recorded; third-party terms remain separate.
 - [x] Offline OpenRouter smoke contract/preflight passes without credential access or provider calls.
-- [ ] The release candidate passes the complete sequence below from a fresh Windows checkout in GitHub Actions.
+- [x] The release candidate passes the complete sequence below from a fresh Windows checkout in GitHub Actions.
 - [x] A current transitive dependency/licence inventory replaces the historical pre-MCP inventory.
 
 ## Current provider-free sequence
@@ -41,7 +41,7 @@ node scripts/verify-openrouter-smoke.mjs
 node scripts/openrouter-smoke.mjs
 ```
 
-The final two commands use no live flag and are provider-free preflight only. Commit `0bd5f2e7292a1713f9175c3f0691a81b38e19113` passed this sequence on 2026-09-01. The current release candidate must independently pass it from a fresh Windows checkout before `v0.1.0` is tagged.
+The final two commands use no live flag and are provider-free preflight only. Commit `0bd5f2e7292a1713f9175c3f0691a81b38e19113` passed this sequence on 2026-09-01. Release implementation commit `7a80848e3438e4f5ed70c88d7b8157a2d75ea7e5` independently passed the complete sequence in [Windows GitHub Actions run 33712207140](https://github.com/flowersbl00minadarkr00m/andhrim/actions/runs/33712207140) on 2026-09-03 UTC, including redacted evidence upload.
 
 ## Owner-only gates
 
@@ -57,7 +57,7 @@ node scripts/openrouter-smoke.mjs --live-openrouter --confirm-provider-data-tran
 - [x] Inspect ignored `output/openrouter-smoke-report.json`: `state: passed`; one strictly validated receipt; exactly three calls; classification `eve-bounded-guidance-harness-v1`; four pre-discovery and five post-discovery tool definitions; exact prepare/evidence/final sequence; loopback-only Next/Eve/MCP ports; unchanged shared dependencies; scratch removal; and zero residual owned processes or ports.
 - [x] Confirm the redacted report contains no prompt, assessment, provider header, key, raw model output, outcome content, or event ledger.
 - [x] Clear the key from the GUI/child environment and rerun the source secret scan.
-- [ ] Review the release-candidate dependency evidence, launch-security matrix, and repository diff.
+- [x] Review the release-candidate dependency evidence, launch-security matrix, and repository diff.
 - [x] Publish the GitHub repository under the owner-approved MIT licence.
 
 The owner-only OpenRouter smoke passed on 2026-09-01 against exact qualified runtime commit `0bd5f2e7292a1713f9175c3f0691a81b38e19113` with `openai/gpt-4.1-mini`. This verifies one bounded provider-backed receipt and cleanup run only. Source-only publication and bundled/binary redistribution remain separate decisions; the latter requires a new audit of the actual bundle.
