@@ -219,13 +219,22 @@ function parseActionResultEvent(value: unknown): ActionResult {
 
 export function parseCapabilityTrace(events: readonly unknown[], expectedAnswers: Assessment["answers"]): CapabilityTrace {
   const requests: ActionRequest[] = [];
+  const requestsByCallId = new Map<string, ActionRequest>();
   const results = new Map<string, ActionResult>();
   for (const value of events) {
     const event = record(value);
     const data = record(event?.data);
     if (event?.type === "actions.requested") {
       if (!Array.isArray(data?.actions)) throw new Error("The Eve capability request batch was malformed.");
-      requests.push(...data.actions.map(parseActionRequest));
+      for (const action of data.actions.map(parseActionRequest)) {
+        const prior = requestsByCallId.get(action.callId);
+        if (prior) {
+          if (JSON.stringify(prior) !== JSON.stringify(action)) throw new Error("A capability request identity was reused with different data.");
+          continue;
+        }
+        requestsByCallId.set(action.callId, action);
+        requests.push(action);
+      }
     } else if (event?.type === "action.result") {
       const result = parseActionResultEvent(value);
       if (results.has(result.callId)) throw new Error("A capability result was duplicated.");

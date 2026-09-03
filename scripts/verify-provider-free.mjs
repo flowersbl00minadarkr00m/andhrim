@@ -55,6 +55,7 @@ function safeEnvironment(label) {
   environment.AGENT_OR_NOT_EGRESS_METRICS_DIR = metricsDirectory;
   environment.AGENT_OR_NOT_EGRESS_METRICS_LABEL = label;
   environment.AGENT_OR_NOT_FIXTURE_EVIDENCE_PATH = evidencePath;
+  environment.AGENT_OR_NOT_PROVIDER_MODE = "fixture";
   environment.AGENT_OR_NOT_SESSION_NONCE = sessionNonce;
   environment.AGENT_OR_NOT_DATA_DIR = scratch;
   environment.AGENT_OR_NOT_MEMORY_MCP_URL = mcpUrl;

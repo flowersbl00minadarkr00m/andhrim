@@ -24,5 +24,8 @@ logs/
 # Local tooling
 .playwright/
 output/
+EXECUTION.md
+ORCHESTRATOR_HANDOFF.md
+execution/
 .DS_Store
 Thumbs.db

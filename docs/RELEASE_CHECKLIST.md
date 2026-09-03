@@ -12,11 +12,12 @@
 - [x] Same-origin/no-CORS mutation and Eve-session creation rejection have zero ledger/model-call effects.
 - [x] Strict schemas, deterministic semantic validation, append-only events, owner-approved active-rule projection, and retained tombstone export semantics pass unit tests.
 - [x] The desktop/mobile browser flow covers assessment, invalid-first correction, outcome, candidate editing/approval, later MCP rule use, provenance, export, expiry, and deletion.
+- [x] Owner-labelled evaluation cases are persisted locally, summarized as an agreement benchmark, and exercised on desktop and mobile without a provider call.
 - [x] Provider-free guarded processes and the browser make zero non-loopback requests.
 - [x] Source secret scanning and direct Node dependency-licence verification pass at current source.
 - [x] MIT project licence is recorded; third-party terms remain separate.
 - [x] Offline OpenRouter smoke contract/preflight passes without credential access or provider calls.
-- [x] A disposable Windows clean clone of runtime source commit `0bd5f2e7292a1713f9175c3f0691a81b38e19113` passes frozen Node and Python installs plus the full sequence below.
+- [x] The release candidate passes the complete sequence below from a fresh Windows checkout in GitHub Actions.
 - [x] A current transitive dependency/licence inventory replaces the historical pre-MCP inventory.
 
 ## Current provider-free sequence
@@ -40,11 +41,12 @@ node scripts/verify-openrouter-smoke.mjs
 node scripts/openrouter-smoke.mjs
 ```
 
-The final two commands use no live flag and are provider-free preflight only. On 2026-09-01 this complete sequence passed in a clean, credential-free Windows clone at exact runtime source commit `0bd5f2e7292a1713f9175c3f0691a81b38e19113`. The Node install reported 193 packages reused and zero downloaded; Python created the exact 29-package frozen environment; matching Playwright Chromium was already present. No packet capture was performed, so the install statements are command evidence rather than proof of no network traffic.
+The final two commands use no live flag and are provider-free preflight only. Commit `0bd5f2e7292a1713f9175c3f0691a81b38e19113` passed this sequence on 2026-09-01. Release implementation commit `7a80848e3438e4f5ed70c88d7b8157a2d75ea7e5` independently passed the complete sequence in [Windows GitHub Actions run 33712207140](https://github.com/flowersbl00minadarkr00m/andhrim/actions/runs/33712207140) on 2026-09-03 UTC, including redacted evidence upload.
 
 ## Owner-only gates
 
-- [x] Only after the provider-free clean-clone gates passed, enter an OpenRouter key through the local masked GUI and keep it in memory rather than creating `.env.local`.
+- [x] Only after the provider-free clean-clone gates passed, enter an OpenRouter key through the local masked GUI. The app writes it to Git-ignored `.env.local`; this is local configuration, not an encrypted credential vault.
+- [x] Use the optional metadata-only connection check to validate the key and exact model without submitting an assessment or requesting inference.
 - [x] Supply the explicit verified model identifier `openai/gpt-4.1-mini` and authorize the documented bounded provider-data transfer.
 - [x] Run the equivalent of the exact owner-only command below with `OPENROUTER_API_KEY` present only in the smoke child environment:
 
@@ -54,9 +56,9 @@ node scripts/openrouter-smoke.mjs --live-openrouter --confirm-provider-data-tran
 
 - [x] Inspect ignored `output/openrouter-smoke-report.json`: `state: passed`; one strictly validated receipt; exactly three calls; classification `eve-bounded-guidance-harness-v1`; four pre-discovery and five post-discovery tool definitions; exact prepare/evidence/final sequence; loopback-only Next/Eve/MCP ports; unchanged shared dependencies; scratch removal; and zero residual owned processes or ports.
 - [x] Confirm the redacted report contains no prompt, assessment, provider header, key, raw model output, outcome content, or event ledger.
-- [x] Clear the key from the GUI/child environment and rerun the secret scan: 84 source files, zero findings.
-- [ ] Review the current dependency evidence and repository diff.
-- [ ] Publish the GitHub repository, if desired.
+- [x] Clear the key from the GUI/child environment and rerun the source secret scan.
+- [x] Review the release-candidate dependency evidence, launch-security matrix, and repository diff.
+- [x] Publish the GitHub repository under the owner-approved MIT licence.
 
 The owner-only OpenRouter smoke passed on 2026-09-01 against exact qualified runtime commit `0bd5f2e7292a1713f9175c3f0691a81b38e19113` with `openai/gpt-4.1-mini`. This verifies one bounded provider-backed receipt and cleanup run only. Source-only publication and bundled/binary redistribution remain separate decisions; the latter requires a new audit of the actual bundle.
 

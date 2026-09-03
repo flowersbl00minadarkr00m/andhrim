@@ -293,7 +293,12 @@ export async function executeSmoke({
   retainReport = false,
   verifyMissingKey = false,
 }) {
-  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "agent-or-not-openrouter-smoke-"));
+  // Keep the copied workspace on the repository volume. On Windows, Next's
+  // webpack entry resolution cannot consume pnpm junction overlays that point
+  // across drive letters (for example, a C: temp directory over a D: checkout).
+  const scratchParent = path.join(path.dirname(root), `.${path.basename(root)}-smoke-scratch`);
+  fs.mkdirSync(scratchParent, { recursive: true });
+  const scratch = fs.mkdtempSync(path.join(scratchParent, "run-"));
   const dataDirectory = path.join(scratch, "data");
   const evidenceDirectory = path.join(scratch, "evidence");
   const metricsDirectory = path.join(scratch, "egress");

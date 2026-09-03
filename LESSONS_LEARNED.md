@@ -4,7 +4,7 @@
 
 ## Reuse before reinvention
 
-- Treat `C:\Users\henry\andhrim` as read-only source material. Reuse only code whose exact source commit, diff and verification status are recorded; copy it into this separate repository with provenance rather than coupling the repositories.
+- Treat the canonical Andhrím repository as read-only source material. Reuse only code whose exact source commit, diff and verification status are recorded; copy it into this separate repository with provenance rather than coupling the repositories.
 - Start from controller-accepted T1 workspace conventions and the reviewed T2 schema, validation, stream-consumption, cleanup and evidence patterns where they fit the smaller prototype.
 - Useful reviewed source identities include canonical Andhrím main `203d9106ab7dd5930e495a8e78d5a2e27a48b166`, TD-021 source commit `018cfc2b765b28d7869186331395202ca51cf041`, reviewed capture candidate `1bfc47386746d0af720a1f1b294db99b04bc337f55efa099352a3aae7802dff5`, and terminal architecture event `evt-t2-r3-td021-terminal-architecture-review-sol-xhigh-01-20260829`.
 - Do not copy the TD-021 deliberate thrown-sentinel acknowledgment design. Its failure is the most important negative lesson.

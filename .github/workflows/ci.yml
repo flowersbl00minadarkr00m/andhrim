@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-release-verification:
+    name: Windows provider-free release verification
+    runs-on: windows-latest
+    timeout-minutes: 35
+    env:
+      AGENT_OR_NOT_PROVIDER_MODE: fixture
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.17.0
+
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: 0.11.1
+          python-version: 3.13.12
+
+      - name: Activate the locked pnpm version
+        shell: pwsh
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.18.0 --activate
+
+      - name: Install locked dependencies
+        shell: pwsh
+        run: |
+          pnpm install --frozen-lockfile
+          uv sync --project mcp_server --frozen
+          pnpm exec playwright install chromium
+
+      - name: Run the provider-free release gate
+        shell: pwsh
+        run: pnpm verify:release
+
+      - name: Upload redacted release evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-verification-${{ github.run_attempt }}
+          path: |
+            output/release-verification.json
+            output/release-verification-logs/
+          if-no-files-found: warn
+          retention-days: 7

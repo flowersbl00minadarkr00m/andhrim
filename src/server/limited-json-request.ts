@@ -5,10 +5,21 @@ export class RequestBodyError extends Error {
   }
 }
 
-export async function readLimitedJsonRequest(request: Request, maximumBytes: number): Promise<unknown> {
+type RequestBodyLabels = {
+  overflow: string;
+  malformed: string;
+};
+
+const backupLabels: RequestBodyLabels = { overflow: "backup upload", malformed: "selected backup" };
+
+export async function readLimitedJsonRequest(
+  request: Request,
+  maximumBytes: number,
+  labels: RequestBodyLabels = backupLabels,
+): Promise<unknown> {
   const declaredLength = request.headers.get("content-length");
   if (declaredLength && Number(declaredLength) > maximumBytes) {
-    throw new RequestBodyError(`The backup upload exceeds the ${maximumBytes}-byte limit.`, 413);
+    throw new RequestBodyError(`The ${labels.overflow} exceeds the ${maximumBytes}-byte limit.`, 413);
   }
   if (!request.body) throw new RequestBodyError("The request body is missing.");
   const reader = request.body.getReader();
@@ -20,7 +31,7 @@ export async function readLimitedJsonRequest(request: Request, maximumBytes: num
     byteLength += value.byteLength;
     if (byteLength > maximumBytes) {
       await reader.cancel();
-      throw new RequestBodyError(`The backup upload exceeds the ${maximumBytes}-byte limit.`, 413);
+      throw new RequestBodyError(`The ${labels.overflow} exceeds the ${maximumBytes}-byte limit.`, 413);
     }
     chunks.push(value);
   }
@@ -33,6 +44,6 @@ export async function readLimitedJsonRequest(request: Request, maximumBytes: num
   try {
     return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)) as unknown;
   } catch {
-    throw new RequestBodyError("The selected backup is malformed JSON.");
+    throw new RequestBodyError(`The ${labels.malformed} is malformed JSON.`);
   }
 }
