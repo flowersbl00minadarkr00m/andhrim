@@ -12,6 +12,8 @@ The completed receipt has three views:
 
 Desktop gives the receipt more space beside the outcome-learning workflow. Smaller screens stack the receipt and learning workflow, while the same three-view navigation keeps technical proof out of the primary reading path.
 
+The Evaluation Lab is separate from the receipt. Deterministic fixtures exercise known cases, while the owner can attach an expected recommendation to any completed receipt. The resulting agreement rate is a transparent local benchmark, not a general accuracy claim.
+
 ## What is deterministic
 
 Every new receipt records five passed gates only after code has validated:
@@ -33,6 +35,8 @@ Replay failure does not repair, replace, truncate, or delete the ledger. The UI 
 `pnpm verify:release` runs the complete provider-free qualification. Independent checks run concurrently; build-, launcher-, browser-, and smoke-dependent checks run in a fixed sequence. The command writes `output/release-verification.json` and per-check logs. It never authorizes a live provider call or forwards credential variables.
 
 `pnpm verify:release --fast` runs only the independent checks. Reported durations describe one local run and are not a performance benchmark.
+
+The System connection check is also deliberately narrow: it verifies the saved OpenRouter key and exact model through metadata endpoints only. It does not send assessment content and does not request an inference.
 
 ## Limits
 

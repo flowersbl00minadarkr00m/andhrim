@@ -10,6 +10,7 @@ import {
 import { evaluationComparisonFixture } from "@/src/evaluation/comparison-fixtures";
 import { evaluationScenarioPack } from "@/src/evaluation/fixtures";
 import { EvaluationComparisonGraph } from "./EvaluationComparisonGraph";
+import { OwnerBenchmark } from "./OwnerBenchmark";
 
 const categoryLabels: Record<EvaluationReport["results"][number]["category"], string> = {
   recommendation: "Recommendation class",
@@ -114,6 +115,8 @@ export function EvaluationLab() {
           </section>
 
           {comparison ? <EvaluationComparisonGraph projection={comparison} /> : null}
+
+          <OwnerBenchmark />
 
           <section className={styles.scenarios} aria-labelledby="scenarios-heading">
             <div className={styles.sectionHeading}>

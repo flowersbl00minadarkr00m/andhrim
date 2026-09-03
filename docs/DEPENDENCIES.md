@@ -107,7 +107,7 @@ The disposable source audit used exact clone HEAD `7b3bd38aa5a2df666f954b146561e
 - `.env.example` was the only tracked environment file; and
 - the licence verifier failed closed because packages were deliberately not materialized.
 
-The temporary clone remains at `C:\Users\henry\AppData\Local\Temp\andhrim-agent-or-not-cleanclone-audit-7dce38ef34244cacb843333d7f990af6` because host policy rejected recursive cleanup. It contains only public committed source. This audit did not run a package-manager command, install dependencies, download Playwright Chromium, or pass the clean-clone installation or transitive-licence gates.
+That disposable clone contained only public committed source. This audit did not run a package-manager command, install dependencies, download Playwright Chromium, or pass the clean-clone installation or transitive-licence gates.
 
 ## Browser binary boundary
 

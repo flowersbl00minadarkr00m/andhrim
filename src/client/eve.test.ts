@@ -61,6 +61,11 @@ describe("provider receipt contract", () => {
     });
   });
 
+  it("deduplicates an identical replay of an Eve request event without treating it as another capability use", () => {
+    const replayed = [capabilityEvents[0], ...capabilityEvents];
+    expect(parseCapabilityTrace(replayed, capabilityAnswers).steps).toHaveLength(4);
+  });
+
   it("rejects duplicated or unbounded capability sequences", () => {
     expect(() => parseCapabilityTrace([...capabilityEvents, actionResult("extra", "web_search", {})], capabilityAnswers))
       .toThrow(/exact bounded capability sequence/u);

@@ -1,6 +1,9 @@
 import { lstat, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { OpenRouterConfigurationInput } from "../domain/runtime";
+import {
+  openRouterConfigurationInputSchema,
+  type OpenRouterConfigurationInput,
+} from "../domain/runtime";
 
 const managedEnvironment = [
   "AGENT_OR_NOT_PROVIDER_MODE",
@@ -10,16 +13,19 @@ const managedEnvironment = [
 
 const environmentAssignmentPattern = /^\s*(?:export\s+)?([A-Z][A-Z0-9_]*)\s*=/u;
 
-export function updateOpenRouterEnvironment(
-  source: string,
-  configuration: OpenRouterConfigurationInput,
-) {
+function managedValues(source: string) {
+  const values = new Map<string, string>();
+  for (const line of source.split(/\r?\n/u)) {
+    const match = /^\s*(?:export\s+)?([A-Z][A-Z0-9_]*)\s*=\s*([^\r\n]*)$/u.exec(line);
+    if (match?.[1] && managedEnvironment.includes(match[1] as (typeof managedEnvironment)[number])) {
+      values.set(match[1], match[2] ?? "");
+    }
+  }
+  return values;
+}
+
+function updateManagedEnvironment(source: string, values: ReadonlyMap<string, string>) {
   const newline = source.includes("\r\n") ? "\r\n" : "\n";
-  const values = new Map<string, string>([
-    ["AGENT_OR_NOT_PROVIDER_MODE", "openrouter"],
-    ["OPENROUTER_MODEL", configuration.modelId],
-    ["OPENROUTER_API_KEY", configuration.apiKey],
-  ]);
   const written = new Set<string>();
   const lines = source.split(/\r?\n/u).flatMap((line) => {
     const name = environmentAssignmentPattern.exec(line)?.[1];
@@ -32,29 +38,75 @@ export function updateOpenRouterEnvironment(
   while (lines.length > 0 && lines.at(-1) === "") lines.pop();
   if (lines.length > 0) lines.push("");
   for (const name of managedEnvironment) {
-    if (!written.has(name)) lines.push(`${name}=${values.get(name)}`);
+    if (!written.has(name)) lines.push(`${name}=${values.get(name) ?? ""}`);
   }
   return `${lines.join(newline)}${newline}`;
+}
+
+export function updateOpenRouterEnvironment(
+  source: string,
+  configuration: OpenRouterConfigurationInput,
+) {
+  const values = new Map<string, string>([
+    ["AGENT_OR_NOT_PROVIDER_MODE", "openrouter"],
+    ["OPENROUTER_MODEL", configuration.modelId],
+    ["OPENROUTER_API_KEY", configuration.apiKey],
+  ]);
+  return updateManagedEnvironment(source, values);
+}
+
+export function clearOpenRouterEnvironment(source: string) {
+  return updateManagedEnvironment(source, new Map<string, string>([
+    ["AGENT_OR_NOT_PROVIDER_MODE", "fixture"],
+    ["OPENROUTER_MODEL", ""],
+    ["OPENROUTER_API_KEY", ""],
+  ]));
+}
+
+async function readRegularEnvironmentFile(environmentPath: string) {
+  try {
+    const status = await lstat(environmentPath);
+    if (!status.isFile() || status.isSymbolicLink()) {
+      throw new Error("The local environment target must be a regular file.");
+    }
+    return { exists: true, source: await readFile(environmentPath, "utf8") };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return { exists: false, source: "" };
+    throw error;
+  }
+}
+
+export async function readOpenRouterEnvironment(
+  environmentPath = path.resolve(process.cwd(), ".env.local"),
+): Promise<OpenRouterConfigurationInput | null> {
+  const file = await readRegularEnvironmentFile(environmentPath);
+  const values = managedValues(file.source);
+  if (values.get("AGENT_OR_NOT_PROVIDER_MODE") !== "openrouter") return null;
+  return openRouterConfigurationInputSchema.parse({
+    modelId: values.get("OPENROUTER_MODEL") ?? "",
+    apiKey: values.get("OPENROUTER_API_KEY") ?? "",
+  });
 }
 
 export async function writeOpenRouterEnvironment(
   configuration: OpenRouterConfigurationInput,
   environmentPath = path.resolve(process.cwd(), ".env.local"),
 ) {
-  let source = "";
-  let exists = false;
-  try {
-    const status = await lstat(environmentPath);
-    if (!status.isFile() || status.isSymbolicLink()) {
-      throw new Error("The local environment target must be a regular file.");
-    }
-    source = await readFile(environmentPath, "utf8");
-    exists = true;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-  }
+  const { source, exists } = await readRegularEnvironmentFile(environmentPath);
 
   const updated = updateOpenRouterEnvironment(source, configuration);
+  await writeFile(environmentPath, updated, {
+    encoding: "utf8",
+    flag: exists ? "w" : "wx",
+    mode: 0o600,
+  });
+}
+
+export async function removeOpenRouterEnvironment(
+  environmentPath = path.resolve(process.cwd(), ".env.local"),
+) {
+  const { source, exists } = await readRegularEnvironmentFile(environmentPath);
+  const updated = clearOpenRouterEnvironment(source);
   await writeFile(environmentPath, updated, {
     encoding: "utf8",
     flag: exists ? "w" : "wx",

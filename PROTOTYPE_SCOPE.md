@@ -18,9 +18,11 @@ This prototype is an exploratory delivery slice. It does not change or satisfy A
 - Expose exactly one bounded Eve capability chain: native load-on-demand skill loading, allowlisted discovery of one loopback MCP connection, one deterministic read-only authored evidence tool, one read-only MCP guidance lookup, and the Eve-owned `final_output` schema channel. Disable shell, filesystem, web, delegation, scheduling, sandbox, workflow-authoring, arbitrary connection, and every other model-facing action capability.
 - Validate intake, recommendation, starter pack, outcome, and Learning Candidate structures with strict Zod schemas and semantic validators inspired by Pydantic AI's typed-output and bounded-validation-retry pattern.
 - Persist only local, inspectable product records: decisions, outcomes, candidate lessons, approval state, and approved rule versions.
+- Let the owner label completed receipts with an expected recommendation, creating an inspectable local benchmark without sending labels to a provider.
 - Require an explicit owner approval action before a Learning Candidate can affect later recommendations.
 - Show which approved lessons influenced a recommendation and permit rejection, supersession, export, and deletion of prototype learning records.
 - Keep the OpenRouter key outside source, prompts, learning records, screenshots, exports, and Git.
+- Offer an explicit connection check that reads only OpenRouter key and model metadata, sends no assessment, and requests no inference.
 - Include a tested Windows clean-clone installation path, README, example configuration, secret scan, dependency/licence record, and a concise install/demo recording plan.
 
 ## Learning Contract
@@ -69,4 +71,4 @@ The real OpenRouter smoke is intentionally the latest safe release checkpoint. B
 - Source and dependency licences are recorded and compatible with later public distribution.
 - Core schemas, semantic validation, owner approval, rule application, rejection/supersession/deletion, exact capability sequencing, provenance, and no-unapproved-tools boundaries have deterministic tests.
 - Real OpenRouter smoke is performed only by the owner with a local key and records no secret or provider body.
-- Repository publication and licence choice remain separate owner actions.
+- Repository publication and licence choice require explicit owner authorization.

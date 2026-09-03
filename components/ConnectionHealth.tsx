@@ -2,9 +2,12 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import {
+  openRouterConfigurationClearResponseSchema,
   openRouterConfigurationInputSchema,
   openRouterConfigurationResponseSchema,
+  openRouterConnectionTestResponseSchema,
   runtimeActionGuidance,
+  type OpenRouterConnectionTestResponse,
   type RuntimeServiceStatus,
   type RuntimeStatus,
 } from "../src/domain/runtime";
@@ -62,10 +65,17 @@ export function ConnectionHealth({ status, error, checking, onRefresh }: Props) 
   const [configurationError, setConfigurationError] = useState("");
   const [savedModel, setSavedModel] = useState<string>();
   const [showSavedState, setShowSavedState] = useState(false);
+  const [clearPending, setClearPending] = useState(false);
+  const [confirmingRemoval, setConfirmingRemoval] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [connectionTest, setConnectionTest] = useState<OpenRouterConnectionTestResponse>();
   const appState: DisplayState = status?.services.app.state ?? (error ? "unavailable" : "checking");
   const eveState: DisplayState = status?.services.eve.state ?? "checking";
   const mcpState: DisplayState = status?.services.mcp.state ?? "checking";
-  const guidance = savedModel
+  const guidance = clearPending
+    ? ["Restart Andhrím with pnpm start to finish returning to fixture mode."]
+    : savedModel
     ? [`Restart Andhrím with pnpm start to activate ${savedModel}.`]
     : status
       ? runtimeActionGuidance(status)
@@ -73,7 +83,9 @@ export function ConnectionHealth({ status, error, checking, onRefresh }: Props) 
   const lastDiagnostic = status
     ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "medium" }).format(new Date(status.lastDiagnosticAt))
     : "Not available yet";
-  const configurationNote = savedModel
+  const configurationNote = clearPending
+    ? "The saved key was removed. Restart once to return to fixture mode."
+    : savedModel
     ? "The OpenRouter setup is saved locally. Restart once to activate it."
     : !status
     ? "Reading the local runtime configuration."
@@ -88,12 +100,13 @@ export function ConnectionHealth({ status, error, checking, onRefresh }: Props) 
     setApiKey("");
     setConfigurationError("");
     setShowSavedState(false);
+    setConfirmingRemoval(false);
     dialogRef.current?.showModal();
     requestAnimationFrame(() => modelInputRef.current?.focus());
   }
 
   function closeConfiguration() {
-    if (saving) return;
+    if (saving || removing || testing) return;
     setApiKey("");
     dialogRef.current?.close();
   }
@@ -131,13 +144,88 @@ export function ConnectionHealth({ status, error, checking, onRefresh }: Props) 
       const saved = openRouterConfigurationResponseSchema.parse(payload);
       setApiKey("");
       setSavedModel(saved.modelId);
+      setClearPending(false);
       setShowSavedState(true);
+      setConnectionTest(undefined);
     } catch (caught) {
       setConfigurationError(caught instanceof Error ? caught.message : "Andhrím could not save the local OpenRouter configuration.");
     } finally {
       setSaving(false);
     }
   }
+
+  async function testConnection() {
+    if (!status?.sessionNonce) {
+      setConfigurationError("Run the diagnostic, then try the connection check again.");
+      return;
+    }
+    setTesting(true);
+    setConfigurationError("");
+    setConnectionTest(undefined);
+    try {
+      const response = await fetch("/api/runtime/test", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-agent-or-not-session": status.sessionNonce,
+        },
+        body: "{}",
+      });
+      const payload = await response.json() as unknown;
+      if (!response.ok) {
+        const apiError = payload && typeof payload === "object" && "error" in payload
+          ? String(payload.error)
+          : "Andhrím could not test the saved OpenRouter setup.";
+        throw new Error(apiError);
+      }
+      setConnectionTest(openRouterConnectionTestResponseSchema.parse(payload));
+    } catch (caught) {
+      setConfigurationError(caught instanceof Error ? caught.message : "Andhrím could not test the saved OpenRouter setup.");
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  async function removeConfiguration() {
+    if (!status?.sessionNonce) {
+      setConfigurationError("Run the diagnostic, then try removing the saved key again.");
+      return;
+    }
+    setRemoving(true);
+    setConfigurationError("");
+    try {
+      const response = await fetch("/api/runtime/configure", {
+        method: "DELETE",
+        headers: {
+          "content-type": "application/json",
+          "x-agent-or-not-session": status.sessionNonce,
+        },
+        body: "{}",
+      });
+      const payload = await response.json() as unknown;
+      if (!response.ok) {
+        const apiError = payload && typeof payload === "object" && "error" in payload
+          ? String(payload.error)
+          : "Andhrím could not remove the saved OpenRouter key.";
+        throw new Error(apiError);
+      }
+      openRouterConfigurationClearResponseSchema.parse(payload);
+      setSavedModel(undefined);
+      setClearPending(true);
+      setShowSavedState(false);
+      setConfirmingRemoval(false);
+      setConnectionTest(undefined);
+      dialogRef.current?.close();
+    } catch (caught) {
+      setConfigurationError(caught instanceof Error ? caught.message : "Andhrím could not remove the saved OpenRouter key.");
+    } finally {
+      setRemoving(false);
+    }
+  }
+
+  const hasOpenRouterConfiguration = !clearPending && Boolean(
+    savedModel || (status?.providerMode === "openrouter" && status.configured),
+  );
 
   return (
     <section className={styles.panel} id="connection-health" aria-labelledby="connection-health-heading">
@@ -152,16 +240,34 @@ export function ConnectionHealth({ status, error, checking, onRefresh }: Props) 
       </div>
 
       <div className={styles.configuration} aria-label="Runtime configuration">
-        <div><span>Mode</span><strong>{savedModel ? "OpenRouter after restart" : status ? (status.providerMode === "fixture" ? "Fixture" : "OpenRouter") : "Reading…"}</strong></div>
-        <div><span>Selected model</span><strong>{savedModel ?? status?.modelId ?? "Not selected"}</strong></div>
-        <div><span>Configuration</span><strong data-ready={!savedModel && (status?.configured ?? false)}>{savedModel ? "Restart required" : status ? (status.configured ? "Configured" : "Needs setup") : "Reading…"}</strong></div>
+        <div><span>Mode</span><strong>{clearPending ? "Fixture after restart" : savedModel ? "OpenRouter after restart" : status ? (status.providerMode === "fixture" ? "Fixture" : "OpenRouter") : "Reading…"}</strong></div>
+        <div><span>Selected model</span><strong>{clearPending ? "None after restart" : savedModel ?? status?.modelId ?? "Not selected"}</strong></div>
+        <div><span>Configuration</span><strong data-ready={!savedModel && !clearPending && (status?.configured ?? false)}>{savedModel || clearPending ? "Restart required" : status ? (status.configured ? "Configured" : "Needs setup") : "Reading…"}</strong></div>
         <div className={styles.configurationAction}>
           <p>{configurationNote}</p>
-          <button type="button" onClick={openConfiguration} disabled={!status?.sessionNonce}>
-            {savedModel ? "Change saved setup" : status?.providerMode === "openrouter" && status.configured ? "Edit OpenRouter setup" : "Configure OpenRouter"}
-          </button>
+          <div className={styles.configurationButtons}>
+            {hasOpenRouterConfiguration ? (
+              <button type="button" onClick={() => { void testConnection(); }} disabled={!status?.sessionNonce || testing}>
+                {testing ? "Testing…" : "Test connection"}
+              </button>
+            ) : null}
+            <button type="button" onClick={openConfiguration} disabled={!status?.sessionNonce}>
+              {savedModel ? "Change saved setup" : status?.providerMode === "openrouter" && status.configured ? "Edit OpenRouter setup" : "Configure OpenRouter"}
+            </button>
+          </div>
         </div>
       </div>
+
+      {connectionTest ? (
+        <div className={styles.connectionResult} data-state={connectionTest.state} role="status">
+          <div>
+            <span>{connectionTest.state === "ready" ? "Connection ready" : "Connection needs attention"}</span>
+            <strong>{connectionTest.modelName ?? connectionTest.modelId ?? "OpenRouter"}</strong>
+          </div>
+          <p>{connectionTest.detail}</p>
+          <small>No assessment was shared and no inference was requested.</small>
+        </div>
+      ) : null}
 
       <div className={styles.topology} aria-label="Application and internal service health">
         <div className={styles.appZone}>
@@ -202,7 +308,7 @@ export function ConnectionHealth({ status, error, checking, onRefresh }: Props) 
         ref={dialogRef}
         aria-labelledby="openrouter-configuration-heading"
         onCancel={(event) => {
-          if (saving) event.preventDefault();
+          if (saving || removing || testing) event.preventDefault();
           else setApiKey("");
         }}
         onClose={() => setApiKey("")}
@@ -224,7 +330,13 @@ export function ConnectionHealth({ status, error, checking, onRefresh }: Props) 
             <div className={styles.savedState} role="status">
               <strong>Configuration saved locally</strong>
               <p><b>{savedModel}</b> will become active after you stop the current server and run <code>pnpm start</code> again.</p>
-              <button className={styles.primaryAction} type="button" onClick={closeConfiguration}>Done</button>
+              <p>The optional connection check reads OpenRouter key and model metadata only. It sends no assessment and requests no inference.</p>
+              {connectionTest ? <p className={styles.inlineTestResult} data-state={connectionTest.state}>{connectionTest.detail}</p> : null}
+              {configurationError ? <p className={styles.formError} role="alert">{configurationError}</p> : null}
+              <div className={styles.savedActions}>
+                <button type="button" onClick={() => { void testConnection(); }} disabled={testing}>{testing ? "Testing…" : "Test connection"}</button>
+                <button className={styles.primaryAction} type="button" onClick={closeConfiguration} disabled={testing}>Done</button>
+              </div>
             </div>
           ) : (
             <>
@@ -270,13 +382,32 @@ export function ConnectionHealth({ status, error, checking, onRefresh }: Props) 
               <div className={styles.securityNote}>
                 <strong>Local secret boundary</strong>
                 <p>The key is never returned by the API or added to receipts, prompts, learning history, exports, or browser storage.</p>
+                <p>Saving only updates local configuration. No connection test or provider request runs automatically.</p>
               </div>
+
+              {hasOpenRouterConfiguration ? (
+                <div className={styles.removeConfiguration}>
+                  {confirmingRemoval ? (
+                    <div>
+                      <p>Remove the saved key and return to fixture mode after the next restart?</p>
+                      <div>
+                        <button type="button" onClick={() => setConfirmingRemoval(false)} disabled={removing}>Keep key</button>
+                        <button className={styles.dangerAction} type="button" onClick={() => { void removeConfiguration(); }} disabled={removing}>
+                          {removing ? "Removing…" : "Remove saved key"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={() => setConfirmingRemoval(true)}>Remove saved key</button>
+                  )}
+                </div>
+              ) : null}
 
               {configurationError ? <p className={styles.formError} role="alert">{configurationError}</p> : null}
 
               <div className={styles.dialogActions}>
-                <button type="button" onClick={closeConfiguration} disabled={saving}>Cancel</button>
-                <button className={styles.primaryAction} type="submit" disabled={saving}>
+                <button type="button" onClick={closeConfiguration} disabled={saving || removing}>Cancel</button>
+                <button className={styles.primaryAction} type="submit" disabled={saving || removing}>
                   {saving ? "Saving locally…" : "Save configuration"}
                 </button>
               </div>

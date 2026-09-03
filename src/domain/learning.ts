@@ -49,6 +49,18 @@ export const outcomeSchema = z.object({
 
 export type Outcome = z.infer<typeof outcomeSchema>;
 
+export const ownerEvaluationLabelSchema = z.object({
+  schemaVersion: z.literal("owner-evaluation-label-v1"),
+  labelId: recordId("evaluation-label"),
+  receiptId: recordId("receipt"),
+  revision: z.number().int().positive(),
+  labelledAt: z.iso.datetime(),
+  expectedRecommendation: z.enum(RECOMMENDATION_MODES),
+  notes: z.string().trim().max(800),
+}).strict();
+
+export type OwnerEvaluationLabel = z.infer<typeof ownerEvaluationLabelSchema>;
+
 export const ruleConditionSchema = z.object({
   factor: z.enum(assessmentFactors),
   operator: z.enum(["gte", "lte", "eq"]),
@@ -124,6 +136,7 @@ export const productEventSchema = z.discriminatedUnion("type", [
   z.object({ ...eventBase, type: z.literal("learning.superseded"), candidateId: recordId("candidate"), supersededBy: recordId("candidate") }).strict(),
   z.object({ ...eventBase, type: z.literal("learning.expired"), candidateId: recordId("candidate") }).strict(),
   z.object({ ...eventBase, type: z.literal("learning.deleted"), candidateId: recordId("candidate"), reason: boundedText(400) }).strict(),
+  z.object({ ...eventBase, type: z.literal("evaluation.labeled"), label: ownerEvaluationLabelSchema }).strict(),
 ]);
 
 export type ProductEvent = z.infer<typeof productEventSchema>;
@@ -136,10 +149,11 @@ export type ProductProjection = {
   outcomes: Record<string, Outcome>;
   candidates: Record<string, LearningCandidate>;
   rules: Record<string, ActiveRule>;
+  evaluationLabels: Record<string, OwnerEvaluationLabel>;
 };
 
 export function createEmptyProjection(): ProductProjection {
-  return { assessments: {}, receipts: {}, capabilityTraces: {}, receiptVerifications: {}, outcomes: {}, candidates: {}, rules: {} };
+  return { assessments: {}, receipts: {}, capabilityTraces: {}, receiptVerifications: {}, outcomes: {}, candidates: {}, rules: {}, evaluationLabels: {} };
 }
 
 function candidateWithStatus(candidate: LearningCandidate, status: LearningCandidate["status"]): LearningCandidate {
@@ -228,6 +242,22 @@ export function projectProductEvents(values: readonly unknown[]): ProductProject
         for (const [ruleId, rule] of Object.entries(state.rules)) {
           if (rule.candidateId === event.candidateId) state.rules[ruleId] = { ...rule, active: false };
         }
+        break;
+      }
+      case "evaluation.labeled": {
+        if (!state.receipts[event.label.receiptId]) throw new Error("Evaluation label references an unknown receipt.");
+        const current = state.evaluationLabels[event.label.labelId];
+        if (current) {
+          if (event.label.receiptId !== current.receiptId) throw new Error("Evaluation label receipt identity is immutable.");
+          if (event.label.revision !== current.revision + 1) throw new Error("Evaluation label revision must advance exactly once.");
+          if (Date.parse(event.label.labelledAt) < Date.parse(current.labelledAt)) throw new Error("Evaluation label time cannot move backwards.");
+        } else {
+          if (event.label.revision !== 1) throw new Error("A new evaluation label must start at revision one.");
+          if (Object.values(state.evaluationLabels).some((label) => label.receiptId === event.label.receiptId)) {
+            throw new Error("A receipt can have only one owner evaluation label.");
+          }
+        }
+        state.evaluationLabels[event.label.labelId] = event.label;
         break;
       }
     }

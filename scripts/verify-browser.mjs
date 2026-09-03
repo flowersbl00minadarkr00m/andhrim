@@ -116,6 +116,7 @@ childEnvironment.AGENT_OR_NOT_EGRESS_METRICS_LABEL = "start";
 childEnvironment.AGENT_OR_NOT_DATA_DIR = dataDirectory;
 childEnvironment.AGENT_OR_NOT_FIXTURE_EVIDENCE_PATH = fixtureEvidencePath;
 childEnvironment.AGENT_OR_NOT_FIXTURE_SCENARIO = "invalid-first-receipt";
+childEnvironment.AGENT_OR_NOT_PROVIDER_MODE = "fixture";
 childEnvironment.AGENT_OR_NOT_SESSION_NONCE = sessionNonce;
 childEnvironment.NEXT_TELEMETRY_DISABLED = "1";
 childEnvironment.NODE_ENV = "production";
@@ -190,6 +191,7 @@ let learningTransitionEvidence;
 let recoveryEvidence;
 let responsiveReceiptEvidence;
 let backupRestoreEvidence;
+let ownerBenchmarkEvidence;
 try {
   const baseUrl = `http://127.0.0.1:${port}`;
   const deadline = Date.now() + 45_000;
@@ -341,6 +343,16 @@ try {
   assert.equal(await page.getByText(/Eve bounded guidance harness/u).count(), 1);
   await page.getByText(/Fixture mode: assessment processing stays on this computer/u).first().waitFor();
   await page.screenshot({ path: path.join(artifactDirectory, "assessment-desktop.png"), fullPage: true });
+  await page.getByRole("link", { name: /System/u }).click();
+  await page.getByRole("heading", { name: "Connection & health" }).waitFor();
+  await page.getByRole("button", { name: "Configure OpenRouter" }).click();
+  await page.getByRole("dialog", { name: "Connect OpenRouter" }).waitFor();
+  await page.getByText("Saving only updates local configuration. No connection test or provider request runs automatically.", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "Save configuration" }).waitFor();
+  await page.screenshot({ path: path.join(artifactDirectory, "openrouter-setup-desktop.png"), fullPage: true });
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await page.goto(baseUrl, { waitUntil: "networkidle" });
+  await page.getByRole("heading", { name: "Delegation assessment" }).waitFor();
 
   const interactiveSizes = await page.locator("button:visible, a:visible, input[type=radio]:visible").evaluateAll((elements) => elements.map((element) => {
     const box = element.getBoundingClientRect();
@@ -503,6 +515,44 @@ try {
   const deletedState = await deletedStateResponse.json();
   assert.equal(deletedState.projection.candidates[approvedCandidateId].status, "deleted");
   assert.equal(Object.values(deletedState.projection.rules)[0].active, false);
+
+  await page.goto(`${baseUrl}/evaluation`, { waitUntil: "networkidle" });
+  await page.getByRole("heading", { name: "Benchmark real decisions, not just fixtures." }).waitFor();
+  await page.getByLabel("Recorded case").selectOption(semanticReceipt.receiptId);
+  await page.getByLabel(/Owner’s expected posture/u).selectOption("human-led");
+  await page.getByLabel(/Why\?/u).fill("Owner confirms that the approved boundary should keep this case human-led.");
+  await page.getByRole("button", { name: "Save owner label" }).click();
+  await page.getByText("Owner label saved to the local ledger. No provider call was made.").waitFor();
+  const labelledStateResponse = await page.request.get(`${baseUrl}/api/state`);
+  assert.equal(labelledStateResponse.ok(), true);
+  const labelledState = await labelledStateResponse.json();
+  const evaluationLabels = Object.values(labelledState.projection.evaluationLabels);
+  assert.equal(evaluationLabels.length, 1);
+  assert.deepEqual(evaluationLabels[0], {
+    schemaVersion: "owner-evaluation-label-v1",
+    labelId: `evaluation-label-${semanticReceipt.receiptId.slice("receipt-".length)}`,
+    receiptId: semanticReceipt.receiptId,
+    revision: 1,
+    labelledAt: evaluationLabels[0].labelledAt,
+    expectedRecommendation: "human-led",
+    notes: "Owner confirms that the approved boundary should keep this case human-led.",
+  });
+  assert.match(evaluationLabels[0].labelledAt, /^\d{4}-\d{2}-\d{2}T/u);
+  await page.getByText("100%", { exact: true }).waitFor();
+  await page.screenshot({ path: path.join(artifactDirectory, "owner-benchmark-desktop.png"), fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const benchmarkLayout = await page.locator("section").filter({ has: page.getByRole("heading", { name: "Benchmark real decisions, not just fixtures." }) }).evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+    left: element.getBoundingClientRect().left,
+    right: element.getBoundingClientRect().right,
+  }));
+  assert.ok(benchmarkLayout.left >= 0 && benchmarkLayout.right <= 390 && benchmarkLayout.scrollWidth <= benchmarkLayout.clientWidth + 1);
+  await page.screenshot({ path: path.join(artifactDirectory, "owner-benchmark-mobile.png"), fullPage: true });
+  ownerBenchmarkEvidence = { labels: 1, agreementRate: 100, providerCalls: 0, mobileNoHorizontalOverflow: true };
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto(baseUrl, { waitUntil: "networkidle" });
+
   const exportResponse = await page.request.get(`${baseUrl}/api/export`);
   assert.equal(exportResponse.ok(), true);
   const exportPayload = await exportResponse.json();
@@ -684,7 +734,7 @@ assert.ok(metrics.length >= 2);
 assert.ok(metrics.every((record) => record.attempted === 0 && record.blocked === 0));
 const ledger = fs.readFileSync(path.join(dataDirectory, "events.ndjson"), "utf8").trim().split(/\r?\n/u).map(JSON.parse);
 assert.deepEqual(ledger.map((event) => event.type), [
-  "recommendation.recorded", "recommendation.edited", "outcome.recorded", "learning.proposed", "learning.edited", "learning.approved", "recommendation.recorded", "learning.expired", "learning.deleted",
+  "recommendation.recorded", "recommendation.edited", "outcome.recorded", "learning.proposed", "learning.edited", "learning.approved", "recommendation.recorded", "learning.expired", "learning.deleted", "evaluation.labeled",
 ]);
 const fixtureEvidence = fs.readFileSync(fixtureEvidencePath, "utf8").trim().split(/\r?\n/u).map(JSON.parse);
 assert.equal(fixtureEvidence.length, 9, "The browser flow must reconcile two three-step validation sessions plus one later three-step request.");
@@ -722,12 +772,13 @@ process.stdout.write(`${JSON.stringify({
     unexpectedThirdSession: false,
   },
   learningTransitionRace: learningTransitionEvidence,
+  ownerBenchmark: ownerBenchmarkEvidence,
   responsiveReceipt: responsiveReceiptEvidence,
   backupRestore: backupRestoreEvidence,
   ledgerRecovery: recoveryEvidence,
   exportEvidence,
   fixtureEvidence,
   eventTypes: ledger.map((event) => event.type),
-  screenshots: ["assessment-desktop.png", "receipt-decision-desktop.png", "receipt-trust-desktop.png", "receipt-decision-mobile.png", "receipt-trust-mobile.png", "learning-resumed-desktop.png", "learning-resumed-mobile.png", "learning-approved-desktop.png", "approved-rule-provenance.png", "backup-validation-desktop.png", "backup-restore-mobile.png", "assessment-mobile.png", "ledger-recovery-mobile.png"],
+  screenshots: ["assessment-desktop.png", "openrouter-setup-desktop.png", "receipt-decision-desktop.png", "receipt-trust-desktop.png", "receipt-decision-mobile.png", "receipt-trust-mobile.png", "learning-resumed-desktop.png", "learning-resumed-mobile.png", "learning-approved-desktop.png", "approved-rule-provenance.png", "owner-benchmark-desktop.png", "owner-benchmark-mobile.png", "backup-validation-desktop.png", "backup-restore-mobile.png", "assessment-mobile.png", "ledger-recovery-mobile.png"],
 })}\n`);
 fs.rmSync(scratch, { recursive: true, force: true });

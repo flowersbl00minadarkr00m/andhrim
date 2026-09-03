@@ -104,6 +104,7 @@ function projection(status: ProductProjection["candidates"][string]["status"] = 
         adjustment: { targetRecommendation: "human-led", weightDelta: -2 },
       },
     },
+    evaluationLabels: {},
   };
 }
 

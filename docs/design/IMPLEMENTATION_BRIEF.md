@@ -40,4 +40,4 @@ The images are visual references, not implementation evidence. All text, control
 
 ## Non-negotiable boundaries
 
-Follow `PROTOTYPE_SCOPE.md` and `LESSONS_LEARNED.md`. Do not modify `C:\Users\henry\andhrim`, access credentials, call OpenRouter, publish GitHub, select a licence, add hosted deployment or claim production/full-feature completion without explicit owner release.
+Follow `PROTOTYPE_SCOPE.md` and `LESSONS_LEARNED.md`. Keep the canonical Andhrím repository read-only. Do not access credentials, call OpenRouter, publish externally, change licensing, add hosted deployment, or claim production/full-feature completion without explicit owner release.

@@ -5,7 +5,10 @@ import {
   assertLocalMutationRequest,
   localRequestErrorResponse,
 } from "../../../../src/server/local-request-security";
-import { writeOpenRouterEnvironment } from "../../../../src/server/openrouter-configuration";
+import {
+  removeOpenRouterEnvironment,
+  writeOpenRouterEnvironment,
+} from "../../../../src/server/openrouter-configuration";
 
 export const runtime = "nodejs";
 
@@ -42,6 +45,25 @@ export async function POST(request: Request) {
       });
     }
     return Response.json({ error: "Andhrím could not save the local OpenRouter configuration." }, {
+      status: 500,
+      headers: { "cache-control": "no-store" },
+    });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    assertLocalMutationRequest(request);
+    await removeOpenRouterEnvironment();
+    return Response.json({
+      schemaVersion: "openrouter-configuration-clear-response-v1",
+      providerMode: "fixture",
+      restartRequired: true,
+    }, { headers: { "cache-control": "no-store" } });
+  } catch (error) {
+    const securityResponse = localRequestErrorResponse(error);
+    if (securityResponse) return securityResponse;
+    return Response.json({ error: "Andhrím could not remove the saved OpenRouter key." }, {
       status: 500,
       headers: { "cache-control": "no-store" },
     });

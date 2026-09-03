@@ -24,4 +24,15 @@ describe("bounded JSON request reader", () => {
       message: "The selected backup is malformed JSON.",
     });
   });
+
+  it("uses boundary-specific labels without exposing request contents", async () => {
+    await expect(readLimitedJsonRequest(new Request("http://127.0.0.1:3000/api/events", {
+      method: "POST",
+      headers: { "content-length": "300000" },
+      body: "{}",
+    }), 262_144, { overflow: "local event action", malformed: "local event action" })).rejects.toMatchObject({
+      status: 413,
+      message: "The local event action exceeds the 262144-byte limit.",
+    });
+  });
 });

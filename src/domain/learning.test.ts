@@ -251,4 +251,34 @@ describe("owner-approved learning projection", () => {
       event("event-approval", { type: "learning.approved", candidateId: candidate.candidateId, rule }),
     ])).toThrow(/behavior/u);
   });
+
+  it("records and revises one owner evaluation label per receipt", () => {
+    const first = {
+      schemaVersion: "owner-evaluation-label-v1" as const,
+      labelId: "evaluation-label-provider-free-seam",
+      receiptId: fixtureReceipt.receiptId,
+      revision: 1,
+      labelledAt: "2026-09-02T20:00:00.000Z",
+      expectedRecommendation: "human-led" as const,
+      notes: "The owner should retain the final decision.",
+    };
+    const revised = {
+      ...first,
+      revision: 2,
+      labelledAt: "2026-09-02T20:05:00.000Z",
+      expectedRecommendation: "ai-assisted" as const,
+    };
+    const base = event("event-recommendation", { type: "recommendation.recorded", assessment, receipt: fixtureReceipt });
+    const state = projectProductEvents([
+      base,
+      event("event-label", { type: "evaluation.labeled", label: first }),
+      event("event-relabel", { type: "evaluation.labeled", label: revised }),
+    ]);
+
+    expect(state.evaluationLabels[first.labelId]).toMatchObject({ revision: 2, expectedRecommendation: "ai-assisted" });
+    expect(() => projectProductEvents([
+      base,
+      event("event-invalid-label", { type: "evaluation.labeled", label: { ...first, revision: 2 } }),
+    ])).toThrow(/revision one/u);
+  });
 });

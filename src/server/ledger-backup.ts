@@ -36,6 +36,7 @@ export const PRODUCT_EVENT_TYPES = [
   "learning.superseded",
   "learning.expired",
   "learning.deleted",
+  "evaluation.labeled",
 ] as const satisfies readonly ProductEvent["type"][];
 
 const backupEnvelopeShapeSchema = z.object({
@@ -76,6 +77,7 @@ export type ProjectedEntityCounts = {
   outcomes: number;
   candidates: number;
   rules: number;
+  evaluationLabels: number;
 };
 
 export type BackupValidationReport = {
@@ -155,6 +157,7 @@ function countProjection(projection: ProductProjection): ProjectedEntityCounts {
     outcomes: Object.keys(projection.outcomes).length,
     candidates: Object.keys(projection.candidates).length,
     rules: Object.keys(projection.rules).length,
+    evaluationLabels: Object.keys(projection.evaluationLabels).length,
   };
 }
 

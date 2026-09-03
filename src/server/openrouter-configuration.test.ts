@@ -3,7 +3,13 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { openRouterConfigurationInputSchema } from "../domain/runtime";
-import { updateOpenRouterEnvironment, writeOpenRouterEnvironment } from "./openrouter-configuration";
+import {
+  clearOpenRouterEnvironment,
+  readOpenRouterEnvironment,
+  removeOpenRouterEnvironment,
+  updateOpenRouterEnvironment,
+  writeOpenRouterEnvironment,
+} from "./openrouter-configuration";
 
 describe("OpenRouter local configuration", () => {
   it("validates explicit model identifiers and bounded keys", () => {
@@ -61,6 +67,50 @@ describe("OpenRouter local configuration", () => {
       expect(saved).toContain("AGENT_OR_NOT_PROVIDER_MODE=openrouter\n");
       expect(saved).toContain("OPENROUTER_MODEL=openai/gpt-5.4-nano\n");
       expect(saved).toContain(`${keyName}=${"x".repeat(32)}\n`);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("reads only a complete validated OpenRouter configuration from a regular local file", async () => {
+    const directory = await mkdtemp(path.join(os.tmpdir(), "andhrim-openrouter-read-"));
+    const environmentPath = path.join(directory, ".env.local");
+    try {
+      await writeFile(environmentPath, [
+        "AGENT_OR_NOT_PROVIDER_MODE=openrouter",
+        "OPENROUTER_MODEL=openai/gpt-4.1-mini",
+        `OPENROUTER_API_KEY=${"x".repeat(32)}`,
+        "",
+      ].join("\n"), "utf8");
+      await expect(readOpenRouterEnvironment(environmentPath)).resolves.toEqual({
+        modelId: "openai/gpt-4.1-mini",
+        apiKey: "x".repeat(32),
+      });
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("removes the saved provider settings while preserving unrelated local configuration", async () => {
+    const source = [
+      "UNRELATED_SETTING=preserved",
+      "AGENT_OR_NOT_PROVIDER_MODE=openrouter",
+      "OPENROUTER_MODEL=openai/gpt-4.1-mini",
+      `OPENROUTER_API_KEY=${"x".repeat(32)}`,
+      "",
+    ].join("\n");
+    const cleared = clearOpenRouterEnvironment(source);
+    expect(cleared).toContain("UNRELATED_SETTING=preserved\n");
+    expect(cleared).toContain("AGENT_OR_NOT_PROVIDER_MODE=fixture\n");
+    expect(cleared).toContain("OPENROUTER_MODEL=\n");
+    expect(cleared).toContain("OPENROUTER_API_KEY=\n");
+
+    const directory = await mkdtemp(path.join(os.tmpdir(), "andhrim-openrouter-clear-"));
+    const environmentPath = path.join(directory, ".env.local");
+    try {
+      await writeFile(environmentPath, source, "utf8");
+      await removeOpenRouterEnvironment(environmentPath);
+      await expect(readOpenRouterEnvironment(environmentPath)).resolves.toBeNull();
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

@@ -29,6 +29,29 @@ export const openRouterConfigurationResponseSchema = z.object({
 
 export type OpenRouterConfigurationResponse = z.infer<typeof openRouterConfigurationResponseSchema>;
 
+export const openRouterConfigurationClearResponseSchema = z.object({
+  schemaVersion: z.literal("openrouter-configuration-clear-response-v1"),
+  providerMode: z.literal("fixture"),
+  restartRequired: z.literal(true),
+}).strict();
+
+export type OpenRouterConfigurationClearResponse = z.infer<typeof openRouterConfigurationClearResponseSchema>;
+
+export const openRouterConnectionTestResponseSchema = z.object({
+  schemaVersion: z.literal("openrouter-connection-test-response-v1"),
+  state: z.enum(["ready", "invalid-key", "model-unavailable", "unavailable"]),
+  modelId: openRouterModelIdSchema.nullable(),
+  modelName: z.string().trim().min(1).max(160).nullable(),
+  authenticated: z.boolean(),
+  modelAvailable: z.boolean(),
+  inferenceRequested: z.literal(false),
+  assessmentShared: z.literal(false),
+  checkedAt: z.iso.datetime(),
+  detail: z.string().trim().min(1).max(360),
+}).strict();
+
+export type OpenRouterConnectionTestResponse = z.infer<typeof openRouterConnectionTestResponseSchema>;
+
 export const runtimeServiceStatusSchema = z.object({
   state: z.enum(["healthy", "unavailable"]),
   detail: z.string().trim().min(1).max(180),

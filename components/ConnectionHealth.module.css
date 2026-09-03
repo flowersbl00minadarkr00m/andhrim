@@ -126,7 +126,8 @@
 
 .configurationAction button,
 .dialogActions button,
-.savedState button {
+.savedState button,
+.removeConfiguration button {
   min-height: 42px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
@@ -141,16 +142,80 @@
 
 .configurationAction button:hover:not(:disabled),
 .dialogActions button:hover:not(:disabled),
-.savedState button:hover:not(:disabled) {
+.savedState button:hover:not(:disabled),
+.removeConfiguration button:hover:not(:disabled) {
   border-color: var(--accent-text);
 }
 
 .configurationAction button:disabled,
 .dialogActions button:disabled,
 .savedState button:disabled,
+.removeConfiguration button:disabled,
 .closeButton:disabled {
   cursor: wait;
   opacity: .55;
+}
+
+.configurationButtons,
+.savedActions,
+.removeConfiguration > div > div {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.connectionResult {
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 13px 16px;
+  display: grid;
+  grid-template-columns: minmax(150px, .65fr) minmax(280px, 1.5fr) auto;
+  align-items: center;
+  gap: 18px;
+  background: var(--surface-inset);
+}
+
+.connectionResult[data-state="ready"] {
+  border-color: rgba(88, 223, 139, .38);
+}
+
+.connectionResult[data-state="invalid-key"],
+.connectionResult[data-state="model-unavailable"],
+.connectionResult[data-state="unavailable"] {
+  border-color: rgba(255, 136, 127, .38);
+}
+
+.connectionResult span,
+.connectionResult strong {
+  display: block;
+}
+
+.connectionResult span {
+  color: var(--quiet);
+  font-size: 9px;
+  font-weight: 820;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.connectionResult strong {
+  margin-top: 3px;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.connectionResult p,
+.connectionResult small {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.connectionResult small {
+  color: var(--success);
+  text-align: right;
 }
 
 .topology {
@@ -527,6 +592,58 @@
   margin-top: 22px;
 }
 
+.savedActions {
+  margin-top: 22px;
+}
+
+.savedActions button {
+  margin-top: 0;
+}
+
+.inlineTestResult {
+  border-left: 2px solid var(--accent-text);
+  padding: 9px 11px;
+  background: var(--surface-inset);
+}
+
+.inlineTestResult[data-state="ready"] {
+  border-left-color: var(--success);
+  color: var(--success);
+}
+
+.inlineTestResult[data-state="invalid-key"],
+.inlineTestResult[data-state="model-unavailable"],
+.inlineTestResult[data-state="unavailable"] {
+  border-left-color: var(--danger);
+  color: var(--danger);
+}
+
+.removeConfiguration {
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 15px;
+}
+
+.removeConfiguration > button {
+  min-height: 36px;
+  border-color: transparent;
+  padding-left: 0;
+  background: transparent;
+  color: var(--danger);
+}
+
+.removeConfiguration p {
+  margin: 0 0 10px;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.removeConfiguration .dangerAction {
+  border-color: rgba(255, 136, 127, .42);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
 @media (max-width: 920px) {
   .configuration {
     grid-template-columns: repeat(3, 1fr);
@@ -536,6 +653,28 @@
     grid-column: 1 / -1;
     border-top: 1px solid var(--line);
     border-left: 0;
+  }
+
+  .configurationButtons,
+  .savedActions,
+  .removeConfiguration > div > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .configurationButtons button,
+  .savedActions button,
+  .removeConfiguration button {
+    width: 100%;
+  }
+
+  .connectionResult {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .connectionResult small {
+    text-align: left;
   }
 
   .topology {
